@@ -20,6 +20,8 @@
   --glow-cool:0 0 2px #fff,0 0 9px var(--slow),0 0 24px var(--slow),0 0 60px color-mix(in srgb,var(--slow) 65%,transparent);
   --glow-soft:0 0 6px color-mix(in srgb,var(--accent) 80%,transparent),0 0 30px color-mix(in srgb,var(--accent) 55%,transparent);
   --glow-plain:0 0 18px rgba(255,255,255,.28);
+  --tube-violet:#f5eeff;
+  --glow-violet:0 0 2px #fff,0 0 9px var(--lv3),0 0 24px var(--lv3),0 0 60px color-mix(in srgb,var(--lv3) 65%,transparent);
   --tube-green:#eafff2;
   --glow-green:0 0 2px #fff,0 0 9px var(--lv1),0 0 24px var(--lv1),0 0 56px color-mix(in srgb,var(--lv1) 60%,transparent);
   --box-green:0 0 14px color-mix(in srgb,var(--lv1) 60%,transparent),inset 0 0 14px color-mix(in srgb,var(--lv1) 35%,transparent);
@@ -40,6 +42,7 @@
   --ok:#2c8a57; --warn:#a06f0c; --bad:#c04444;
   --tube-warm:var(--accent); --tube-cool:var(--slow);
   --glow-warm:none; --glow-cool:none; --glow-soft:none; --glow-plain:none; --glow-cool-soft:none; --sign-shadow:none;
+  --tube-violet:var(--lv3); --glow-violet:none;
   --tube-green:var(--lv1); --glow-green:none; --box-green:none; --gear-glow:none;
   --lv1:#16904a; --lv2:#0c8a82; --lv3:#6b3fd1; --lv4:#c2259a; --lv5:#967000;
   --btn-bg:var(--accent); --btn-fg:#fff; --btn-shadow:none;
@@ -174,11 +177,13 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 #word.soon{color:transparent;text-shadow:none;-webkit-text-stroke:1.5px var(--muted)}
 #word.burst.soon{-webkit-text-stroke-color:color-mix(in srgb,var(--accent) 55%,var(--bg))}
 #word.slow.soon{-webkit-text-stroke-color:color-mix(in srgb,var(--slow) 55%,var(--bg))}
-#word.burst:not(.soon),#word.slow:not(.soon){animation:lit .38s linear}
+#word.groove{color:var(--tube-violet);text-shadow:var(--glow-violet)}
+#word.groove.soon{color:transparent;text-shadow:none;-webkit-text-stroke-color:color-mix(in srgb,var(--lv3) 55%,var(--bg))}
+#word.burst:not(.soon),#word.slow:not(.soon),#word.groove:not(.soon){animation:lit .38s linear}
 @keyframes lit{0%{opacity:.35}10%{opacity:1}18%{opacity:.5}30%{opacity:1}40%{opacity:.8}55%{opacity:1}}
 #hint{display:flex;flex-direction:column;min-width:0;color:var(--muted);font-size:clamp(14px,4.4vh,20px);line-height:1.15}
 #hintLbl{font-size:clamp(11px,3.2vh,14px);letter-spacing:.16em;text-transform:uppercase;font-weight:600}
-#hint.warm #hintLbl{color:var(--accent)} #hint.cool #hintLbl{color:var(--slow)}
+#hint.warm #hintLbl{color:var(--accent)} #hint.cool #hintLbl{color:var(--slow)} #hint.violet #hintLbl{color:var(--lv3)}
 #hint.task #hintTxt{color:var(--text);font-weight:650;font-size:clamp(20px,7.6vh,38px);letter-spacing:-.01em;text-wrap:balance}
 #hint.dim #hintTxt{font-size:clamp(16px,5.4vh,26px)}
 #lane{flex:1 1 auto;min-height:0;width:100%;display:block}
@@ -268,6 +273,14 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <div class="legend" id="legend"></div>
     <p class="note">Moll-Pentatonik in A, fünfter Bund. Tippe ein Lick an, um es frei zu üben. Die Punkte zeigen saubere Tage. Die Farbe zeigt, wie weit ein Lick ist: Grün ab dem ersten sauberen Tag, Türkis ab fünf Tagen mit längeren Bursts, Violett ab acht Tagen mit Sechzehntel-Phase, Pink ab 100 BPM, Gold am Ziel.</p>
     <ul class="rows" id="lickList"></ul>
+    <h2 style="margin-top:34px"><span class="neon">Rhythmus</span> ausprobieren</h2>
+    <p class="note">Kurze Runden ohne Bewertung mit dem heutigen Lick. In der täglichen Einheit kommen Triolen, 3/4 und 6/8 nur ab und zu als Gast vor. Die Sechzehntel-Rhythmen gehören zu jedem gefestigten Lick.</p>
+    <div class="toolrow" id="tryRow">
+      <button class="ghost" type="button" data-try="rhy">Sechzehntel-Rhythmen</button>
+      <button class="ghost" type="button" data-try="trip">Triolen</button>
+      <button class="ghost" type="button" data-try="34">3/4-Takt</button>
+      <button class="ghost" type="button" data-try="68">6/8-Takt</button>
+    </div>
   </section>
 
   <section class="view" data-view="griffbrett">
@@ -426,18 +439,18 @@ const SPIDER = [
   [[5,8],[5,7],[5,6],[5,5],[6,8],[6,7],[6,6],[6,5]]
 ];
 const HINTS = ["Zielton aushalten","Leise spielen","Akzent auf die Eins","Jeden Ton ausklingen lassen","Grundton betonen"];
-const MODE = {count:"Einzählen", N:"Achtel", B:"Sechzehntel", S:"Viertel"};
+const MODE = {count:"Einzählen", N:"Achtel", B:"Sechzehntel", S:"Viertel", R:"Sechzehntel-Rhythmus"};
 const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel-Phase"};
 
 /* ================= state ================= */
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
   return {v:1, updatedAt:0, settings:{theme:"dark", tuning:"std", fbLimit:8, beat:"click", harmony:"chord", warmup:true, lickSound:false, fretboard:false, minutes:10},
-          introduced:2, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}};
+          introduced:3, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}};
 }
 let state = fresh();
 /* older saves had a plain on/off switch for chords */
-function adopt(s){ const st = Object.assign(fresh().settings, s.settings||{}); if(st.chords === false) st.harmony = "off"; delete st.chords; return Object.assign(fresh(), s, {settings:st}); }
+function adopt(s){ const st = Object.assign(fresh().settings, s.settings||{}); if(st.chords === false) st.harmony = "off"; delete st.chords; const o = Object.assign(fresh(), s, {settings:st}); o.introduced = Math.max(3, o.introduced || 0); return o; }
 try{ const raw = localStorage.getItem(KEY); if(raw){ const s = JSON.parse(raw); if(s && s.v===1) state = adopt(s); } }catch(e){}
 
 function P(id){ return state.prog[id] || (state.prog[id] = {bpm:60, at:[], days:[], hist:[], last:null}); }
@@ -494,7 +507,7 @@ function streak(){
 }
 function activeLicks(){ return LICKS.slice(0, state.introduced); }
 function maybeIntroduce(){
-  while(state.introduced < LICKS.length && activeLicks().every(l => peek(l.id).days.length >= 2)) state.introduced++;
+  while(state.introduced < LICKS.length && activeLicks().every(l => peek(l.id).days.length >= 1)) state.introduced++;
 }
 function lickOrder(){
   return activeLicks().slice().sort((a,b) => {
@@ -560,15 +573,73 @@ function mkBars(notes, type, meta){
   return bars;
 }
 function countBar(chord){ return {type:"count", chord:chord||null, label:"", hint:"", notes:[]}; }
-function barsFor(sec, bpm, min){ return Math.max(min, Math.round(sec*bpm/240)); }
+function barsFor(sec, bpm, min, bpb){ return Math.max(min, Math.round(sec*bpm/(60*(bpb||4)))); }
+/* A phrase with free onsets (in beats). The last note is held to the end of its bar, so every phrase lands on its target tone. */
+function phrase(notes, onset, o){
+  const bpb = o.bpb || 4, ch = o.chord ? CHORDS[o.chord] : null, on = notes.map((n,k) => onset(k));
+  const nb = Math.floor(on[on.length-1].b/bpb + 1e-9) + 1, bars = [];
+  for(let i=0;i<nb;i++) bars.push({type:o.type||"N", chord:o.chord||null, label:i===0 ? (o.label||"") : "", hint:o.hint||"", mode:o.mode||"", sub:o.sub||0, notes:[]});
+  notes.forEach((n,k) => {
+    const b = on[k].b, bi = Math.floor(b/bpb + 1e-9), end = k < notes.length-1 ? on[k+1].b : nb*bpb, m = midiOf(n[0], n[1]);
+    bars[bi].notes.push({b:b-bi*bpb, s:n[0], f:n[1], dur:end-b, up:!!on[k].up, acc:!!on[k].acc, target:k===notes.length-1, root:!!ch && m%12===ch.root, midi:m});
+  });
+  return bars;
+}
+/* Sixteenth rhythms with rests and accents. Slots are sixteenths in a 4/4 bar; the picking hand keeps moving: down on even slots, up on odd ones. */
+const RHY = [
+  {name:"Galopp", hint:"Galopp: lang, kurz, kurz", slots:[0,2,3,4,6,7,8,10,11,12,14,15]},
+  {name:"Umgekehrter Galopp", hint:"Kurz, kurz, lang", slots:[0,1,2,4,5,6,8,9,10,12,13,14]},
+  {name:"3 + 3 + 2", hint:"Zähle 3 + 3 + 2", slots:[0,3,6,8,11,14]},
+  {name:"Akzente", hint:"Achtel, Akzente auf 3 + 3 + 2", slots:[0,2,4,6,8,10,12,14], acc:[0,3,6]}
+];
+function rhyBars(lick, r){
+  const n = r.slots.length;
+  return phrase(lick.notes, k => ({b:Math.floor(k/n)*4 + r.slots[k%n]*.25, up:r.slots[k%n]%2===1, acc:!!r.acc && r.acc.includes(k%n)}), {type:"R", chord:lick.chord, hint:r.hint, label:r.name, mode:"Sechzehntel-Rhythmus"});
+}
+function rhyCount(id){ const d = peek(id).days.length; return d < 5 ? 0 : Math.min(RHY.length, 1 + Math.floor((d-5)/2)); }
+function rhythmBlock(lick){
+  const bpm = Math.max(50, peek(lick.id).bpm - 8), bars = [countBar(lick.chord)], add = x => bars.push.apply(bars, x);
+  add(mkBars(lick.notes, "N", {chord:lick.chord}));
+  RHY.forEach(r => { add(rhyBars(lick, r)); add(rhyBars(lick, r)); add(mkBars(lick.notes, "N", {chord:lick.chord})); });
+  add(mkBars(lick.notes, "S", {chord:lick.chord, hint:"Zielton aushalten"}));
+  return {kind:"guest", title:"Rhythmus · "+lick.name, bpm:bpm, bars:bars, rated:false, shape:lick.notes, chord:lick.chord};
+}
+/* Guest units: triplets, 3/4 and 6/8. Unrated, slower than the lick's own tempo. */
+const GUESTS = {trip:"Triolen", "34":"3/4-Takt", "68":"6/8-Takt"};
+function guestBlock(lick, kind, sec){
+  const base = peek(lick.id).bpm, c = lick.chord, nt = lick.notes, bars = [], add = x => bars.push.apply(bars, x);
+  let bpb = 4, bpm, cyc, note;
+  const alt = k => k%2===1;
+  if(kind === "trip"){
+    bpm = Math.max(44, Math.round(base*.62)); note = "Drei Töne pro Schlag";
+    const T = () => phrase(nt, k => ({b:k/3, up:alt(k), acc:k%3===0}), {chord:c, mode:"Achteltriolen", label:"Triolen", sub:3});
+    cyc = () => { add(mkBars(nt, "S", {chord:c, hint:"Langsam, den Puls spüren"})); add(mkBars(nt, "N", {chord:c, label:"Achtel"})); add(T()); add(T()); add(mkBars(nt, "N", {chord:c, label:"Achtel"})); add(T()); add(T()); };
+  }else if(kind === "34"){
+    bpb = 3; bpm = Math.max(48, base - 8); note = "Drei Schläge pro Takt";
+    const W = () => phrase(nt, k => ({b:k*.5, up:alt(k), acc:k%6===0}), {bpb:3, chord:c, mode:"Achtel im 3/4", label:"3/4"});
+    cyc = () => { add(phrase(nt, k => ({b:k}), {bpb:3, type:"S", chord:c, hint:"Zähle 1 2 3, schwer auf der Eins", mode:"Viertel im 3/4"})); add(W()); add(W()); add(W()); };
+  }else{
+    bpb = 2; bpm = Math.max(44, Math.round(base*.62)); note = "Zwei Schläge, jeder in drei geteilt";
+    const W = () => phrase(nt, k => ({b:k/3, up:alt(k), acc:k%3===0}), {bpb:2, chord:c, mode:"Achtel im 6/8", label:"6/8", sub:3});
+    cyc = () => { add(phrase(nt, k => ({b:k}), {bpb:2, type:"S", chord:c, hint:"Zähle 1 2 3 4 5 6, schwer auf 1 und 4", mode:"Punktierte Viertel", sub:3})); add(W()); add(W()); add(W()); };
+  }
+  for(let k=0;k<Math.ceil(3/bpb);k++) bars.push(countBar(c));
+  const n = barsFor(sec, bpm, 6, bpb); do cyc(); while(bars.length < n);
+  return {kind:"guest", title:"Gast · "+GUESTS[kind], bpm:bpm, bpb:bpb, bars:bars, rated:false, shape:nt, chord:c, note:note};
+}
 
 function lickBlock(lick, title, sec, full){
   const p = peek(lick.id), bpm = p.bpm, n = barsFor(sec, bpm, 8);
-  let pat = full ? ["S","N","N","N","N","B","N","N","S","N","N","B","N","N"] : ["N","N","B","N","N","S","N","N","B","N"];
-  if(stage(lick.id) >= 2) pat = pat.reduce((a,t) => a.concat(t === "B" ? ["B","B"] : [t]), []);
+  const st2 = stage(lick.id) >= 2, nr = rhyCount(lick.id); let rk = 0;
+  const pat = st2 ? (full ? ["S","N","N","R","R","B","B","N","N","S","N","N","R","R","B","B","N","N"] : ["N","N","B","B","N","R","R","S","N","N","B","B","N"])
+                  : (full ? ["S","N","N","N","N","B","N","N","S","N","N","B","N","N"] : ["N","N","B","N","N","S","N","N","B","N"]);
   const bars = [countBar(lick.chord)]; let i = 0, h = 0;
   if(full && !p.hist.length) bars.push.apply(bars, mkBars(lick.notes, "S", {chord:lick.chord, hint:"Langsam kennenlernen"}));
-  while(bars.length < n-2){ const t = pat[i++ % pat.length]; bars.push.apply(bars, mkBars(lick.notes, t, {chord:lick.chord, hint:t==="S" ? HINTS[h++ % HINTS.length] : ""})); }
+  while(bars.length < n-2){
+    const t = pat[i++ % pat.length];
+    if(t === "R"){ const r = RHY[Math.floor(rk++/2) % Math.max(1, nr)]; bars.push.apply(bars, rhyBars(lick, r)); }
+    else bars.push.apply(bars, mkBars(lick.notes, t, {chord:lick.chord, hint:t==="S" ? HINTS[h++ % HINTS.length] : ""}));
+  }
   bars.push.apply(bars, mkBars(lick.notes, "S", {chord:lick.chord, hint:"Zielton aushalten"}));
   return {kind:"lick", id:lick.id, title:title+" · "+lick.name, rateName:lick.name, bpm:bpm, bars:bars, rated:true, shape:lick.notes, chord:lick.chord};
 }
@@ -621,6 +692,8 @@ function buildSession(minutes){
   const mb = lickBlock(main, "Hauptlick", mainSec, true); mb.remake = extra => lickBlock(main, "Hauptlick", mainSec + extra, true); blocks.push(mb);
   if(plan.rep) blocks.push(stage(second.id) >= 3 ? durBlock(second, plan.rep) : lickBlock(second, "Wiederholung", plan.rep, false));
   if(plan.main2) blocks.push(lickBlock(third, "Zweites Lick", plan.main2, true));
+  const day = Math.floor((Date.now() - new Date().getTimezoneOffset()*60000)/86400000), familiar = activeLicks().filter(l => peek(l.id).days.length)[0];
+  if(plan.rep && familiar && day % 3 === 2) blocks.push(guestBlock(familiar, ["trip","34","68"][Math.floor(day/3) % 3], 90));
   if(plan.rep && fbLearned().length) blocks.push({kind:"fret", title:"Griffbrett", sec:100, rated:false});
   blocks.push(vocabBlock(plan.vocab));
   return {kind:"daily", blocks:blocks};
@@ -632,7 +705,7 @@ function buildTest(){
     return {kind:"test", title:"Einstufung", rateName:l.name+" bei "+t+" BPM", bpm:t, bars:bars, rated:true, shape:l.notes, chord:l.chord};
   })};
 }
-function blockSec(b){ return b.sec || b.bars.length*240/b.bpm; }
+function blockSec(b){ return b.sec || b.bars.length*(b.bpb||4)*60/b.bpm; }
 
 /* ================= audio ================= */
 const A = {ctx:null, out:null, noise:null};
@@ -682,7 +755,7 @@ let sess = null, run = null, raf = 0, timer = 0, paused = false, wake = null, C 
 
 function readColors(){
   const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
-  C = {bg:g("--bg"), line:g("--line"), text:g("--text"), muted:g("--muted"), accent:g("--accent"), slow:g("--slow"), ok:g("--ok"), glow:state.settings.theme === "dark"};
+  C = {bg:g("--bg"), line:g("--line"), text:g("--text"), muted:g("--muted"), accent:g("--accent"), slow:g("--slow"), ok:g("--ok"), groove:g("--lv3"), glow:state.settings.theme === "dark"};
 }
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return "rgba("+(n>>16)+","+((n>>8)&255)+","+(n&255)+","+a+")"; }
 function fit(cv){
@@ -712,15 +785,15 @@ function startBlock(){
     }});
     return;
   }
-  const spb = 60/b.bpm, notes = [], events = [];
+  const spb = 60/b.bpm, notes = [], events = [], bpb = b.bpb || 4;
   b.bars.forEach((bar, i) => {
-    const base = i*4;
-    for(let k=0;k<4;k++) events.push({b:base+k, kind:"beat", k:k, count:bar.type==="count"});
-    if(bar.type !== "count"){ for(let k=0;k<8;k++) events.push({b:base+k*.5, kind:"hat"}); if(bar.chord) events.push({b:base, kind:"pad", chord:bar.chord}); }
+    const base = i*bpb, sub = bar.sub || 2;
+    for(let k=0;k<bpb;k++) events.push({b:base+k, kind:"beat", k:k, count:bar.type==="count"});
+    if(bar.type !== "count"){ for(let k=0;k<bpb*sub;k++) events.push({b:base+k/sub, kind:"hat"}); if(bar.chord) events.push({b:base, kind:"pad", chord:bar.chord}); }
     bar.notes.forEach(n => { notes.push(Object.assign({ab:base+n.b, bar:i}, n)); events.push({b:base+n.b, kind:"note", midi:n.midi, dur:n.dur}); });
   });
   events.sort((x,y) => x.b - y.b);
-  run = {block:b, bars:b.bars, notes:notes, events:events, ev:0, spb:spb, t0:A.ctx.currentTime+.9, total:b.bars.length*4, hud:""};
+  run = {block:b, bars:b.bars, notes:notes, events:events, ev:0, spb:spb, t0:A.ctx.currentTime+.9, total:b.bars.length*bpb, bpb:bpb, hud:""};
   paused = false; $("pauseBtn").textContent = "Pause"; $("skipBtn").hidden = b.kind !== "warm";
   $("pBlock").textContent = b.title; $("pBpm").textContent = b.bpm+" BPM";
   clearInterval(timer); timer = setInterval(schedule, 25); schedule();
@@ -732,10 +805,10 @@ function schedule(){
   while(run.ev < run.events.length){
     const e = run.events[run.ev], t = run.t0 + e.b*run.spb; if(t > horizon) break; run.ev++;
     if(t < A.ctx.currentTime - .05) continue;
-    if(e.kind === "beat"){ if(e.count || st.beat === "click") snd.click(t, e.k===0); else if(e.k%2===0) snd.kick(t); else snd.snare(t); }
+    if(e.kind === "beat"){ if(e.count || st.beat === "click") snd.click(t, e.k===0); else if(e.k === 0 || (run.bpb === 4 && e.k === 2)) snd.kick(t); else snd.snare(t); }
     else if(e.kind === "hat"){ if(st.beat === "drums") snd.hat(t); }
     else if(e.kind === "pad"){
-      const ch = CHORDS[e.chord], len = 4*run.spb;
+      const ch = CHORDS[e.chord], len = run.bpb*run.spb;
       if(st.harmony === "chord") snd.pad(t, ch.pad, len); else if(st.harmony === "root") snd.pad(t, [ch.pad[0], ch.pad[0]+12], len);
     }
     else if(e.kind === "note"){ if(st.lickSound) snd.pluck(t, e.midi, e.dur*run.spb); }
@@ -749,20 +822,22 @@ function frame(){
   raf = requestAnimationFrame(frame);
 }
 function hud(beat){
-  const i = Math.max(0, Math.min(run.bars.length-1, Math.floor(beat/4))), cur = run.bars[i], nxt = run.bars[i+1];
+  const i = Math.max(0, Math.min(run.bars.length-1, Math.floor(beat/run.bpb))), cur = run.bars[i], nxt = run.bars[i+1];
   let word = "", cls = "", hint = "", lbl = "", hcls = "";
   const burstTask = bl => bl.long ? "Vier Takte Sechzehntel, gleichmäßig" : "Sechzehntel, locker bleiben";
   if(beat < 0){ word = "Bereit"; cls = "soon"; }
-  else if(cur.type === "count"){ word = String(Math.floor(beat%4)+1); hint = "Einzählen"; }
+  else if(cur.type === "count"){ word = String(Math.floor(beat%run.bpb)+1); hint = "Einzählen"; }
   else if(cur.type === "B"){ word = "Burst!"; cls = "burst"; lbl = "Auftrag"; hint = burstTask(run.block); hcls = "task warm"; }
   else if(cur.type === "S"){ word = "Slow down!"; cls = "slow"; lbl = "Auftrag"; hint = cur.hint || "Langsam und sauber"; hcls = "task cool"; }
+  else if(cur.type === "R"){ word = "Groove!"; cls = "groove"; lbl = "Auftrag"; hint = cur.hint; hcls = "task violet"; }
+  else if(nxt && nxt.type === "R"){ word = "Groove!"; cls = "groove soon"; lbl = "Gleich"; hint = nxt.hint; hcls = "dim violet"; }
   else if(nxt && nxt.type === "B"){ word = "Burst!"; cls = "burst soon"; lbl = "Gleich"; hint = burstTask(run.block); hcls = "dim warm"; }
   else if(nxt && nxt.type === "S"){ word = "Slow down!"; cls = "slow soon"; lbl = "Gleich"; hint = nxt.hint || "Langsam und sauber"; hcls = "dim cool"; }
-  else hint = cur.label || "";
+  else hint = cur.label || run.block.note || "";
   const key = word+"|"+cls+"|"+hint+"|"+lbl+"|"+i;
   if(key !== run.hud){
     run.hud = key; $("word").textContent = word; $("word").className = cls; $("hint").className = hcls; $("hintLbl").textContent = lbl; $("hintTxt").textContent = hint;
-    $("pChord").textContent = cur.chord || ""; $("pMode").textContent = MODE[cur.type];
+    $("pChord").textContent = cur.chord || ""; $("pMode").textContent = cur.mode || MODE[cur.type];
   }
   const frac = (sess.done + Math.max(0, Math.min(run.total, beat))*run.spb)/sess.total;
   $("pfill").style.width = (Math.max(0, Math.min(1, frac))*100).toFixed(2)+"%";
@@ -776,14 +851,15 @@ function drawLane(beat){
   const mx = Math.max(60, w*.2), ppb = Math.max(84, Math.min(230, w/5.2));
   const top = h*.22, bot = h*.70, gap = (bot-top)/5, fs = Math.max(13, Math.min(30, gap*.92));
   const y = s => top + (s-1)*gap, X = b => mx + (b-beat)*ppb;
-  const first = Math.max(0, Math.floor((beat - mx/ppb)/4)), last = Math.min(run.bars.length-1, Math.floor((beat + (w-mx)/ppb)/4));
+  const bpb = run.bpb, ZC = {B:C.accent, S:C.slow, R:C.groove}, ZT = {B:"BURST", S:"SLOW", R:"GROOVE"};
+  const first = Math.max(0, Math.floor((beat - mx/ppb)/bpb)), last = Math.min(run.bars.length-1, Math.floor((beat + (w-mx)/ppb)/bpb));
   // zones
   for(let i=first;i<=last;i++){
-    const bar = run.bars[i], x0 = X(i*4);
-    if(bar.type === "B" || bar.type === "S"){
-      const zc = bar.type === "B" ? C.accent : C.slow, zy = top-gap*.75, zh = (bot-top)+gap*1.5;
-      g.fillStyle = rgba(zc, .12); g.fillRect(x0, zy, 4*ppb, zh);
-      g.fillStyle = zc; glow(g, zc, 12); g.fillRect(x0, zy-1, 4*ppb, 2); g.fillRect(x0, zy+zh-1, 4*ppb, 2); noGlow(g);
+    const bar = run.bars[i], x0 = X(i*bpb);
+    if(ZC[bar.type]){
+      const zc = ZC[bar.type], zy = top-gap*.75, zh = (bot-top)+gap*1.5;
+      g.fillStyle = rgba(zc, .12); g.fillRect(x0, zy, bpb*ppb, zh);
+      g.fillStyle = zc; glow(g, zc, 12); g.fillRect(x0, zy-1, bpb*ppb, 2); g.fillRect(x0, zy+zh-1, bpb*ppb, 2); noGlow(g);
     }
   }
   // strings
@@ -792,18 +868,18 @@ function drawLane(beat){
   // bar lines, labels, beat ticks
   g.textBaseline = "alphabetic";
   for(let i=first;i<=last;i++){
-    const bar = run.bars[i], prev = run.bars[i-1], x0 = X(i*4);
+    const bar = run.bars[i], prev = run.bars[i-1], x0 = X(i*bpb);
     g.strokeStyle = C.muted; g.globalAlpha = .55; g.beginPath(); g.moveTo(Math.round(x0)+.5, top); g.lineTo(Math.round(x0)+.5, bot); g.stroke(); g.globalAlpha = 1;
     let lx = x0 + 8;
     if(bar.chord && (!prev || prev.chord !== bar.chord || prev.type === "count") && bar.type !== "count"){
       g.fillStyle = C.text; g.font = "700 "+Math.round(fs*.8)+"px "+FONT_D; g.fillText(bar.chord, lx, top-gap*.95); lx += g.measureText(bar.chord).width + 12;
     }
-    const zoneStart = (bar.type === "B" || bar.type === "S") && (!prev || prev.type !== bar.type);
-    const tag = zoneStart ? (bar.type === "B" ? "BURST" : "SLOW") : bar.label;
-    if(tag){ const tc = bar.type === "B" ? C.accent : bar.type === "S" ? C.slow : C.muted; g.fillStyle = tc; if(zoneStart) glow(g, tc, 10); g.font = "600 "+Math.round(fs*.56)+"px "+FONT_D; g.fillText(tag.toUpperCase(), lx, top-gap*1.02); noGlow(g); }
+    const zoneStart = !!ZC[bar.type] && (!prev || prev.type !== bar.type);
+    const tag = zoneStart ? ZT[bar.type] + (bar.type === "R" && bar.label ? " · " + bar.label : "") : bar.label;
+    if(tag){ const tc = ZC[bar.type] || C.muted; g.fillStyle = tc; if(zoneStart) glow(g, tc, 10); g.font = "600 "+Math.round(fs*.56)+"px "+FONT_D; g.fillText(tag.toUpperCase(), lx, top-gap*1.02); noGlow(g); }
     g.fillStyle = C.muted;
-    for(let k=0;k<4;k++){
-      const bx = X(i*4+k);
+    for(let k=0;k<bpb;k++){
+      const bx = X(i*bpb+k);
       if(bar.type === "count"){ g.globalAlpha = .5; g.font = "600 "+Math.round(fs*1.5)+"px "+FONT_N; g.textAlign = "center"; g.fillText(String(k+1), bx, (top+bot)/2 + fs*.5); g.textAlign = "left"; g.globalAlpha = 1; }
     }
   }
@@ -815,7 +891,8 @@ function drawLane(beat){
     const yy = y(n.s), txt = String(n.f), tw = g.measureText(txt).width, bw = tw+8, bh = fs*1.12, col = n.root ? C.accent : C.text, bt = run.bars[n.bar].type;
     const isCur = i === curIdx && beat - n.ab < Math.max(n.dur, .25);
     g.globalAlpha = 1; g.fillStyle = C.bg; g.fillRect(x-bw/2, yy-bh/2, bw, bh);
-    if(bt === "B" || bt === "S"){ g.fillStyle = rgba(bt === "B" ? C.accent : C.slow, .12); g.fillRect(x-bw/2, yy-bh/2, bw, bh); }
+    if(ZC[bt]){ g.fillStyle = rgba(ZC[bt], .12); g.fillRect(x-bw/2, yy-bh/2, bw, bh); }
+    if(n.acc){ g.globalAlpha = i < curIdx ? .3 : 1; g.fillStyle = C.text; g.fillText(">", x, top-gap*.42); g.globalAlpha = 1; }
     if(isCur){ g.fillStyle = col; glow(g, col, 16); rr(g, x-bw/2-3, yy-bh/2-1, bw+6, bh+2, 6); g.fill(); noGlow(g); g.fillStyle = C.bg; g.fillText(txt, x, yy+1); }
     else{
       g.globalAlpha = i < curIdx ? .26 : 1; g.fillStyle = col; if(n.root && i > curIdx) glow(g, C.accent, 9); g.fillText(txt, x, yy+1); noGlow(g);
@@ -828,7 +905,7 @@ function drawLane(beat){
   }
   g.textAlign = "left";
   // play marker: one steady neon tube, coloured by the section you are in
-  const ct = run.bars[Math.max(0, Math.min(run.bars.length-1, Math.floor(beat/4)))].type, mc = ct === "B" ? C.accent : ct === "S" ? C.slow : C.text;
+  const ct = run.bars[Math.max(0, Math.min(run.bars.length-1, Math.floor(beat/bpb)))].type, mc = ZC[ct] || C.text;
   const my = top-gap*.75, mh = (bot-top)+gap*1.5;
   g.fillStyle = mc; glow(g, mc, 16); rr(g, mx-2.5, my, 5, mh, 2.5); g.fill(); if(C.glow){ g.fill(); } noGlow(g);
   if(C.glow){ g.fillStyle = "rgba(255,255,255,.85)"; rr(g, mx-1, my+3, 2, mh-6, 1); g.fill(); }
@@ -866,6 +943,7 @@ function endBlock(){
   const b = run.block; clearInterval(timer); cancelAnimationFrame(raf);
   sess.done += blockSec(b); if(sess.kind !== "test") state.seconds += Math.round(blockSec(b));
   run = null;
+  if(b.kind === "guest" && sess.kind === "daily") sess.results.push({name:b.title, msg:"Gespielt, ohne Bewertung."});
   if(b.rated){ $("rateSub").textContent = b.rateName + (b.kind === "test" ? "" : " bei "+b.bpm+" BPM"); $("ratePanel").hidden = false; }
   else nextBlock();
 }
@@ -885,7 +963,7 @@ function nextBlock(){ sess.i++; if(sess.i >= sess.blocks.length) finish(); else 
 function finish(){
   save(); $("pfill").style.width = "100%";
   $("sumTitle").textContent = "Geschafft"; const n = streak();
-  $("sumSub").textContent = n > 1 ? n+" Tage in Folge geübt." : "Heute geübt. Morgen zählt als zweiter Tag in Folge.";
+  $("sumSub").textContent = !state.days.includes(dstr()) ? "Runde beendet. Die Zeit zählt zur Übezeit." : n > 1 ? n+" Tage in Folge geübt." : "Heute geübt. Morgen zählt als zweiter Tag in Folge.";
   fillSummary(sess.results); $("sumPanel").hidden = false;
 }
 function finishTest(){
@@ -1307,7 +1385,7 @@ function renderHome(){
     el.className = "row" + (open ? "" : " locked"); if(open){ el.type = "button"; el.dataset.lick = l.id; }
     const lv = level(l.id), status = !open ? ["", "kommt als Nächstes"] : [lv ? "lvp" : "active", LEVELS[lv]];
     if(open){ li.className = "lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")"); }
-    el.innerHTML = '<span class="rname">'+l.name+'<span class="chip">'+l.chord+'</span></span><span class="rmeta">'+(open ? l.goal+STAGE_TXT[stage(l.id)] : "Öffnet sich, wenn alle offenen Licks zwei saubere Tage haben")+'</span>'+
+    el.innerHTML = '<span class="rname">'+l.name+'<span class="chip">'+l.chord+'</span></span><span class="rmeta">'+(open ? l.goal+STAGE_TXT[stage(l.id)] : "Öffnet sich, wenn jedes offene Lick einen sauberen Tag hat")+'</span>'+
       '<span class="rside"><span style="display:flex;gap:10px;align-items:center">'+spark(p.hist)+'<span class="rtempo">'+p.bpm+' BPM'+(stage(l.id) >= 3 ? ' · Dauer '+durRec(l.id).bpm : '')+'</span></span><span style="display:flex;gap:10px;align-items:center">'+dotsHtml(p.days.length)+'<span class="pill '+status[0]+'">'+status[1]+'</span></span></span>';
     li.append(el); ul.append(li);
   });
@@ -1372,6 +1450,10 @@ $("lickList").addEventListener("click", e => {
   const b = e.target.closest("button[data-lick]"); if(!b) return;
   if(b.dataset.lick === VOCAB.id){ startSession({kind:"free", blocks:[vocabBlock(150)]}); return; }
   const l = LICKS.find(x => x.id === b.dataset.lick); const bl = [lickBlock(l, "Freies Üben", 180, true)]; if(stage(l.id) >= 3) bl.push(durBlock(l, 100)); startSession({kind:"free", blocks:bl});
+});
+$("tryRow").addEventListener("click", e => {
+  const b = e.target.closest("button[data-try]"); if(!b) return;
+  const l = lickOrder()[0]; startSession({kind:"free", blocks:[b.dataset.try === "rhy" ? rhythmBlock(l) : guestBlock(l, b.dataset.try, 100)]});
 });
 $("quitBtn").addEventListener("click", leave);
 $("doneBtn").addEventListener("click", leave);
