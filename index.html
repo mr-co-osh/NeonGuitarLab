@@ -356,9 +356,9 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
       <div><div class="lbl">Lick mithören<small>Die App spielt die Töne leise mit.</small></div><button class="switch" role="switch" id="swLick" type="button" aria-label="Lick mithören"></button></div>
       <div><div class="lbl">Zeitlimit im Griffbrett<small>So lange hast du pro Ton. Danach zählt es als Fehler.</small></div>
         <div class="seg" id="limSeg" role="group" aria-label="Zeitlimit im Griffbrett">
+          <button type="button" data-lim="3">3 s</button>
           <button type="button" data-lim="5">5 s</button>
           <button type="button" data-lim="8">8 s</button>
-          <button type="button" data-lim="12">12 s</button>
         </div></div>
       <div><div class="lbl">Griffbrett anzeigen<small>Ein schmaler Streifen unter dem Tab.</small></div><button class="switch" role="switch" id="swFret" type="button" aria-label="Griffbrett anzeigen"></button></div>
       <div><div class="lbl">Einstufungstest<small>Etwa drei Minuten. Legt das Starttempo deiner Licks fest.</small></div><button class="ghost" id="testBtn" type="button">Test starten</button></div>
@@ -500,7 +500,7 @@ const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel
 /* ================= state ================= */
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
-  return {v:1, updatedAt:0, settings:{theme:"dark", tuning:"std", fbLimit:8, beat:"click", harmony:"chord", warmup:true, lickSound:false, fretboard:false, minutes:10},
+  return {v:1, updatedAt:0, settings:{theme:"dark", tuning:"std", fbLimit:5, limV:2, beat:"click", harmony:"chord", warmup:true, lickSound:false, fretboard:false, minutes:10},
           introduced:3, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}, custom:[]};
 }
 let state = fresh(), OWN = null;
@@ -513,7 +513,9 @@ function allLicks(){ return LICKS.concat(ownLicks()); }
 const src = l => l.ev || l.notes;
 const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 /* older saves had a plain on/off switch for chords */
-function adopt(s){ const st = Object.assign(fresh().settings, s.settings||{}); if(st.chords === false) st.harmony = "off"; delete st.chords; const o = Object.assign(fresh(), s, {settings:st}); o.introduced = Math.max(3, o.introduced || 0); if(!Array.isArray(o.custom)) o.custom = []; OWN = null; return o; }
+function adopt(s){ const st = Object.assign(fresh().settings, s.settings||{}); if(st.chords === false) st.harmony = "off"; delete st.chords;
+  /* the time limit used to default to 8 s with 5, 8, 12 to choose from; now 5 s with 3, 5, 8 */
+  if(!(s.settings && s.settings.limV === 2)){ st.fbLimit = st.fbLimit === 12 ? 8 : 5; st.limV = 2; } const o = Object.assign(fresh(), s, {settings:st}); o.introduced = Math.max(3, o.introduced || 0); if(!Array.isArray(o.custom)) o.custom = []; OWN = null; return o; }
 try{ const raw = localStorage.getItem(KEY); if(raw){ const s = JSON.parse(raw); if(s && s.v===1) state = adopt(s); } }catch(e){}
 
 function P(id){ return state.prog[id] || (state.prog[id] = {bpm:60, at:[], days:[], hist:[], last:null}); }
@@ -1277,7 +1279,7 @@ function quizStep(det, cand, stable, ts){
     else if(stable >= 190){ Q.lastReg = cand; qMiss(cand, target); }
   }
   if(!p.guided){
-    const lim = (state.settings.fbLimit || 8)*1000, left = Math.max(0, Math.min(1, 1 - (ts - Q.t0)/lim));
+    const lim = (state.settings.fbLimit || 5)*1000, left = Math.max(0, Math.min(1, 1 - (ts - Q.t0)/lim));
     $("qTime").style.width = (left*100).toFixed(1)+"%"; $("qTime").className = left < .25 ? "low" : "";
     if(!left && !Q.timedOut){ Q.timedOut = true; qError(); Q.revealed = true; promptText(); $("qMsg").textContent = "Zeit abgelaufen. So liegt der Ton."; }
   }
