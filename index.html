@@ -213,6 +213,10 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 #qNote.ok{color:var(--tube-cool);text-shadow:var(--glow-cool)}
 #qSub{font-size:clamp(18px,6.2vh,30px);font-weight:650;line-height:1.15;text-wrap:balance}
 #qMsg{min-height:1.5em;color:var(--muted);font-size:clamp(14px,4.4vh,19px)}
+.qtime{height:4px;border-radius:2px;background:var(--line);max-width:280px}
+#qTime{display:block;height:100%;width:100%;border-radius:2px;background:var(--slow);box-shadow:var(--sign-shadow)}
+#qTime.low{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+:root[data-app-theme="light"] #qTime.low{box-shadow:none}
 #qBoard{width:100%;height:100%;min-height:150px;display:block}
 .qfoot{flex:none;display:flex;gap:10px;justify-content:space-between;align-items:center;padding:0 20px 12px;flex-wrap:wrap}
 #qHeard{color:var(--muted);font-size:14px}
@@ -269,7 +273,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
   <section class="view" data-view="griffbrett">
     <h2><span class="neon">Griffbrett</span></h2>
     <div class="legend"><span style="--lv:var(--lv1)"><i></i>begonnen</span><span style="--lv:var(--lv2)"><i></i>gefestigt</span><span style="--lv:var(--lv5)"><i></i>Stufe abgeschlossen</span></div>
-    <p class="note">Schritt für Schritt lernen, wo welcher Ton liegt. Das Mikrofon hört zu, und es geht erst weiter, wenn der Ton stimmt. Eine Lektion gilt als sauber, wenn du höchstens eine Hilfe brauchst. Grün ab dem ersten sauberen Tag, Türkis ab drei Tagen, Gold für eine ganze Stufe.</p>
+    <p class="note">Schritt für Schritt lernen, wo welcher Ton liegt. Das Mikrofon hört zu, und es geht erst weiter, wenn der Ton stimmt. Für jeden Ton läuft ein Zeitlimit. Falsche Töne und abgelaufene Zeit zählen als Fehler. Eine Lektion gilt als sauber, wenn höchstens ein Ton einen Fehler hatte. Grün ab dem ersten sauberen Tag, Türkis ab drei Tagen, Gold für eine ganze Stufe.</p>
     <div id="fbList"></div>
   </section>
 
@@ -305,6 +309,12 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
         </div></div>
       <div><div class="lbl">Akkorde<small>Ein weicher Akkord pro Takt.</small></div><button class="switch" role="switch" id="swChords" type="button" aria-label="Akkorde"></button></div>
       <div><div class="lbl">Lick mithören<small>Die App spielt die Töne leise mit.</small></div><button class="switch" role="switch" id="swLick" type="button" aria-label="Lick mithören"></button></div>
+      <div><div class="lbl">Zeitlimit im Griffbrett<small>So lange hast du pro Ton. Danach zählt es als Fehler.</small></div>
+        <div class="seg" id="limSeg" role="group" aria-label="Zeitlimit im Griffbrett">
+          <button type="button" data-lim="5">5 s</button>
+          <button type="button" data-lim="8">8 s</button>
+          <button type="button" data-lim="12">12 s</button>
+        </div></div>
       <div><div class="lbl">Griffbrett anzeigen<small>Ein schmaler Streifen unter dem Tab.</small></div><button class="switch" role="switch" id="swFret" type="button" aria-label="Griffbrett anzeigen"></button></div>
       <div><div class="lbl">Einstufungstest<small>Etwa drei Minuten. Legt das Starttempo deiner Licks fest.</small></div><button class="ghost" id="testBtn" type="button">Test starten</button></div>
       <div><div class="lbl">Fortschritt übertragen<small id="syncMsg">Der Fortschritt liegt auf diesem Gerät.</small></div>
@@ -359,7 +369,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <div class="pctl"><span class="pill" id="qMic">Mikrofon</span></div>
   </div>
   <div class="qmain">
-    <div class="qprompt"><div id="qNote"></div><div id="qSub"></div><div id="qMsg"></div></div>
+    <div class="qprompt"><div id="qNote"></div><div id="qSub"></div><div class="qtime" id="qTimeBox"><i id="qTime"></i></div><div id="qMsg"></div></div>
     <canvas id="qBoard"></canvas>
   </div>
   <div class="qfoot">
@@ -415,7 +425,7 @@ const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel
 /* ================= state ================= */
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
-  return {v:1, updatedAt:0, settings:{theme:"dark", tuning:"std", beat:"click", chords:true, lickSound:false, fretboard:false, minutes:10},
+  return {v:1, updatedAt:0, settings:{theme:"dark", tuning:"std", fbLimit:8, beat:"click", chords:true, lickSound:false, fretboard:false, minutes:10},
           introduced:2, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}};
 }
 let state = fresh();
@@ -668,7 +678,7 @@ function startBlock(){
   if(b.kind === "fret"){
     run = null; clearInterval(timer); cancelAnimationFrame(raf);
     startQuiz({title:"Griffbrett · Wiederholung", prompts:reviewPrompts(8), onDone:r => {
-      sess.done += b.sec; state.seconds += b.sec; sess.results.push({name:"Griffbrett", msg:r.clean+" von "+r.total+" Tönen ohne Hilfe."});
+      sess.done += b.sec; state.seconds += b.sec; sess.results.push({name:"Griffbrett", msg:resTxt(r)});
       closeQuiz(); nextBlock();
     }});
     return;
@@ -962,7 +972,7 @@ function closeQuiz(){ cancelAnimationFrame(qraf); Q = null; micStop(); $("quiz")
 function quizCard(title, text, go){ openQuiz(); $("qTitle").textContent = title; $("qCount").textContent = ""; $("qNote").textContent = ""; $("qSub").textContent = ""; $("qCardTitle").textContent = title; $("qCardText").textContent = text; $("qCard").hidden = false; quizCard.go = go; drawBoard({dots:[]}); }
 async function startQuiz(cfg){
   openQuiz(); $("qTitle").textContent = cfg.title;
-  Q = {cfg:cfg, prompts:cfg.prompts, i:0, step:0, helps:0, armed:true, cand:null, candT:0, silT:0, lastReg:null, rmsPrev:0, found:[], lock:0, pending:false, mode:"quiz"};
+  Q = {cfg:cfg, prompts:cfg.prompts, i:0, step:0, helps:0, errors:0, armed:true, cand:null, candT:0, silT:0, lastReg:null, rmsPrev:0, found:[], lock:0, pending:false, mode:"quiz"};
   const ok = await micStart(); if(!Q) return;
   setMic(ok); showPrompt(); cancelAnimationFrame(qraf); qraf = requestAnimationFrame(qTick);
 }
@@ -972,9 +982,16 @@ function setMic(ok){
 }
 const fretTxt = f => f === 0 ? "leere Saite" : f + ". Bund";
 function showPrompt(){
-  const p = Q.prompts[Q.i]; Q.step = 0; Q.wrongThis = 0; Q.revealed = p.guided; Q.helped = false; Q.t0 = performance.now(); Q.pending = false;
+  const p = Q.prompts[Q.i]; Q.step = 0; Q.wrongThis = 0; Q.revealed = p.guided; Q.helped = false; Q.t0 = performance.now(); Q.pending = false; Q.timedOut = false;
   $("qNote").className = ""; $("qMsg").textContent = p.guided ? "Kennenlernen: Die App zeigt dir den Ton." : ""; promptText();
-  $("qCount").textContent = (Q.i+1)+" / "+Q.prompts.length; $("qfill").style.width = (Q.i/Q.prompts.length*100)+"%";
+  $("qTimeBox").style.visibility = p.guided ? "hidden" : "visible"; $("qTime").style.width = "100%"; $("qTime").className = "";
+  qCount(); $("qfill").style.width = (Q.i/Q.prompts.length*100)+"%";
+}
+function qCount(){ $("qCount").textContent = (Q.i+1)+" / "+Q.prompts.length + (Q.errors ? " · " + Q.errors + " Fehler" : ""); }
+/* a wrong note, an expired time limit and "Zeigen" each count as one error; guided notes never count */
+function qError(){
+  const p = Q.prompts[Q.i]; if(p.guided) return;
+  Q.errors++; if(!Q.helped){ Q.helped = true; Q.helps++; } qCount();
 }
 function promptText(){
   const p = Q.prompts[Q.i], st = p.steps[Math.min(Q.step, p.steps.length-1)];
@@ -985,22 +1002,22 @@ function promptText(){
 }
 function qHit(){
   const p = Q.prompts[Q.i]; Q.step++; Q.armed = false;
-  if(Q.step < p.steps.length){ Q.wrongThis = 0; Q.t0 = performance.now(); if(!p.guided) Q.revealed = false; $("qMsg").textContent = "Richtig."; promptText(); return; }
+  if(Q.step < p.steps.length){ Q.wrongThis = 0; Q.t0 = performance.now(); Q.timedOut = false; if(!p.guided) Q.revealed = false; $("qMsg").textContent = "Richtig."; promptText(); return; }
   if(p.guided) p.steps.forEach(s => Q.found.push(s));
   $("qNote").className = "ok"; $("qMsg").textContent = "Richtig."; Q.pending = true; Q.lock = performance.now() + 650;
 }
 function qMiss(m, target){
-  Q.armed = false; Q.wrongThis++;
+  Q.armed = false; Q.wrongThis++; qError();
   $("qMsg").textContent = (m % 12 === target % 12) ? "Richtiger Ton, aber eine andere Oktave." : "Das war ein " + nameOf(m) + ".";
-  if(Q.wrongThis >= 2) qReveal();
+  if(Q.wrongThis >= 2 && !Q.revealed){ Q.revealed = true; promptText(); }
 }
 function qReveal(){
   if(!Q || Q.mode !== "quiz" || Q.revealed || Q.pending) return;
-  Q.revealed = true; if(!Q.helped){ Q.helped = true; Q.helps++; } promptText();
+  Q.revealed = true; qError(); promptText();
 }
 function qNext(){
   Q.i++; if(Q.i < Q.prompts.length){ showPrompt(); return; }
-  const total = Q.prompts.filter(p => !p.guided).length, r = {total:total, helps:Q.helps, clean:total - Q.helps}, cb = Q.cfg.onDone;
+  const total = Q.prompts.filter(p => !p.guided).length, r = {total:total, helps:Q.helps, clean:total - Q.helps, errors:Q.errors}, cb = Q.cfg.onDone;
   cancelAnimationFrame(qraf); $("qfill").style.width = "100%"; Q.mode = "end"; cb(r);
 }
 function qTick(ts){
@@ -1032,7 +1049,11 @@ function quizStep(det, cand, stable, ts){
     if(cand === target){ Q.lastReg = cand; qHit(); }
     else if(stable >= 190){ Q.lastReg = cand; qMiss(cand, target); }
   }
-  if(!Q.revealed && !Q.pending && ts - Q.t0 > 12000) qReveal();
+  if(!p.guided){
+    const lim = (state.settings.fbLimit || 8)*1000, left = Math.max(0, Math.min(1, 1 - (ts - Q.t0)/lim));
+    $("qTime").style.width = (left*100).toFixed(1)+"%"; $("qTime").className = left < .25 ? "low" : "";
+    if(!left && !Q.timedOut){ Q.timedOut = true; qError(); Q.revealed = true; promptText(); $("qMsg").textContent = "Zeit abgelaufen. So liegt der Ton."; }
+  }
 }
 function boardNow(){
   const p = Q.prompts[Q.i], dots = [];
@@ -1057,7 +1078,7 @@ function drawBoard(o){
     const on = o.hl === s, yy = Math.round(sy(s))+.5;
     g.strokeStyle = on ? C.slow : C.muted; g.globalAlpha = on ? 1 : .55; g.lineWidth = on ? 2.5 : 1; if(on) glow(g, C.slow, 10);
     g.beginPath(); g.moveTo(left, yy); g.lineTo(w-right, yy); g.stroke(); noGlow(g); g.globalAlpha = 1;
-    g.fillStyle = on ? C.slow : C.muted; g.font = "600 "+fsz+"px "+FONT_N; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(["E","B","G","D","A","E"][s-1], left/2, yy);
+    g.fillStyle = on ? C.slow : C.muted; g.font = "600 "+fsz+"px "+FONT_N; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(["e","B","G","D","A","E"][s-1], left/2, yy);
   }
   g.fillStyle = C.muted; g.font = "500 "+fsz+"px "+FONT_N; g.textBaseline = "alphabetic";
   [3,5,7,9,12].forEach(f => g.fillText(String(f), fx(f), Math.min(h-3, bot+gap*.95)));
@@ -1085,8 +1106,8 @@ function drawMeter(cents){
 }
 /* ================= tuner ================= */
 const TUNINGS = [
-  {id:"std", name:"Standard", midi:[40,45,50,55,59,64], lab:["E","A","D","G","B","E"]},
-  {id:"dropd", name:"Drop D", midi:[38,45,50,55,59,64], lab:["D","A","D","G","B","E"]},
+  {id:"std", name:"Standard", midi:[40,45,50,55,59,64], lab:["E","A","D","G","B","e"]},
+  {id:"dropd", name:"Drop D", midi:[38,45,50,55,59,64], lab:["D","A","D","G","B","e"]},
   {id:"dadgad", name:"DADGAD", midi:[38,45,50,55,57,62], lab:["D","A","D","G","A","D"]},
   {id:"opend", name:"Open D", midi:[38,45,50,54,57,62], lab:["D","A","D","F#","A","D"]},
   {id:"openg", name:"Open G", midi:[38,43,50,55,59,62], lab:["D","G","D","G","B","D"]},
@@ -1154,22 +1175,23 @@ function drawTuner(cents, ok){
   g.fillStyle = col; glow(g, col, 18); rr(g, x-3, y-36, 6, 72, 3); g.fill(); noGlow(g);
   g.fillStyle = ok ? "#fff" : C.bg; g.globalAlpha = ok ? .9 : 0; rr(g, x-1, y-32, 2, 64, 1); g.fill(); g.globalAlpha = 1;
 }
+function resTxt(r){ return r.clean+" von "+r.total+" Tönen fehlerfrei" + (r.errors ? ", " + r.errors + " Fehler insgesamt." : "."); }
 function runLesson(l){
   quizCard(l.title, l.intro, () => startQuiz({title:l.title, prompts:lessonPrompts(l), onDone:r => {
     const rec = fbRec(l.id), clean = r.helps <= 1, first = !rec.days.length; rec.runs++;
     if(clean && !rec.days.includes(dstr())) rec.days.push(dstr()); save();
     const i = FB.indexOf(l), nxt = FB[i+1];
     $("qEndTitle").textContent = clean ? "Sauber" : "Noch einmal";
-    $("qEndText").textContent = r.clean+" von "+r.total+" Tönen ohne Hilfe. " + (clean ? (first && nxt ? "Die nächste Lektion ist offen: "+nxt.title+"." : "Nach drei sauberen Tagen gilt die Lektion als gefestigt.") : "Wiederhole die Lektion, bis du höchstens eine Hilfe brauchst.");
+    $("qEndText").textContent = resTxt(r) + " " + (clean ? (first && nxt ? "Die nächste Lektion ist offen: "+nxt.title+"." : "Nach drei sauberen Tagen gilt die Lektion als gefestigt.") : "Wiederhole die Lektion, bis höchstens ein Ton einen Fehler hat.");
     $("qEnd").hidden = false;
   }}));
 }
 function runSkip(stage){
   const all = []; FB.filter(l => l.stage === stage).forEach(l => itemsOf(l).forEach(it => all.push(it)));
-  quizCard("Kann ich schon: Stufe "+stage, "Acht Töne ohne Anzeige. Wenn du keine Hilfe brauchst, gilt die ganze Stufe als gelernt.", () => startQuiz({title:"Kann ich schon: Stufe "+stage, prompts:draw(all, 8), onDone:r => {
+  quizCard("Kann ich schon: Stufe "+stage, "Acht Töne ohne Anzeige. Wenn alle fehlerfrei sind, gilt die ganze Stufe als gelernt.", () => startQuiz({title:"Kann ich schon: Stufe "+stage, prompts:draw(all, 8), onDone:r => {
     const pass = r.helps === 0; if(pass){ state.fb.skip[stage] = true; save(); }
     $("qEndTitle").textContent = pass ? "Stufe übersprungen" : "Noch nicht ganz";
-    $("qEndText").textContent = r.clean+" von "+r.total+" Tönen ohne Hilfe. " + (pass ? "Die nächste Stufe ist offen." : "Geh die Lektionen der Stufe durch, dann sitzt es.");
+    $("qEndText").textContent = resTxt(r) + " " + (pass ? "Die nächste Stufe ist offen." : "Geh die Lektionen der Stufe durch, dann sitzt es.");
     $("qEnd").hidden = false;
   }}));
 }
@@ -1227,6 +1249,7 @@ function renderHome(){
   const solid = LICKS.filter(l => isSolid(l.id)).length; $("fSolid").textContent = solid+"/"+LICKS.length;
   document.querySelectorAll("#durSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.min === st.minutes)));
   document.querySelectorAll("#beatSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.beat === st.beat)));
+  document.querySelectorAll("#limSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.lim === st.fbLimit)));
   $("swChords").setAttribute("aria-checked", String(st.chords)); $("swLick").setAttribute("aria-checked", String(st.lickSound)); $("swFret").setAttribute("aria-checked", String(st.fretboard));
 
   const ul = $("lickList"); ul.textContent = "";
@@ -1275,6 +1298,7 @@ $("qManual").addEventListener("click", () => { if(Q && Q.mode === "quiz" && !Q.p
 $("startBtn").addEventListener("click", () => startSession(buildSession(state.settings.minutes)));
 $("testBtn").addEventListener("click", () => startSession(buildTest()));
 $("durSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.minutes = +b.dataset.min; save(); renderHome(); });
+$("limSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.fbLimit = +b.dataset.lim; save(); renderHome(); });
 $("beatSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.beat = b.dataset.beat; save(); renderHome(); });
 [["swChords","chords"],["swLick","lickSound"],["swFret","fretboard"]].forEach(p => $(p[0]).addEventListener("click", () => { state.settings[p[1]] = !state.settings[p[1]]; save(); renderHome(); }));
 $("themeSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.theme = b.dataset.theme; save(); applyTheme(); renderHome(); });
