@@ -22,6 +22,7 @@
   --glow-plain:0 0 18px rgba(255,255,255,.28);
   --sign-shadow:0 0 8px color-mix(in srgb,var(--slow) 75%,transparent),0 0 22px color-mix(in srgb,var(--slow) 45%,transparent),inset 0 0 8px color-mix(in srgb,var(--slow) 55%,transparent);
   --glow-cool-soft:0 0 6px color-mix(in srgb,var(--slow) 80%,transparent),0 0 22px color-mix(in srgb,var(--slow) 55%,transparent);
+  --lv1:#3dff8f; --lv2:#2ee6d6; --lv3:#b07cff; --lv4:#ff5ad2; --lv5:#ffd447;
   --btn-bg:transparent; --btn-fg:var(--tube-warm);
   --btn-shadow:0 0 14px color-mix(in srgb,var(--accent) 60%,transparent),inset 0 0 14px color-mix(in srgb,var(--accent) 38%,transparent);
   --font-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
@@ -35,6 +36,7 @@
   --ok:#2c8a57; --warn:#a06f0c; --bad:#c04444;
   --tube-warm:var(--accent); --tube-cool:var(--slow);
   --glow-warm:none; --glow-cool:none; --glow-soft:none; --glow-plain:none; --glow-cool-soft:none; --sign-shadow:none;
+  --lv1:#16904a; --lv2:#0c8a82; --lv3:#6b3fd1; --lv4:#c2259a; --lv5:#967000;
   --btn-bg:var(--accent); --btn-fg:#fff; --btn-shadow:none;
   color-scheme:light;
 }
@@ -48,7 +50,27 @@ button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outl
 
 /* ---------- start screen ---------- */
 #home{max-width:880px;margin:0 auto;padding:20px 20px 64px;display:flex;flex-direction:column;gap:40px}
-.top{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap}
+.nav{display:flex;gap:2px;overflow-x:auto;max-width:100%;scrollbar-width:none}
+.nav button{position:relative;padding:9px 8px 11px;color:var(--muted);font-size:14.5px;white-space:nowrap}
+.nav button:hover{color:var(--text)}
+.nav button[aria-current="page"]{color:var(--tube-cool);text-shadow:var(--glow-cool-soft)}
+.nav button[aria-current="page"]::after{content:"";position:absolute;left:8px;right:8px;bottom:4px;height:2px;border-radius:1px;background:var(--slow);box-shadow:var(--sign-shadow)}
+.view:not(.on){display:none}
+@media (max-width:560px){
+  .rows .spark{display:none}
+  .rows .row{grid-template-columns:minmax(0,1fr)}
+  .rows .rside{grid-row:auto;grid-column:1;flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;margin-top:4px}
+}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:4px;border-radius:2px;background:var(--lv);box-shadow:0 0 6px var(--lv),0 0 14px var(--lv)}
+.rows li.lv{position:relative}
+.rows li.lv .row{padding-left:18px}
+.rows li.lv::before{content:"";position:absolute;left:1px;top:12px;bottom:12px;width:4px;border-radius:2px;background:var(--lv);box-shadow:0 0 6px var(--lv),0 0 16px var(--lv)}
+.rows li.lv0::before{background:none;box-shadow:none;border:1px solid var(--muted);opacity:.6}
+.pill.lvp{color:var(--lv);border-color:var(--lv)}
+:root[data-app-theme="light"] .rows li.lv::before,:root[data-app-theme="light"] .legend i{box-shadow:none}
 .brand{display:flex;align-items:baseline;flex-wrap:wrap}
 .brand{align-items:center}
 .sign{font-family:var(--font-neon);font-weight:400;font-size:24px;line-height:1;white-space:nowrap}
@@ -174,11 +196,17 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 
 <div id="home">
   <header class="top">
-    <div class="brand"><b class="sign" aria-label="NeonGuitarLab"><i>Neon</i> <em>Guitar Lab</em></b><span>Speedtrainer</span></div>
-    <button class="ghost" id="themeBtn" type="button">Hell</button>
+    <div class="brand"><b class="sign" aria-label="NeonGuitarLab"><i>Neon</i> <em>Guitar Lab</em></b></div>
+    <nav class="nav" id="nav" aria-label="Bereiche">
+      <button type="button" data-go="heute">Heute</button>
+      <button type="button" data-go="licks">Licks</button>
+      <button type="button" data-go="griffbrett">Griffbrett</button>
+      <button type="button" data-go="vokabular">Vokabular</button>
+      <button type="button" data-go="optionen">Optionen</button>
+    </nav>
   </header>
 
-  <section class="today">
+  <section class="today view" data-view="heute">
     <div>
       <p class="eyebrow">Heute</p>
       <h1 id="todayTitle">Aufstieg</h1>
@@ -201,28 +229,34 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     </div>
   </section>
 
-  <section>
+  <section class="view" data-view="licks">
     <h2>Licks der Stufe 1</h2>
-    <p class="note">Moll-Pentatonik in A, fünfter Bund. Tippe ein Lick an, um es frei zu üben. Die Punkte zeigen saubere Tage. Bei fünf gilt ein Lick als gefestigt und die Bursts werden länger, nach acht kommt eine Sechzehntel-Phase mit eigenem Dauertempo dazu.</p>
+    <div class="legend" id="legend"></div>
+    <p class="note">Moll-Pentatonik in A, fünfter Bund. Tippe ein Lick an, um es frei zu üben. Die Punkte zeigen saubere Tage. Die Farbe zeigt, wie weit ein Lick ist: Grün ab dem ersten sauberen Tag, Türkis ab fünf Tagen mit längeren Bursts, Violett ab acht Tagen mit Sechzehntel-Phase, Pink ab 100 BPM, Gold am Ziel.</p>
     <ul class="rows" id="lickList"></ul>
   </section>
 
-  <section>
+  <section class="view" data-view="griffbrett">
     <h2>Griffbrett</h2>
     <p class="note">Schritt für Schritt lernen, wo welcher Ton liegt. Das Mikrofon hört zu, und es geht erst weiter, wenn der Ton stimmt. Eine Lektion gilt als sauber, wenn du höchstens eine Hilfe brauchst.</p>
     <div id="fbList"></div>
     <div class="toolrow"><button class="ghost" id="tunerBtn" type="button">Stimmgerät</button></div>
   </section>
 
-  <section>
+  <section class="view" data-view="vokabular">
     <h2>Vokabular</h2>
     <p class="note">Neue Stufen öffnen sich über gefestigte Licks. Anschlagtechniken öffnen sich über das Tempo.</p>
     <ul class="rows" id="mapList"></ul>
   </section>
 
-  <section>
+  <section class="view" data-view="optionen">
     <h2>Einstellungen</h2>
     <div class="set">
+      <div><div class="lbl">Design<small>Dunkel leuchtet, hell ist flächig.</small></div>
+        <div class="seg" id="themeSeg" role="group" aria-label="Design">
+          <button type="button" data-theme="dark">Dunkel</button>
+          <button type="button" data-theme="light">Hell</button>
+        </div></div>
       <div><div class="lbl">Begleitung<small>Der Klick betont die Eins.</small></div>
         <div class="seg" id="beatSeg" role="group" aria-label="Begleitung">
           <button type="button" data-beat="click">Klick</button>
@@ -354,6 +388,14 @@ function isSolid(id){ return peek(id).days.length >= 5; }
 /* Stage 1: one-bar bursts. Stage 2 (5 clean days): two-bar bursts. Stage 3 (8 clean days): a four-bar sixteenth phase at its own, lower tempo. */
 function stage(id){ const n = peek(id).days.length; return n >= 8 ? 3 : n >= 5 ? 2 : 1; }
 const BURST_CAP = 132, SUSTAIN_CAP = 110;
+/* Progression colours, from the first clean day to the goal. */
+const LEVELS = ["neu", "begonnen", "gefestigt", "ausdauernd", "schnell", "am Ziel"];
+function level(id){
+  const p = peek(id), d = p.days.length, isLick = id !== "v1";
+  if(d >= 8 && p.bpm >= 120 && (!isLick || durRec(id).bpm >= 100)) return 5;
+  if(d >= 8 && p.bpm >= 100) return 4;
+  return d >= 8 ? 3 : d >= 5 ? 2 : d >= 1 ? 1 : 0;
+}
 function durId(id){ return id + ":d"; }
 function durRec(id, create){
   const k = durId(id); if(state.prog[k]) return state.prog[k];
@@ -1045,7 +1087,7 @@ function renderFb(){
 /* ================= start screen ================= */
 function applyTheme(){
   document.documentElement.setAttribute("data-app-theme", state.settings.theme);
-  $("themeBtn").textContent = state.settings.theme === "dark" ? "Hell" : "Dunkel";
+  document.querySelectorAll("#themeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.theme === state.settings.theme)));
   readColors();
 }
 function drawPreview(){
@@ -1084,15 +1126,18 @@ function renderHome(){
   LICKS.forEach((l, i) => {
     const p = peek(l.id), open = i < state.introduced, li = document.createElement("li"), el = document.createElement(open ? "button" : "div");
     el.className = "row" + (open ? "" : " locked"); if(open){ el.type = "button"; el.dataset.lick = l.id; }
-    const status = !open ? ["", "kommt als Nächstes"] : isSolid(l.id) ? ["solid", "gefestigt"] : p.hist.length ? ["active", "in Arbeit"] : ["active", "neu"];
+    const lv = level(l.id), status = !open ? ["", "kommt als Nächstes"] : [lv ? "lvp" : "active", LEVELS[lv]];
+    if(open){ li.className = "lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")"); }
     el.innerHTML = '<span class="rname">'+l.name+'<span class="chip">'+l.chord+'</span></span><span class="rmeta">'+(open ? l.goal+STAGE_TXT[stage(l.id)] : "Öffnet sich, wenn alle offenen Licks zwei saubere Tage haben")+'</span>'+
       '<span class="rside"><span style="display:flex;gap:10px;align-items:center">'+spark(p.hist)+'<span class="rtempo">'+p.bpm+' BPM'+(stage(l.id) >= 3 ? ' · Dauer '+durRec(l.id).bpm : '')+'</span></span><span style="display:flex;gap:10px;align-items:center">'+dotsHtml(p.days.length)+'<span class="pill '+status[0]+'">'+status[1]+'</span></span></span>';
     li.append(el); ul.append(li);
   });
   { const p = peek(VOCAB.id), li = document.createElement("li"), el = document.createElement("button"); el.className = "row"; el.type = "button"; el.dataset.lick = VOCAB.id;
     el.innerHTML = '<span class="rname">'+VOCAB.name+'<span class="chip">Am · C · Am</span></span><span class="rmeta">Drei Teile, erst einzeln, dann verbunden. Steht am Ende jeder Einheit.</span>'+
-      '<span class="rside"><span style="display:flex;gap:10px;align-items:center">'+spark(p.hist)+'<span class="rtempo">'+p.bpm+' BPM</span></span><span style="display:flex;gap:10px;align-items:center">'+dotsHtml(p.days.length)+'<span class="pill '+(isSolid(VOCAB.id) ? "solid" : "active")+'">'+(isSolid(VOCAB.id) ? "gefestigt" : p.hist.length ? "in Arbeit" : "neu")+'</span></span></span>';
+      '<span class="rside"><span style="display:flex;gap:10px;align-items:center">'+spark(p.hist)+'<span class="rtempo">'+p.bpm+' BPM</span></span><span style="display:flex;gap:10px;align-items:center">'+dotsHtml(p.days.length)+'<span class="pill '+(level(VOCAB.id) ? "lvp" : "active")+'">'+LEVELS[level(VOCAB.id)]+'</span></span></span>';
+    li.className = "lv lv"+level(VOCAB.id); li.style.setProperty("--lv", "var(--lv"+Math.max(1, level(VOCAB.id))+")");
     li.append(el); ul.append(li); }
+  $("legend").innerHTML = [1,2,3,4,5].map(k => '<span style="--lv:var(--lv'+k+')"><i></i>'+LEVELS[k]+'</span>').join("");
 
   const fast = LICKS.filter(l => peek(l.id).bpm >= 100).length;
   const map = [
@@ -1124,7 +1169,19 @@ $("testBtn").addEventListener("click", () => startSession(buildTest()));
 $("durSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.minutes = +b.dataset.min; save(); renderHome(); });
 $("beatSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.beat = b.dataset.beat; save(); renderHome(); });
 [["swChords","chords"],["swLick","lickSound"],["swFret","fretboard"]].forEach(p => $(p[0]).addEventListener("click", () => { state.settings[p[1]] = !state.settings[p[1]]; save(); renderHome(); }));
-$("themeBtn").addEventListener("click", () => { state.settings.theme = state.settings.theme === "dark" ? "light" : "dark"; save(); applyTheme(); renderHome(); });
+$("themeSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.theme = b.dataset.theme; save(); applyTheme(); renderHome(); });
+/* menu: one area at a time instead of one long page */
+const VIEWS = ["heute","licks","griffbrett","vokabular","optionen"];
+function showView(v, quiet){
+  if(!VIEWS.includes(v)) v = "heute";
+  document.querySelectorAll(".view").forEach(el => el.classList.toggle("on", el.dataset.view === v));
+  document.querySelectorAll("#nav button").forEach(b => { if(b.dataset.go === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  if(!quiet){ try{ if(location.hash.slice(1) !== v) location.hash = v; }catch(e){} }
+  if(v === "heute") drawPreview();
+  window.scrollTo(0, 0);
+}
+$("nav").addEventListener("click", e => { const b = e.target.closest("button[data-go]"); if(b) showView(b.dataset.go); });
+window.addEventListener("hashchange", () => showView(location.hash.slice(1), true));
 $("lickList").addEventListener("click", e => {
   const b = e.target.closest("button[data-lick]"); if(!b) return;
   if(b.dataset.lick === VOCAB.id){ startSession({kind:"free", blocks:[vocabBlock(150)]}); return; }
@@ -1143,7 +1200,7 @@ document.addEventListener("keydown", e => {
   else if(!$("ratePanel").hidden && ["1","2","3"].includes(e.key)) rate(["clean","wobbly","bad"][+e.key-1]);
 });
 document.addEventListener("visibilitychange", () => { if(document.hidden && run && !paused) togglePause(); });
-window.addEventListener("resize", () => { if($("practice").hidden) drawPreview(); });
+window.addEventListener("resize", () => { if($("practice").hidden && document.querySelector('.view.on[data-view="heute"]')) drawPreview(); });
 
 $("exportBtn").addEventListener("click", () => {
   const txt = JSON.stringify(state), box = $("ioBox"); box.hidden = false; $("ioText").value = txt; $("ioText").select();
@@ -1170,7 +1227,7 @@ if(/github\.io$/.test(location.hostname)){
   if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   $("syncMsg").textContent = "Der Fortschritt liegt auf diesem Gerät. Mit Kopieren und Einfügen überträgst du ihn auf ein anderes.";
 }
-applyTheme(); renderHome();
+applyTheme(); renderHome(); showView(location.hash.slice(1) || "heute", true);
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if($("practice").hidden) drawPreview(); });
 initSync();
 </script>
