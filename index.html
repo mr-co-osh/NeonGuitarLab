@@ -204,6 +204,25 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .sumlist li{padding:10px 2px;border-bottom:1px solid var(--line);display:flex;flex-direction:column}
 .sumlist li span{color:var(--muted);font-size:14px}
 .panel .primary{flex:none;font-size:18px}
+/* ---------- own licks ---------- */
+.rows li.own{display:flex;align-items:center;gap:10px}
+.rows li.own .row{flex:1 1 auto;min-width:0}
+#editor{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:20}
+.edbody{flex:1 1 auto;overflow:auto;padding:6px 20px 30px;display:flex;flex-direction:column;gap:16px;width:100%;max-width:920px;margin:0 auto}
+.edbody > *{flex:none}
+.edbody .chips{margin:0}
+.edrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+#edName{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;min-width:0;flex:1 1 180px}
+.edtabwrap{overflow-x:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2;background:var(--bg)}
+#edTab{height:160px;display:block}
+.edlbl{display:block;color:var(--muted);font-size:13px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.edgrid{display:grid;grid-template-columns:20px repeat(13,minmax(0,1fr));gap:3px;align-items:center;margin-bottom:12px}
+.edgrid span{font-family:var(--font-num);font-size:11px;color:var(--muted);text-align:center}
+.edgrid span.mk{color:var(--text)}
+.edgrid button{height:36px;border:1px solid var(--line);border-radius:7px;font-family:var(--font-num);font-size:10px;color:var(--muted)}
+.edgrid button:hover,.edgrid button:active{border-color:var(--accent);color:var(--text)}
+.edgrid button.rt{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.chips button[aria-disabled="true"]{opacity:.35}
 /* ---------- fretboard trainer ---------- */
 .stagehead{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;padding:18px 2px 8px;flex-wrap:wrap}
 .stagehead b{font-size:16px}
@@ -273,6 +292,10 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <div class="legend" id="legend"></div>
     <p class="note">Moll-Pentatonik in A, fünfter Bund. Tippe ein Lick an, um es frei zu üben. Die Punkte zeigen saubere Tage. Die Farbe zeigt, wie weit ein Lick ist: Grün ab dem ersten sauberen Tag, Türkis ab fünf Tagen mit längeren Bursts, Violett ab acht Tagen mit Sechzehntel-Phase, Pink ab 100 BPM, Gold am Ziel.</p>
     <ul class="rows" id="lickList"></ul>
+    <h2 style="margin-top:34px"><span class="neon">Eigene</span> Licks</h2>
+    <p class="note">Schreibe ein eigenes Lick. Es durchläuft dieselben Schritte wie alle anderen: langsam beginnen, Bursts, Tempo und Farben.</p>
+    <ul class="rows" id="ownList"></ul>
+    <div class="toolrow"><button class="ghost" id="newLick" type="button">Eigenes Lick anlegen</button></div>
     <h2 style="margin-top:34px"><span class="neon">Rhythmus</span> ausprobieren</h2>
     <p class="note">Kurze Runden ohne Bewertung mit dem heutigen Lick. In der täglichen Einheit kommen Triolen, 3/4 und 6/8 nur ab und zu als Gast vor. Die Sechzehntel-Rhythmen gehören zu jedem gefestigten Lick.</p>
     <div class="toolrow" id="tryRow">
@@ -381,6 +404,25 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
   </div>
 </div>
 
+<div id="editor" hidden>
+  <div class="phead">
+    <button class="xbtn" id="edCancel" type="button">Abbrechen</button>
+    <div class="pinfo"><span style="color:var(--text);font-weight:700">Eigenes Lick</span><span class="num" id="edInfo"></span></div>
+    <div class="pctl"><button id="edSave" type="button" aria-pressed="true">Speichern</button></div>
+  </div>
+  <div class="edbody">
+    <div class="edrow"><input id="edName" type="text" maxlength="28" placeholder="Name des Licks" aria-label="Name des Licks"><div class="chips" id="edChord" role="group" aria-label="Akkord"></div></div>
+    <div class="edtabwrap" id="edWrap"><canvas id="edTab" aria-label="Tabulatur des Licks"></canvas></div>
+    <p class="msg" id="edMsg"></p>
+    <div><span class="edlbl">Notenwert für den nächsten Ton</span><div class="chips" id="edVal" role="group" aria-label="Notenwert"></div></div>
+    <div><span class="edlbl">Ton setzen: Saite und Bund antippen</span>
+      <div class="edgrid" id="edGrid"></div>
+      <div class="toolrow" style="margin-top:0"><button class="ghost" id="edLeft" type="button">Tiefere Lage</button><button class="ghost" id="edRight" type="button">Höhere Lage</button><button class="ghost" id="edRest" type="button">Pause einfügen</button><button class="ghost" id="edUndo" type="button">Zurück</button></div></div>
+    <div><span class="edlbl">Spielweise des letzten Tons</span><div class="chips" id="edTech" role="group" aria-label="Spielweise"></div></div>
+    <div class="toolrow" style="margin-top:0"><button class="ghost" id="edPlay" type="button">Anhören</button><button class="ghost" id="edDel" type="button" hidden>Lick löschen</button></div>
+  </div>
+</div>
+
 <div id="quiz" hidden>
   <div class="pbar"><div id="qfill"></div></div>
   <div class="phead">
@@ -415,7 +457,13 @@ const OPEN = {6:40,5:45,4:50,3:55,2:59,1:64};           // MIDI of open strings
 const CHORDS = {
   Am:{root:9, pad:[45,52,57,60]},
   C:{root:0, pad:[48,55,60,64]},
-  Em:{root:4, pad:[40,47,52,55]}
+  Em:{root:4, pad:[40,47,52,55]},
+  G:{root:7, pad:[43,50,55,59]},
+  D:{root:2, pad:[50,57,62,66]},
+  Dm:{root:2, pad:[50,57,62,65]},
+  F:{root:5, pad:[41,48,53,57]},
+  A:{root:9, pad:[45,52,57,61]},
+  E:{root:4, pad:[40,47,52,56]}
 };
 const LICKS = [
   {id:"l1", name:"Aufstieg", chord:"Am", goal:"endet auf dem Grundton A", notes:[[6,5],[6,8],[5,5],[5,7],[4,5],[4,7],[3,5],[4,7]]},
@@ -446,11 +494,19 @@ const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
   return {v:1, updatedAt:0, settings:{theme:"dark", tuning:"std", fbLimit:8, beat:"click", harmony:"chord", warmup:true, lickSound:false, fretboard:false, minutes:10},
-          introduced:3, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}};
+          introduced:3, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}, custom:[]};
 }
-let state = fresh();
+let state = fresh(), OWN = null;
+/* licks the player wrote. ev holds notes {s,f,t,tech} and rests {r,t}; t counts twelfths of a beat, so triplets stay exact. */
+function ownLicks(){
+  if(!OWN) OWN = (state.custom || []).map(c => ({id:c.id, name:c.name, chord:c.chord, ev:c.ev, own:true, goal:"Eigenes Lick", notes:c.ev.filter(e => !e.r).map(e => [e.s, e.f])}));
+  return OWN;
+}
+function allLicks(){ return LICKS.concat(ownLicks()); }
+const src = l => l.ev || l.notes;
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 /* older saves had a plain on/off switch for chords */
-function adopt(s){ const st = Object.assign(fresh().settings, s.settings||{}); if(st.chords === false) st.harmony = "off"; delete st.chords; const o = Object.assign(fresh(), s, {settings:st}); o.introduced = Math.max(3, o.introduced || 0); return o; }
+function adopt(s){ const st = Object.assign(fresh().settings, s.settings||{}); if(st.chords === false) st.harmony = "off"; delete st.chords; const o = Object.assign(fresh(), s, {settings:st}); o.introduced = Math.max(3, o.introduced || 0); if(!Array.isArray(o.custom)) o.custom = []; OWN = null; return o; }
 try{ const raw = localStorage.getItem(KEY); if(raw){ const s = JSON.parse(raw); if(s && s.v===1) state = adopt(s); } }catch(e){}
 
 function P(id){ return state.prog[id] || (state.prog[id] = {bpm:60, at:[], days:[], hist:[], last:null}); }
@@ -505,14 +561,14 @@ function streak(){
   while(set.has(dstr(d))){ n++; d.setDate(d.getDate()-1); }
   return n;
 }
-function activeLicks(){ return LICKS.slice(0, state.introduced); }
+function activeLicks(){ return LICKS.slice(0, state.introduced).concat(ownLicks()); }
 function maybeIntroduce(){
-  while(state.introduced < LICKS.length && activeLicks().every(l => peek(l.id).days.length >= 1)) state.introduced++;
+  while(state.introduced < LICKS.length && LICKS.slice(0, state.introduced).every(l => peek(l.id).days.length >= 1)) state.introduced++;
 }
 function lickOrder(){
   return activeLicks().slice().sort((a,b) => {
     const sa = isSolid(a.id) ? 1 : 0, sb = isSolid(b.id) ? 1 : 0; if(sa !== sb) return sa - sb;
-    const la = peek(a.id).last || "", lb = peek(b.id).last || ""; return la < lb ? -1 : la > lb ? 1 : 0;
+    const la = peek(a.id).last || "", lb = peek(b.id).last || ""; return la < lb ? -1 : la > lb ? 1 : (b.own ? 1 : 0) - (a.own ? 1 : 0);
   });
 }
 
@@ -555,19 +611,30 @@ async function initSync(){
 
 /* ================= building bars ================= */
 function midiOf(s, f){ return OPEN[s] + f; }
-/* type N = eighths (1 bar), B = sixteenths, lick twice (1 bar), S = quarters (2 bars) */
+/* type N = as written, B = double speed played twice, S = half speed. Built-in licks are eight eighths; own licks bring their own rhythm. */
+function evOf(x){
+  if(Array.isArray(x[0])) return x.map(n => ({s:n[0], f:n[1], dur:(n[2]||1)*.5, tech:""}));
+  return x.map(e => e.r ? {rest:true, dur:e.t/12} : {s:e.s, f:e.f, dur:e.t/12, tech:e.tech||""});
+}
 function mkBars(notes, type, meta){
-  const unit = type === "B" ? .25 : type === "S" ? 1 : .5;
-  const reps = type === "B" ? 2 : 1, nb = type === "S" ? 2 : 1;
-  const total = notes.reduce((a,n) => a + (n[2]||1), 0);
+  const ev = evOf(notes), scale = type === "B" ? .5 : type === "S" ? 2 : 1, reps = type === "B" ? 2 : 1;
+  const T = ev.reduce((a,e) => a + e.dur, 0), nb = Math.max(1, Math.round(T*scale*reps/4));
   const ch = meta.chord ? CHORDS[meta.chord] : null;
-  const bars = []; for(let i=0;i<nb;i++) bars.push({type:type, chord:meta.chord||null, label:meta.label||"", hint:meta.hint||"", notes:[]});
+  const fine = ev.some(e => { const q = e.dur*4; return Math.abs(q - Math.round(q)) < 1e-6 && Math.round(q) % 2 === 1; }), grid = fine ? .25 : .5;
+  let lastNote = -1; ev.forEach((e,i) => { if(!e.rest) lastNote = i; });
+  const mode = Array.isArray(notes[0]) ? "" : ({N:"wie notiert", B:"doppelt so schnell", S:"halb so schnell"})[type] || "";
+  const bars = []; for(let i=0;i<nb;i++) bars.push({type:type, chord:meta.chord||null, label:meta.label||"", hint:meta.hint||"", mode:mode, notes:[]});
   for(let r=0;r<reps;r++){
-    let pos = 0;
-    notes.forEach((n,i) => {
-      const b = r*total*unit + pos*unit, bi = Math.min(nb-1, Math.floor(b/4)), m = midiOf(n[0], n[1]);
-      bars[bi].notes.push({b:b-bi*4, s:n[0], f:n[1], dur:(n[2]||1)*unit, up:pos%2===1, target:i===notes.length-1, root:!!ch && m%12===ch.root, midi:m});
-      pos += (n[2]||1);
+    let pos = 0, prev = null, lastUp = true;
+    ev.forEach((e,i) => {
+      if(!e.rest){
+        const b = (r*T + pos)*scale, bi = Math.min(nb-1, Math.floor(b/4 + 1e-9)), m = midiOf(e.s, e.f), q = pos/grid;
+        const up = Math.abs(q - Math.round(q)) < 1e-6 ? Math.round(q) % 2 === 1 : !lastUp; lastUp = up;
+        const legato = e.tech === "h" || e.tech === "p" || e.tech === "s";
+        bars[bi].notes.push({b:b-bi*4, s:e.s, f:e.f, dur:e.dur*scale, up:up, nopick:legato && prev !== null, tech:e.tech, back:prev !== null ? (pos-prev)*scale : 0, target:i===lastNote, root:!!ch && m%12===ch.root, midi:m});
+        prev = pos;
+      }else prev = null;
+      pos += e.dur;
     });
   }
   return bars;
@@ -634,21 +701,21 @@ function lickBlock(lick, title, sec, full){
   const pat = st2 ? (full ? ["S","N","N","R","R","B","B","N","N","S","N","N","R","R","B","B","N","N"] : ["N","N","B","B","N","R","R","S","N","N","B","B","N"])
                   : (full ? ["S","N","N","N","N","B","N","N","S","N","N","B","N","N"] : ["N","N","B","N","N","S","N","N","B","N"]);
   const bars = [countBar(lick.chord)]; let i = 0, h = 0;
-  if(full && !p.hist.length) bars.push.apply(bars, mkBars(lick.notes, "S", {chord:lick.chord, hint:"Langsam kennenlernen"}));
+  if(full && !p.hist.length) bars.push.apply(bars, mkBars(src(lick), "S", {chord:lick.chord, hint:"Langsam kennenlernen"}));
   while(bars.length < n-2){
     const t = pat[i++ % pat.length];
-    if(t === "R"){ const r = RHY[Math.floor(rk++/2) % Math.max(1, nr)]; bars.push.apply(bars, rhyBars(lick, r)); }
-    else bars.push.apply(bars, mkBars(lick.notes, t, {chord:lick.chord, hint:t==="S" ? HINTS[h++ % HINTS.length] : ""}));
+    if(t === "R" && !lick.own){ const r = RHY[Math.floor(rk++/2) % Math.max(1, nr)]; bars.push.apply(bars, rhyBars(lick, r)); }
+    else bars.push.apply(bars, mkBars(src(lick), t === "R" ? "N" : t, {chord:lick.chord, hint:t==="S" ? HINTS[h++ % HINTS.length] : ""}));
   }
-  bars.push.apply(bars, mkBars(lick.notes, "S", {chord:lick.chord, hint:"Zielton aushalten"}));
-  return {kind:"lick", id:lick.id, title:title+" · "+lick.name, rateName:lick.name, bpm:bpm, bars:bars, rated:true, shape:lick.notes, chord:lick.chord};
+  bars.push.apply(bars, mkBars(src(lick), "S", {chord:lick.chord, hint:"Zielton aushalten"}));
+  return {kind:"lick", id:lick.id, title:title+" · "+lick.name, rateName:lick.name, bpm:bpm, bars:bars, rated:true, shape:lick.notes, chord:lick.chord, own:!!lick.own};
 }
 /* Sixteenth phase: four bars of continuous sixteenths at the sustained tempo, framed by eighths and a slow pass. */
 function durBlock(lick, sec){
   const bpm = durRec(lick.id).bpm, n = barsFor(sec, bpm, 17), bars = [countBar(lick.chord)], m = {chord:lick.chord};
-  const add = (t, hint) => bars.push.apply(bars, mkBars(lick.notes, t, {chord:lick.chord, hint:hint||""}));
+  const add = (t, hint) => bars.push.apply(bars, mkBars(src(lick), t, {chord:lick.chord, hint:hint||""}));
   do{ add("N"); add("N"); for(let k=0;k<4;k++) add("B"); add("N"); add("N"); add("S", "Hand lockern, Zielton aushalten"); }while(bars.length + 10 <= n);
-  return {kind:"lick", id:durId(lick.id), title:"Sechzehntel-Phase · "+lick.name, rateName:lick.name+" · Sechzehntel-Phase", bpm:bpm, bars:bars, rated:true, shape:lick.notes, chord:lick.chord, long:true};
+  return {kind:"lick", id:durId(lick.id), title:"Sechzehntel-Phase · "+lick.name, rateName:lick.name+(lick.own ? " · Dauerphase" : " · Sechzehntel-Phase"), bpm:bpm, bars:bars, rated:true, shape:lick.notes, chord:lick.chord, long:true, own:!!lick.own};
 }
 /* Five warm-ups that take turns by the day, so the first minutes never feel the same two days running. */
 const reFret = (bar, map) => bar.map(n => [n[0], map(n[1])]);
@@ -664,7 +731,7 @@ function warmBlock(sec, mainBpm, main){
     const known = activeLicks().filter(l => l !== main && isSolid(l.id))[0];
     if(known){
       const bpm = Math.max(50, peek(known.id).bpm - 16), n = barsFor(sec, bpm, 7), bars = [countBar(known.chord)], pat = ["S","N","N"]; let i = 0;
-      while(bars.length < n) bars.push.apply(bars, mkBars(known.notes, pat[i++ % 3], {chord:known.chord, hint:"Locker einspielen"}));
+      while(bars.length < n) bars.push.apply(bars, mkBars(src(known), pat[i++ % 3], {chord:known.chord, hint:"Locker einspielen"}));
       return {kind:"warm", title:"Aufwärmen · "+known.name+" langsam", bpm:bpm, bars:bars, rated:false, shape:known.notes, chord:known.chord};
     }
   }
@@ -692,7 +759,7 @@ function buildSession(minutes){
   const mb = lickBlock(main, "Hauptlick", mainSec, true); mb.remake = extra => lickBlock(main, "Hauptlick", mainSec + extra, true); blocks.push(mb);
   if(plan.rep) blocks.push(stage(second.id) >= 3 ? durBlock(second, plan.rep) : lickBlock(second, "Wiederholung", plan.rep, false));
   if(plan.main2) blocks.push(lickBlock(third, "Zweites Lick", plan.main2, true));
-  const day = Math.floor((Date.now() - new Date().getTimezoneOffset()*60000)/86400000), familiar = activeLicks().filter(l => peek(l.id).days.length)[0];
+  const day = Math.floor((Date.now() - new Date().getTimezoneOffset()*60000)/86400000), familiar = LICKS.slice(0, state.introduced).filter(l => peek(l.id).days.length)[0];
   if(plan.rep && familiar && day % 3 === 2) blocks.push(guestBlock(familiar, ["trip","34","68"][Math.floor(day/3) % 3], 90));
   if(plan.rep && fbLearned().length) blocks.push({kind:"fret", title:"Griffbrett", sec:100, rated:false});
   blocks.push(vocabBlock(plan.vocab));
@@ -824,7 +891,7 @@ function frame(){
 function hud(beat){
   const i = Math.max(0, Math.min(run.bars.length-1, Math.floor(beat/run.bpb))), cur = run.bars[i], nxt = run.bars[i+1];
   let word = "", cls = "", hint = "", lbl = "", hcls = "";
-  const burstTask = bl => bl.long ? "Vier Takte Sechzehntel, gleichmäßig" : "Sechzehntel, locker bleiben";
+  const burstTask = bl => bl.own ? "Doppelt so schnell, locker bleiben" : bl.long ? "Vier Takte Sechzehntel, gleichmäßig" : "Sechzehntel, locker bleiben";
   if(beat < 0){ word = "Bereit"; cls = "soon"; }
   else if(cur.type === "count"){ word = String(Math.floor(beat%run.bpb)+1); hint = "Einzählen"; }
   else if(cur.type === "B"){ word = "Burst!"; cls = "burst"; lbl = "Auftrag"; hint = burstTask(run.block); hcls = "task warm"; }
@@ -852,14 +919,18 @@ function drawLane(beat){
   const top = h*.22, bot = h*.70, gap = (bot-top)/5, fs = Math.max(13, Math.min(30, gap*.92));
   const y = s => top + (s-1)*gap, X = b => mx + (b-beat)*ppb;
   const bpb = run.bpb, ZC = {B:C.accent, S:C.slow, R:C.groove}, ZT = {B:"BURST", S:"SLOW", R:"GROOVE"};
+  const ZY = top-gap*.75, ZH = (bot-top)+gap*1.5, ZA = .32;
+  const zAlpha = yy => { const t = Math.max(0, Math.min(1, (yy-ZY)/ZH)); return t < .55 ? ZA*(1 - t/.55*.72) : ZA*.28*(1 - (t-.55)/.45); };
   const first = Math.max(0, Math.floor((beat - mx/ppb)/bpb)), last = Math.min(run.bars.length-1, Math.floor((beat + (w-mx)/ppb)/bpb));
   // zones
   for(let i=first;i<=last;i++){
     const bar = run.bars[i], x0 = X(i*bpb);
     if(ZC[bar.type]){
-      const zc = ZC[bar.type], zy = top-gap*.75, zh = (bot-top)+gap*1.5;
-      g.fillStyle = rgba(zc, .12); g.fillRect(x0, zy, bpb*ppb, zh);
-      g.fillStyle = zc; glow(g, zc, 12); g.fillRect(x0, zy-1, bpb*ppb, 2); g.fillRect(x0, zy+zh-1, bpb*ppb, 2); noGlow(g);
+      /* one tube along the top edge; its light falls down the strings and fades out */
+      const zc = ZC[bar.type], gr = g.createLinearGradient(0, ZY, 0, ZY+ZH);
+      gr.addColorStop(0, rgba(zc, ZA)); gr.addColorStop(.55, rgba(zc, ZA*.28)); gr.addColorStop(1, rgba(zc, 0));
+      g.fillStyle = gr; g.fillRect(x0, ZY, bpb*ppb, ZH);
+      g.fillStyle = zc; glow(g, zc, 18); g.fillRect(x0, ZY-1.5, bpb*ppb, 3); noGlow(g);
     }
   }
   // strings
@@ -891,16 +962,22 @@ function drawLane(beat){
     const yy = y(n.s), txt = String(n.f), tw = g.measureText(txt).width, bw = tw+8, bh = fs*1.12, col = n.root ? C.accent : C.text, bt = run.bars[n.bar].type;
     const isCur = i === curIdx && beat - n.ab < Math.max(n.dur, .25);
     g.globalAlpha = 1; g.fillStyle = C.bg; g.fillRect(x-bw/2, yy-bh/2, bw, bh);
-    if(ZC[bt]){ g.fillStyle = rgba(ZC[bt], .12); g.fillRect(x-bw/2, yy-bh/2, bw, bh); }
+    if(ZC[bt]){ g.fillStyle = rgba(ZC[bt], zAlpha(yy)); g.fillRect(x-bw/2, yy-bh/2, bw, bh); }
     if(n.acc){ g.globalAlpha = i < curIdx ? .3 : 1; g.fillStyle = C.text; g.fillText(">", x, top-gap*.42); g.globalAlpha = 1; }
     if(isCur){ g.fillStyle = col; glow(g, col, 16); rr(g, x-bw/2-3, yy-bh/2-1, bw+6, bh+2, 6); g.fill(); noGlow(g); g.fillStyle = C.bg; g.fillText(txt, x, yy+1); }
     else{
       g.globalAlpha = i < curIdx ? .26 : 1; g.fillStyle = col; if(n.root && i > curIdx) glow(g, C.accent, 9); g.fillText(txt, x, yy+1); noGlow(g);
       if(n.target){ g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.arc(x, yy, fs*.78, 0, 6.2832); g.stroke(); }
     }
+    if(n.tech){
+      g.globalAlpha = i < curIdx ? .3 : 1; g.fillStyle = C.text; g.font = "600 "+Math.round(fs*.62)+"px "+FONT_N;
+      if(n.tech[0] === "b") g.fillText("\u2191"+n.tech.slice(1), x + bw/2 + fs*.42, yy - fs*.6);
+      else if(n.back) g.fillText(n.tech === "s" ? "/" : n.tech, X(n.ab - n.back/2), yy - fs*.52);
+      g.font = "600 "+Math.round(fs)+"px "+FONT_N; g.globalAlpha = 1;
+    }
     // pick direction: down stroke as a bracket, up stroke as a V
     const py = bot + Math.max(gap*1.05, fs*.95), ps = Math.max(4, fs*.2); g.strokeStyle = C.muted; g.lineWidth = 1.4; g.globalAlpha = i < curIdx ? .22 : .8; g.beginPath();
-    if(n.up){ g.moveTo(x-ps, py-ps); g.lineTo(x, py+ps); g.lineTo(x+ps, py-ps); } else { g.moveTo(x-ps, py+ps); g.lineTo(x-ps, py-ps); g.lineTo(x+ps, py-ps); g.lineTo(x+ps, py+ps); }
+    if(n.nopick){} else if(n.up){ g.moveTo(x-ps, py-ps); g.lineTo(x, py+ps); g.lineTo(x+ps, py-ps); } else { g.moveTo(x-ps, py+ps); g.lineTo(x-ps, py-ps); g.lineTo(x+ps, py-ps); g.lineTo(x+ps, py+ps); }
     g.stroke(); g.globalAlpha = 1;
   }
   g.textAlign = "left";
@@ -1230,6 +1307,113 @@ function drawMeter(cents){
   const x = mid + Math.max(-50, Math.min(50, cents))/50*(x1-mid), col = Math.abs(cents) < 6 ? C.ok : C.accent;
   g.fillStyle = col; glow(g, col, 14); g.fillRect(x-2, y-34, 4, 68); noGlow(g);
 }
+/* ================= editor for own licks ================= */
+const ED_VAL = [["h","Halbe",24],["q","Viertel",12],["e","Achtel",6],["s","Sechzehntel",3],["t","Achteltriole",4]];
+const ED_TECH = [["","Normal"],["h","Hammer-on"],["p","Pull-off"],["s","Slide"],["b\u00bd","Bending \u00bd"],["b1","Bending 1"]];
+const ED_MAX = 192;   // four bars of 4/4
+let ED = null;
+function edTicks(){ const b = ED_VAL.find(v => v[0] === ED.val)[2]; return ED.dot && (ED.val === "q" || ED.val === "e") ? b*1.5 : b; }
+function edTotal(){ return ED.ev.reduce((a,e) => a + e.t, 0); }
+function beatsTxt(t){ const w = Math.floor(t/12), f = {0:"",3:"\u00bc",4:"\u2153",6:"\u00bd",8:"\u2154",9:"\u00be"}[t%12]; return f === undefined ? (t/12).toFixed(2).replace(".", ",") : (w || !f ? w : "") + f; }
+function valTxt(t){ return ({24:"2",18:"4.",12:"4",9:"8.",6:"8",4:"3",3:"16"})[t] || ""; }
+function openEditor(id){
+  const c = id ? (state.custom || []).find(x => x.id === id) : null;
+  ED = {id:c ? c.id : null, chord:c ? c.chord : "Am", ev:c ? c.ev.map(e => Object.assign({}, e)) : [], val:"e", dot:false, pos:c ? Math.max(0, Math.min(12, Math.min.apply(null, c.ev.filter(e => !e.r).map(e => e.f)) - 2)) : 3, msg:""};
+  $("edName").value = c ? c.name : ""; $("edDel").hidden = !c; $("edDel").textContent = "Lick löschen"; $("editor").hidden = false; edRender();
+}
+function closeEditor(){ ED = null; $("editor").hidden = true; }
+function edRender(){
+  $("edChord").innerHTML = Object.keys(CHORDS).map(k => '<button type="button" data-ch="'+k+'" aria-pressed="'+(k === ED.chord)+'">'+k+'</button>').join("");
+  const dotOk = ED.val === "q" || ED.val === "e";
+  $("edVal").innerHTML = ED_VAL.map(v => '<button type="button" data-val="'+v[0]+'" aria-pressed="'+(v[0] === ED.val)+'">'+v[1]+'</button>').join("") + '<button type="button" data-val="dot" aria-pressed="'+(ED.dot && dotOk)+'" aria-disabled="'+!dotOk+'">punktiert</button>';
+  const last = ED.ev[ED.ev.length-1], lt = last && !last.r ? (last.tech || "") : null;
+  $("edTech").innerHTML = ED_TECH.map(v => '<button type="button" data-tech="'+v[0]+'" aria-pressed="'+(lt === v[0])+'" aria-disabled="'+(lt === null)+'">'+v[1]+'</button>').join("");
+  let h = "<span></span>"; for(let k=0;k<13;k++){ const f = ED.pos+k; h += '<span class="'+([3,5,7,9,12,15,17,19,21,24].includes(f) ? "mk" : "")+'">'+f+'</span>'; }
+  const root = CHORDS[ED.chord].root;
+  for(let st=1;st<=6;st++){ h += "<span>"+["e","B","G","D","A","E"][st-1]+"</span>"; for(let k=0;k<13;k++){ const f = ED.pos+k, m = midiOf(st, f); h += '<button type="button" data-s="'+st+'" data-f="'+f+'" class="'+(m%12 === root ? "rt" : "")+'" aria-label="'+nameOf(m)+', Saite '+st+', Bund '+f+'">'+nameOf(m)+'</button>'; } }
+  $("edGrid").innerHTML = h;
+  const tot = edTotal(), into = tot % 48, n = ED.ev.filter(e => !e.r).length;
+  $("edInfo").textContent = n + (n === 1 ? " Ton" : " Töne") + " · " + beatsTxt(tot) + " Schläge";
+  $("edMsg").textContent = ED.msg || (!tot ? "Wähle einen Notenwert und tippe dann auf das Griffbrett. Grundtöne des Akkords sind orange." : into ? "Im Takt sind noch " + beatsTxt(48-into) + " Schläge frei. Beim Speichern wird der letzte Ton bis zum Taktende gehalten." : "Der Takt ist voll. Du kannst speichern oder einen weiteren Takt beginnen.");
+  ED.msg = ""; drawEd();
+}
+function drawEd(){
+  const cv = $("edTab"), wrap = $("edWrap"), ppb = 100, tot = edTotal(), bars = Math.max(1, Math.ceil(Math.max(tot, 1)/48));
+  cv.style.width = Math.max(wrap.clientWidth, 34 + bars*4*ppb + 30) + "px";
+  const o = fit(cv), g = o.ctx, w = o.w, h = o.h; g.clearRect(0,0,w,h);
+  const top = h*.2, bot = h*.7, gap = (bot-top)/5, fs = Math.max(13, Math.min(22, gap*.95)), x0 = 34, X = t => x0 + t/12*ppb, ch = CHORDS[ED.chord];
+  g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); for(let st=1;st<=6;st++){ const y = Math.round(top+(st-1)*gap)+.5; g.moveTo(0, y); g.lineTo(w, y); } g.stroke();
+  g.strokeStyle = C.muted; g.globalAlpha = .55; g.beginPath(); for(let b=0;b<=bars;b++){ const x = Math.round(X(b*48))-.5; g.moveTo(x, top); g.lineTo(x, bot); } g.stroke(); g.globalAlpha = 1;
+  g.fillStyle = C.muted; for(let b=0;b<bars*4;b++) g.fillRect(Math.round(X(b*12))-.5, bot+4, 1, b%4 ? 5 : 9);
+  g.textAlign = "center"; g.textBaseline = "middle"; let t = 0, prev = null;
+  ED.ev.forEach(e => {
+    const x = X(t) + 10;
+    g.font = "500 "+Math.round(fs*.55)+"px "+FONT_N; g.fillStyle = C.muted; g.fillText(valTxt(e.t), x, bot + gap*1.25);
+    if(e.r){ g.font = "600 "+Math.round(fs)+"px "+FONT_N; g.fillText("\u2013", x, (top+bot)/2); prev = null; }
+    else{
+      const y = top+(e.s-1)*gap, txt = String(e.f), col = midiOf(e.s, e.f)%12 === ch.root ? C.accent : C.text;
+      g.font = "600 "+Math.round(fs)+"px "+FONT_N; const tw = g.measureText(txt).width;
+      g.fillStyle = C.bg; g.fillRect(x-tw/2-4, y-fs*.56, tw+8, fs*1.12); g.fillStyle = col; g.fillText(txt, x, y+1);
+      if(e.tech){ g.fillStyle = C.text; g.font = "600 "+Math.round(fs*.62)+"px "+FONT_N;
+        if(e.tech[0] === "b") g.fillText("\u2191"+e.tech.slice(1), x + tw/2 + fs*.5, y - fs*.6); else if(prev !== null) g.fillText(e.tech === "s" ? "/" : e.tech, (x+prev)/2, y - fs*.55); }
+      prev = x;
+    }
+    t += e.t;
+  });
+  g.fillStyle = C.accent; glow(g, C.accent, 10); g.fillRect(X(t)+9, top-6, 2, bot-top+12); noGlow(g); g.textAlign = "left";
+  wrap.scrollLeft = Math.max(0, X(t) - wrap.clientWidth + 90);
+}
+function edAdd(e){
+  if(edTotal() + e.t > ED_MAX){ ED.msg = "Mehr als vier Takte passen nicht in ein Lick."; edRender(); return; }
+  ED.ev.push(e); edRender();
+  if(!e.r && ensureAudio()) snd.pluck(A.ctx.currentTime + .02, midiOf(e.s, e.f), .5);
+}
+function edSetTech(tech){
+  const i = ED.ev.length-1, e = ED.ev[i], p = ED.ev[i-1]; if(!e || e.r){ ED.msg = "Setze zuerst einen Ton."; edRender(); return; }
+  if(tech === "h" || tech === "p" || tech === "s"){
+    const nm = {h:"Ein Hammer-on", p:"Ein Pull-off", s:"Ein Slide"}[tech];
+    if(!p || p.r || p.s !== e.s){ ED.msg = nm + " braucht direkt davor einen Ton auf derselben Saite."; edRender(); return; }
+    if(tech === "h" && e.f <= p.f){ ED.msg = "Ein Hammer-on führt zu einem höheren Bund."; edRender(); return; }
+    if(tech === "p" && e.f >= p.f){ ED.msg = "Ein Pull-off führt zu einem tieferen Bund."; edRender(); return; }
+    if(tech === "s" && e.f === p.f){ ED.msg = "Ein Slide führt zu einem anderen Bund."; edRender(); return; }
+  }
+  if(tech) e.tech = tech; else delete e.tech; edRender();
+}
+function edPlay(){
+  if(!ED.ev.length || !ensureAudio()) return;
+  const spb = 60/80, t0 = A.ctx.currentTime + .15, tot = edTotal(); let t = 0;
+  for(let b=0;b<Math.ceil(tot/12);b++) snd.click(t0 + b*spb, b%4 === 0);
+  ED.ev.forEach(e => { if(!e.r) snd.pluck(t0 + t/12*spb, midiOf(e.s, e.f), e.t/12*spb); t += e.t; });
+}
+function edSave(){
+  const notes = ED.ev.filter(e => !e.r);
+  if(notes.length < 2){ ED.msg = "Ein Lick braucht mindestens zwei Töne."; edRender(); return; }
+  const ev = ED.ev.map(e => Object.assign({}, e)), into = edTotal() % 48; if(into) ev[ev.length-1].t += 48 - into;
+  if(!state.custom) state.custom = [];
+  const name = $("edName").value.trim() || "Mein Lick " + (state.custom.length + (ED.id ? 0 : 1));
+  if(ED.id){ const c = state.custom.find(x => x.id === ED.id); c.name = name; c.chord = ED.chord; c.ev = ev; }
+  else state.custom.push({id:"u" + Date.now().toString(36), name:name, chord:ED.chord, ev:ev});
+  OWN = null; save(); closeEditor(); renderHome();
+}
+$("newLick").addEventListener("click", () => openEditor(null));
+$("edCancel").addEventListener("click", closeEditor);
+$("edSave").addEventListener("click", edSave);
+$("edPlay").addEventListener("click", edPlay);
+$("edChord").addEventListener("click", e => { const b = e.target.closest("button[data-ch]"); if(b){ ED.chord = b.dataset.ch; edRender(); } });
+$("edVal").addEventListener("click", e => { const b = e.target.closest("button[data-val]"); if(!b) return; if(b.dataset.val === "dot"){ if(ED.val === "q" || ED.val === "e") ED.dot = !ED.dot; } else ED.val = b.dataset.val; edRender(); });
+$("edTech").addEventListener("click", e => { const b = e.target.closest("button[data-tech]"); if(b) edSetTech(b.dataset.tech); });
+$("edGrid").addEventListener("click", e => { const b = e.target.closest("button[data-s]"); if(b) edAdd({s:+b.dataset.s, f:+b.dataset.f, t:edTicks()}); });
+$("edRest").addEventListener("click", () => edAdd({r:1, t:edTicks()}));
+$("edUndo").addEventListener("click", () => { ED.ev.pop(); edRender(); });
+$("edLeft").addEventListener("click", () => { ED.pos = Math.max(0, ED.pos-4); edRender(); });
+$("edRight").addEventListener("click", () => { ED.pos = Math.min(12, ED.pos+4); edRender(); });
+let edDelArmed = 0;
+$("edDel").addEventListener("click", () => {
+  if(Date.now() - edDelArmed < 4000){ state.custom = state.custom.filter(x => x.id !== ED.id); delete state.prog[ED.id]; delete state.prog[ED.id+":d"]; OWN = null; save(); closeEditor(); renderHome(); edDelArmed = 0; }
+  else{ edDelArmed = Date.now(); $("edDel").textContent = "Wirklich löschen?"; }
+});
+window.addEventListener("resize", () => { if(ED) drawEd(); });
+
 /* ================= tuner ================= */
 const TUNINGS = [
   {id:"std", name:"Standard", midi:[40,45,50,55,59,64], lab:["E","A","D","G","B","e"]},
@@ -1394,6 +1578,15 @@ function renderHome(){
       '<span class="rside"><span style="display:flex;gap:10px;align-items:center">'+spark(p.hist)+'<span class="rtempo">'+p.bpm+' BPM</span></span><span style="display:flex;gap:10px;align-items:center">'+dotsHtml(p.days.length)+'<span class="pill '+(level(VOCAB.id) ? "lvp" : "active")+'">'+LEVELS[level(VOCAB.id)]+'</span></span></span>';
     li.className = "lv lv"+level(VOCAB.id); li.style.setProperty("--lv", "var(--lv"+Math.max(1, level(VOCAB.id))+")");
     li.append(el); ul.append(li); }
+  const ol = $("ownList"); ol.textContent = "";
+  ownLicks().forEach(l => {
+    const p = peek(l.id), lv = level(l.id), li = document.createElement("li"), bars = Math.round(l.ev.reduce((a,e) => a + e.t, 0)/48);
+    li.className = "own lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")");
+    li.innerHTML = '<button class="row" type="button" data-lick="'+l.id+'"><span class="rname">'+esc(l.name)+'<span class="chip">'+l.chord+'</span></span><span class="rmeta">'+l.notes.length+' Töne · '+bars+(bars === 1 ? ' Takt' : ' Takte')+STAGE_TXT[stage(l.id)]+'</span>'+
+      '<span class="rside"><span style="display:flex;gap:10px;align-items:center">'+spark(p.hist)+'<span class="rtempo">'+p.bpm+' BPM'+(stage(l.id) >= 3 ? ' · Dauer '+durRec(l.id).bpm : '')+'</span></span><span style="display:flex;gap:10px;align-items:center">'+dotsHtml(p.days.length)+'<span class="pill '+(lv ? "lvp" : "active")+'">'+LEVELS[lv]+'</span></span></span></button>'+
+      '<button class="ghost" type="button" data-edit="'+l.id+'">Ändern</button>';
+    ol.append(li);
+  });
   $("legend").innerHTML = [1,2,3,4,5].map(k => '<span style="--lv:var(--lv'+k+')"><i></i>'+LEVELS[k]+'</span>').join("");
 
   const fast = LICKS.filter(l => peek(l.id).bpm >= 100).length;
@@ -1446,14 +1639,20 @@ $("gearBtn").addEventListener("click", () => showView("optionen"));
 $("tuneSel").addEventListener("click", e => { const b = e.target.closest("button[data-tune]"); if(!b) return; state.settings.tuning = b.dataset.tune; save(); renderTuner(); });
 $("tMic").addEventListener("click", () => { if(T.on) tunerStop(); else tunerStart(); });
 window.addEventListener("hashchange", () => showView(location.hash.slice(1), true));
+$("ownList").addEventListener("click", e => {
+  const ed = e.target.closest("button[data-edit]"); if(ed){ openEditor(ed.dataset.edit); return; }
+  const b = e.target.closest("button[data-lick]"); if(!b) return;
+  const l = allLicks().find(x => x.id === b.dataset.lick); if(!l) return;
+  const bl = [lickBlock(l, "Freies Üben", 180, true)]; if(stage(l.id) >= 3) bl.push(durBlock(l, 100)); startSession({kind:"free", blocks:bl});
+});
 $("lickList").addEventListener("click", e => {
   const b = e.target.closest("button[data-lick]"); if(!b) return;
   if(b.dataset.lick === VOCAB.id){ startSession({kind:"free", blocks:[vocabBlock(150)]}); return; }
-  const l = LICKS.find(x => x.id === b.dataset.lick); const bl = [lickBlock(l, "Freies Üben", 180, true)]; if(stage(l.id) >= 3) bl.push(durBlock(l, 100)); startSession({kind:"free", blocks:bl});
+  const l = allLicks().find(x => x.id === b.dataset.lick); if(!l) return; const bl = [lickBlock(l, "Freies Üben", 180, true)]; if(stage(l.id) >= 3) bl.push(durBlock(l, 100)); startSession({kind:"free", blocks:bl});
 });
 $("tryRow").addEventListener("click", e => {
   const b = e.target.closest("button[data-try]"); if(!b) return;
-  const l = lickOrder()[0]; startSession({kind:"free", blocks:[b.dataset.try === "rhy" ? rhythmBlock(l) : guestBlock(l, b.dataset.try, 100)]});
+  const l = lickOrder().filter(x => !x.own)[0] || LICKS[0]; startSession({kind:"free", blocks:[b.dataset.try === "rhy" ? rhythmBlock(l) : guestBlock(l, b.dataset.try, 100)]});
 });
 $("quitBtn").addEventListener("click", leave);
 $("doneBtn").addEventListener("click", leave);
@@ -1462,6 +1661,7 @@ $("skipBtn").addEventListener("click", skipWarm);
 $("fbBtn").addEventListener("click", () => { state.settings.fretboard = !state.settings.fretboard; setFret(state.settings.fretboard); save(); });
 $("ratePanel").addEventListener("click", e => { const b = e.target.closest("button[data-rate]"); if(b) rate(b.dataset.rate); });
 document.addEventListener("keydown", e => {
+  if(ED){ if(e.key === "Escape") closeEditor(); return; }
   if(!$("quiz").hidden){ if(e.key === "Escape") $("qQuit").click(); return; }
   if($("practice").hidden) return;
   if(e.key === " " && run){ e.preventDefault(); togglePause(); }
@@ -1484,7 +1684,7 @@ $("ioApply").addEventListener("click", () => {
 });
 let resetArmed = 0;
 $("resetBtn").addEventListener("click", () => {
-  if(Date.now() - resetArmed < 4000){ const st = state.settings; state = fresh(); state.settings = st; save(); renderHome(); $("resetBtn").textContent = "Löschen"; resetArmed = 0; }
+  if(Date.now() - resetArmed < 4000){ const st = state.settings; const own = state.custom || []; state = fresh(); state.settings = st; state.custom = own; OWN = null; save(); renderHome(); $("resetBtn").textContent = "Löschen"; resetArmed = 0; }
   else{ resetArmed = Date.now(); $("resetBtn").textContent = "Wirklich löschen?"; setTimeout(() => { if(resetArmed && Date.now() - resetArmed >= 4000){ $("resetBtn").textContent = "Löschen"; resetArmed = 0; } }, 4100); }
 });
 
