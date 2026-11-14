@@ -61,7 +61,7 @@ button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outl
 #preview{width:100%;height:150px;display:block;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .start-row{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
-.seg button{padding:8px 16px;border-radius:999px;color:var(--muted);font-size:15px}
+.seg button{padding:8px 14px;white-space:nowrap;border-radius:999px;color:var(--muted);font-size:15px}
 .seg button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
 .primary{background:var(--btn-bg);color:var(--btn-fg);border:2px solid var(--accent);box-shadow:var(--btn-shadow);text-shadow:var(--glow-soft);font-family:var(--font-neon);font-size:22px;padding:11px 28px;border-radius:999px;flex:1 1 200px}
 .primary:hover{filter:brightness(1.12)}
@@ -168,6 +168,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
       <div class="seg" id="durSeg" role="group" aria-label="Dauer in Minuten">
         <button type="button" data-min="5">5 min</button>
         <button type="button" data-min="10">10 min</button>
+        <button type="button" data-min="15">15 min</button>
         <button type="button" data-min="20">20 min</button>
       </div>
       <button class="primary" id="startBtn" type="button">Heute üben</button>
@@ -440,7 +441,7 @@ function buildSession(minutes){
   const o = lickOrder(), main = o[0], third = o[1] || o[0];
   const old = activeLicks().filter(l => l !== main && peek(l.id).hist.length).sort((a,b) => { const la = peek(a.id).last, lb = peek(b.id).last; return la < lb ? -1 : la > lb ? 1 : 0; });
   const second = old[0] || o[1] || o[0];
-  const plan = minutes === 5 ? {warm:45, main:150, vocab:90} : minutes === 20 ? {warm:110, main:320, rep:170, main2:300, vocab:200} : {warm:70, main:230, rep:110, vocab:150};
+  const plan = minutes === 5 ? {warm:45, main:150, vocab:90} : minutes === 20 ? {warm:110, main:320, rep:170, main2:300, vocab:200} : minutes === 15 ? {warm:90, main:280, rep:140, main2:150, vocab:170} : {warm:70, main:230, rep:110, vocab:150};
   const blocks = [warmBlock(plan.warm, peek(main.id).bpm), lickBlock(main, "Hauptlick", plan.main, true)];
   if(plan.rep) blocks.push(stage(second.id) >= 3 ? durBlock(second, plan.rep) : lickBlock(second, "Wiederholung", plan.rep, false));
   if(plan.main2) blocks.push(lickBlock(third, "Zweites Lick", plan.main2, true));
