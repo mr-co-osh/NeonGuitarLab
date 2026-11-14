@@ -216,10 +216,13 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .edtabwrap{overflow-x:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2;background:var(--bg)}
 #edTab{height:160px;display:block}
 .edlbl{display:block;color:var(--muted);font-size:13px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
-.edgrid{display:grid;grid-template-columns:20px repeat(13,minmax(0,1fr));gap:3px;align-items:center;margin-bottom:12px}
-.edgrid span{font-family:var(--font-num);font-size:11px;color:var(--muted);text-align:center}
+.edgrid{display:grid;grid-template-columns:22px repeat(6,minmax(0,1fr));gap:5px;align-items:center;margin-bottom:12px;max-width:560px}
+.edgrid button.cur{background:var(--accent);border-color:var(--accent);color:#14100e;font-weight:600}
+.edgrid span.open{color:var(--slow)}
+#edMic[aria-pressed="true"]{color:var(--tube-green);border-color:var(--lv1);box-shadow:var(--box-green)}
+.edgrid span{font-family:var(--font-num);font-size:13px;color:var(--muted);text-align:center}
 .edgrid span.mk{color:var(--text)}
-.edgrid button{height:36px;border:1px solid var(--line);border-radius:7px;font-family:var(--font-num);font-size:10px;color:var(--muted)}
+.edgrid button{height:46px;border:1px solid var(--line);border-radius:9px;font-family:var(--font-num);font-size:14px;color:var(--muted)}
 .edgrid button:hover,.edgrid button:active{border-color:var(--accent);color:var(--text)}
 .edgrid button.rt{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
 .chips button[aria-disabled="true"]{opacity:.35}
@@ -412,13 +415,17 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
   </div>
   <div class="edbody">
     <div class="edrow"><input id="edName" type="text" maxlength="28" placeholder="Name des Licks" aria-label="Name des Licks"><div class="chips" id="edChord" role="group" aria-label="Akkord"></div></div>
-    <div class="edtabwrap" id="edWrap"><canvas id="edTab" aria-label="Tabulatur des Licks"></canvas></div>
+    <div id="edTplBox" hidden><span class="edlbl">Mit einer Vorlage beginnen</span><div class="chips" id="edTpl"></div></div>
+    <div class="edtabwrap" id="edWrap"><canvas id="edTab" aria-label="Tabulatur des Licks. Tippe einen Ton an, um ihn zu ändern."></canvas></div>
     <p class="msg" id="edMsg"></p>
-    <div><span class="edlbl">Notenwert für den nächsten Ton</span><div class="chips" id="edVal" role="group" aria-label="Notenwert"></div></div>
-    <div><span class="edlbl">Ton setzen: Saite und Bund antippen</span>
+    <div id="edSelBox" hidden><span class="edlbl" id="edSelLbl"></span>
+      <div class="chips"><button type="button" data-mode="replace">Diesen Ton ändern</button><button type="button" data-mode="insert">Davor einfügen</button><button type="button" data-mode="del">Löschen</button><button type="button" data-mode="off">Fertig</button></div></div>
+    <div><span class="edlbl" id="edValLbl">Notenwert</span><div class="chips" id="edVal" role="group" aria-label="Notenwert"></div></div>
+    <div><span class="edlbl">Saite und Bund antippen</span>
       <div class="edgrid" id="edGrid"></div>
-      <div class="toolrow" style="margin-top:0"><button class="ghost" id="edLeft" type="button">Tiefere Lage</button><button class="ghost" id="edRight" type="button">Höhere Lage</button><button class="ghost" id="edRest" type="button">Pause einfügen</button><button class="ghost" id="edUndo" type="button">Zurück</button></div></div>
-    <div><span class="edlbl">Spielweise des letzten Tons</span><div class="chips" id="edTech" role="group" aria-label="Spielweise"></div></div>
+      <div class="toolrow" style="margin-top:0"><button class="ghost" id="edLeft" type="button">Tiefere Lage</button><button class="ghost" id="edRight" type="button">Höhere Lage</button><button class="ghost" id="edMic" type="button">Einspielen</button></div></div>
+    <div class="toolrow" style="margin-top:0"><button class="ghost" id="edRest" type="button">Pause</button><button class="ghost" id="edUndo" type="button">Letzten löschen</button><button class="ghost" id="edFill" type="button">Takt mit Pause füllen</button><button class="ghost" id="edRep" type="button">Letzten Takt wiederholen</button></div>
+    <div><span class="edlbl" id="edTechLbl">Spielweise</span><div class="chips" id="edTech" role="group" aria-label="Spielweise"></div></div>
     <div class="toolrow" style="margin-top:0"><button class="ghost" id="edPlay" type="button">Anhören</button><button class="ghost" id="edDel" type="button" hidden>Lick löschen</button></div>
   </div>
 </div>
@@ -1326,32 +1333,58 @@ function drawMeter(cents){
 }
 /* ================= editor for own licks ================= */
 const ED_VAL = [["h","Halbe",24],["q","Viertel",12],["e","Achtel",6],["s","Sechzehntel",3],["t","Achteltriole",4]];
-const ED_TECH = [["","Normal"],["h","Hammer-on"],["p","Pull-off"],["s","Slide"],["b\u00bd","Bending \u00bd"],["b1","Bending 1"]];
+const ED_TECH = [["","Normal"],["h","Hammer-on"],["p","Pull-off"],["s","Slide"],["b½","Bending ½"],["b1","Bending 1"]];
 const ED_MAX = 192;   // four bars of 4/4
 let ED = null;
 function edTicks(){ const b = ED_VAL.find(v => v[0] === ED.val)[2]; return ED.dot && (ED.val === "q" || ED.val === "e") ? b*1.5 : b; }
 function edTotal(){ return ED.ev.reduce((a,e) => a + e.t, 0); }
-function beatsTxt(t){ const w = Math.floor(t/12), f = {0:"",3:"\u00bc",4:"\u2153",6:"\u00bd",8:"\u2154",9:"\u00be"}[t%12]; return f === undefined ? (t/12).toFixed(2).replace(".", ",") : (w || !f ? w : "") + f; }
+function beatsTxt(t){ const w = Math.floor(t/12), f = {0:"",3:"¼",4:"⅓",6:"½",8:"⅔",9:"¾"}[t%12]; return f === undefined ? (t/12).toFixed(2).replace(".", ",") : (w || !f ? w : "") + f; }
 function valTxt(t){ return ({24:"2",18:"4.",12:"4",9:"8.",6:"8",4:"3",3:"16"})[t] || ""; }
+function edPosFor(ev){ const fr = ev.filter(e => !e.r && e.f > 0).map(e => e.f); return fr.length ? Math.max(0, Math.min(20, Math.min.apply(null, fr) - 1)) : 4; }
+function edCols(){ const c = []; if(ED.pos === 0){ for(let f=0;f<=5;f++) c.push(f); } else { c.push(0); for(let f=ED.pos;f<ED.pos+5;f++) c.push(f); } return c; }
 function openEditor(id){
   const c = id ? (state.custom || []).find(x => x.id === id) : null;
-  ED = {id:c ? c.id : null, chord:c ? c.chord : "Am", ev:c ? c.ev.map(e => Object.assign({}, e)) : [], val:"e", dot:false, pos:c ? Math.max(0, Math.min(12, Math.min.apply(null, c.ev.filter(e => !e.r).map(e => e.f)) - 2)) : 3, msg:""};
+  ED = {id:c ? c.id : null, chord:c ? c.chord : "Am", ev:c ? c.ev.map(e => Object.assign({}, e)) : [], val:"e", dot:false, pos:c ? edPosFor(c.ev) : 4, msg:"", sel:-1, mode:"replace", mic:false, hit:[]};
+  if(ED.pos <= 1) ED.pos = 0;
   $("edName").value = c ? c.name : ""; $("edDel").hidden = !c; $("edDel").textContent = "Lick löschen"; $("editor").hidden = false; edRender();
 }
-function closeEditor(){ ED = null; $("editor").hidden = true; }
+function closeEditor(){ edMicOff(); ED = null; $("editor").hidden = true; }
+/* a hammer-on, pull-off or slide only makes sense after a note on the same string */
+function edFixTech(){
+  ED.ev.forEach((e,i) => {
+    if(e.r || !e.tech || e.tech[0] === "b") return; const p = ED.ev[i-1];
+    const ok = p && !p.r && p.s === e.s && ((e.tech === "h" && e.f > p.f) || (e.tech === "p" && e.f < p.f) || (e.tech === "s" && e.f !== p.f));
+    if(!ok) delete e.tech;
+  });
+}
 function edRender(){
+  const sel = ED.sel >= 0 ? ED.ev[ED.sel] : null, editing = sel && ED.mode === "replace";
   $("edChord").innerHTML = Object.keys(CHORDS).map(k => '<button type="button" data-ch="'+k+'" aria-pressed="'+(k === ED.chord)+'">'+k+'</button>').join("");
+  $("edTplBox").hidden = !!ED.id || ED.ev.length > 0;
+  if(!$("edTplBox").hidden) $("edTpl").innerHTML = activeLicks().map(l => '<button type="button" data-tpl="'+l.id+'">'+esc(l.name)+'</button>').join("");
   const dotOk = ED.val === "q" || ED.val === "e";
+  $("edValLbl").textContent = editing ? "Notenwert des gewählten Tons" : "Notenwert für den nächsten Ton";
   $("edVal").innerHTML = ED_VAL.map(v => '<button type="button" data-val="'+v[0]+'" aria-pressed="'+(v[0] === ED.val)+'">'+v[1]+'</button>').join("") + '<button type="button" data-val="dot" aria-pressed="'+(ED.dot && dotOk)+'" aria-disabled="'+!dotOk+'">punktiert</button>';
-  const last = ED.ev[ED.ev.length-1], lt = last && !last.r ? (last.tech || "") : null;
+  const te = sel || ED.ev[ED.ev.length-1], lt = te && !te.r ? (te.tech || "") : null;
+  $("edTechLbl").textContent = sel ? "Spielweise des gewählten Tons" : "Spielweise des letzten Tons";
   $("edTech").innerHTML = ED_TECH.map(v => '<button type="button" data-tech="'+v[0]+'" aria-pressed="'+(lt === v[0])+'" aria-disabled="'+(lt === null)+'">'+v[1]+'</button>').join("");
-  let h = "<span></span>"; for(let k=0;k<13;k++){ const f = ED.pos+k; h += '<span class="'+([3,5,7,9,12,15,17,19,21,24].includes(f) ? "mk" : "")+'">'+f+'</span>'; }
-  const root = CHORDS[ED.chord].root;
-  for(let st=1;st<=6;st++){ h += "<span>"+["e","B","G","D","A","E"][st-1]+"</span>"; for(let k=0;k<13;k++){ const f = ED.pos+k, m = midiOf(st, f); h += '<button type="button" data-s="'+st+'" data-f="'+f+'" class="'+(m%12 === root ? "rt" : "")+'" aria-label="'+nameOf(m)+', Saite '+st+', Bund '+f+'">'+nameOf(m)+'</button>'; } }
+  const cols = edCols(), root = CHORDS[ED.chord].root; let h = "<span></span>";
+  cols.forEach(f => { h += '<span class="'+(f === 0 ? "open" : [3,5,7,9,12,15,17,19,21,24].includes(f) ? "mk" : "")+'">'+(f === 0 ? "leer" : f)+'</span>'; });
+  for(let st=1;st<=6;st++){
+    h += "<span>"+["e","B","G","D","A","E"][st-1]+"</span>";
+    cols.forEach(f => { const m = midiOf(st, f), cur = sel && !sel.r && sel.s === st && sel.f === f; h += '<button type="button" data-s="'+st+'" data-f="'+f+'" class="'+(cur ? "cur" : m%12 === root ? "rt" : "")+'" aria-label="'+nameOf(m)+', Saite '+st+', Bund '+f+'">'+nameOf(m)+'</button>'; });
+  }
   $("edGrid").innerHTML = h;
+  $("edSelBox").hidden = !sel;
+  if(sel){
+    $("edSelLbl").textContent = (sel.r ? "Pause" : "Ton") + " " + (ED.sel+1) + " von " + ED.ev.length + " gewählt";
+    document.querySelectorAll("#edSelBox button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === ED.mode)));
+  }
+  $("edUndo").hidden = !!sel; $("edFill").hidden = !!sel; $("edRep").hidden = !!sel;
+  $("edMic").setAttribute("aria-pressed", String(ED.mic)); $("edMic").textContent = ED.mic ? "Einspielen läuft" : "Einspielen";
   const tot = edTotal(), into = tot % 48, n = ED.ev.filter(e => !e.r).length;
   $("edInfo").textContent = n + (n === 1 ? " Ton" : " Töne") + " · " + beatsTxt(tot) + " Schläge";
-  $("edMsg").textContent = ED.msg || (!tot ? "Wähle einen Notenwert und tippe dann auf das Griffbrett. Grundtöne des Akkords sind orange." : into ? "Im Takt sind noch " + beatsTxt(48-into) + " Schläge frei. Beim Speichern wird der letzte Ton bis zum Taktende gehalten." : "Der Takt ist voll. Du kannst speichern oder einen weiteren Takt beginnen.");
+  $("edMsg").textContent = ED.msg || (ED.mic ? "Spiele den nächsten Ton auf der Gitarre. Er wird mit dem gewählten Notenwert eingetragen." : sel ? (ED.mode === "insert" ? "Der nächste Ton wird vor dem gewählten eingefügt." : "Tippe einen anderen Bund, Notenwert oder eine Spielweise, um den gewählten Ton zu ändern.") : !tot ? "Wähle einen Notenwert und tippe dann auf das Griffbrett. Grundtöne des Akkords sind orange." : into ? "Im Takt sind noch " + beatsTxt(48-into) + " Schläge frei. Beim Speichern wird der letzte Ton bis zum Taktende gehalten." : "Der Takt ist voll. Tippe einen Ton im Tab an, um ihn zu ändern.");
   ED.msg = ""; drawEd();
 }
 function drawEd(){
@@ -1362,31 +1395,53 @@ function drawEd(){
   g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); for(let st=1;st<=6;st++){ const y = Math.round(top+(st-1)*gap)+.5; g.moveTo(0, y); g.lineTo(w, y); } g.stroke();
   g.strokeStyle = C.muted; g.globalAlpha = .55; g.beginPath(); for(let b=0;b<=bars;b++){ const x = Math.round(X(b*48))-.5; g.moveTo(x, top); g.lineTo(x, bot); } g.stroke(); g.globalAlpha = 1;
   g.fillStyle = C.muted; for(let b=0;b<bars*4;b++) g.fillRect(Math.round(X(b*12))-.5, bot+4, 1, b%4 ? 5 : 9);
-  g.textAlign = "center"; g.textBaseline = "middle"; let t = 0, prev = null;
-  ED.ev.forEach(e => {
-    const x = X(t) + 10;
+  g.textAlign = "center"; g.textBaseline = "middle"; let t = 0, prev = null, selX = null; ED.hit = [];
+  ED.ev.forEach((e,i) => {
+    const x = X(t) + 10; ED.hit.push({a:X(t), b:X(t+e.t), i:i});
+    if(i === ED.sel){
+      selX = x; g.strokeStyle = C.accent; g.lineWidth = 2; glow(g, C.accent, 10); rr(g, x-15, top-9, 30, bot-top+18, 8); g.stroke(); noGlow(g);
+      if(ED.mode === "insert"){ g.fillStyle = C.accent; g.fillRect(x-21, top-6, 2, bot-top+12); }
+    }
     g.font = "500 "+Math.round(fs*.55)+"px "+FONT_N; g.fillStyle = C.muted; g.fillText(valTxt(e.t), x, bot + gap*1.25);
-    if(e.r){ g.font = "600 "+Math.round(fs)+"px "+FONT_N; g.fillText("\u2013", x, (top+bot)/2); prev = null; }
+    if(e.r){ g.font = "600 "+Math.round(fs)+"px "+FONT_N; g.fillText("–", x, (top+bot)/2); prev = null; }
     else{
       const y = top+(e.s-1)*gap, txt = String(e.f), col = midiOf(e.s, e.f)%12 === ch.root ? C.accent : C.text;
       g.font = "600 "+Math.round(fs)+"px "+FONT_N; const tw = g.measureText(txt).width;
       g.fillStyle = C.bg; g.fillRect(x-tw/2-4, y-fs*.56, tw+8, fs*1.12); g.fillStyle = col; g.fillText(txt, x, y+1);
       if(e.tech){ g.fillStyle = C.text; g.font = "600 "+Math.round(fs*.62)+"px "+FONT_N;
-        if(e.tech[0] === "b") g.fillText("\u2191"+e.tech.slice(1), x + tw/2 + fs*.5, y - fs*.6); else if(prev !== null) g.fillText(e.tech === "s" ? "/" : e.tech, (x+prev)/2, y - fs*.55); }
+        if(e.tech[0] === "b") g.fillText("↑"+e.tech.slice(1), x + tw/2 + fs*.5, y - fs*.6); else if(prev !== null) g.fillText(e.tech === "s" ? "/" : e.tech, (x+prev)/2, y - fs*.55); }
       prev = x;
     }
     t += e.t;
   });
-  g.fillStyle = C.accent; glow(g, C.accent, 10); g.fillRect(X(t)+9, top-6, 2, bot-top+12); noGlow(g); g.textAlign = "left";
-  wrap.scrollLeft = Math.max(0, X(t) - wrap.clientWidth + 90);
+  g.textAlign = "left";
+  if(ED.sel < 0){ g.fillStyle = C.accent; glow(g, C.accent, 10); g.fillRect(X(t)+9, top-6, 2, bot-top+12); noGlow(g); wrap.scrollLeft = Math.max(0, X(t) - wrap.clientWidth + 90); }
+  else if(selX !== null && (selX < wrap.scrollLeft + 30 || selX > wrap.scrollLeft + wrap.clientWidth - 30)) wrap.scrollLeft = Math.max(0, selX - wrap.clientWidth/2);
 }
-function edAdd(e){
-  if(edTotal() + e.t > ED_MAX){ ED.msg = "Mehr als vier Takte passen nicht in ein Lick."; edRender(); return; }
-  ED.ev.push(e); edRender();
-  if(!e.r && ensureAudio()) snd.pluck(A.ctx.currentTime + .02, midiOf(e.s, e.f), .5);
+function edSelect(i){
+  ED.sel = i; ED.mode = "replace";
+  if(i >= 0){ const m = ({24:["h",0],12:["q",0],6:["e",0],3:["s",0],4:["t",0],18:["q",1],9:["e",1]})[ED.ev[i].t]; if(m){ ED.val = m[0]; ED.dot = !!m[1]; } const e = ED.ev[i]; if(!e.r && e.f > 0 && !edCols().includes(e.f)){ ED.pos = Math.max(0, Math.min(20, e.f - 2)); if(ED.pos <= 1) ED.pos = 0; } }
+  edRender();
+}
+/* one entry point for the grid, the pause button and notes played into the microphone */
+function edPut(e, silent){
+  const sel = ED.sel >= 0 ? ED.ev[ED.sel] : null;
+  if(sel && ED.mode === "replace"){ if(e.r){ delete sel.s; delete sel.f; delete sel.tech; sel.r = 1; } else { delete sel.r; sel.s = e.s; sel.f = e.f; } }
+  else{
+    if(edTotal() + e.t > ED_MAX){ ED.msg = "Mehr als vier Takte passen nicht in ein Lick."; edRender(); return; }
+    if(sel){ ED.ev.splice(ED.sel, 0, e); ED.sel++; } else ED.ev.push(e);
+  }
+  edFixTech(); edRender();
+  if(!e.r && !silent && !ED.mic && ensureAudio()) snd.pluck(A.ctx.currentTime + .02, midiOf(e.s, e.f), .5);
+}
+function edSetVal(v){
+  if(v === "dot"){ if(ED.val === "q" || ED.val === "e") ED.dot = !ED.dot; } else ED.val = v;
+  const sel = ED.sel >= 0 && ED.mode === "replace" ? ED.ev[ED.sel] : null;
+  if(sel){ const nt = edTicks(); if(edTotal() - sel.t + nt > ED_MAX) ED.msg = "Mehr als vier Takte passen nicht in ein Lick."; else sel.t = nt; }
+  edRender();
 }
 function edSetTech(tech){
-  const i = ED.ev.length-1, e = ED.ev[i], p = ED.ev[i-1]; if(!e || e.r){ ED.msg = "Setze zuerst einen Ton."; edRender(); return; }
+  const i = ED.sel >= 0 ? ED.sel : ED.ev.length-1, e = ED.ev[i], p = ED.ev[i-1]; if(!e || e.r){ ED.msg = "Wähle oder setze zuerst einen Ton."; edRender(); return; }
   if(tech === "h" || tech === "p" || tech === "s"){
     const nm = {h:"Ein Hammer-on", p:"Ein Pull-off", s:"Ein Slide"}[tech];
     if(!p || p.r || p.s !== e.s){ ED.msg = nm + " braucht direkt davor einen Ton auf derselben Saite."; edRender(); return; }
@@ -1397,10 +1452,11 @@ function edSetTech(tech){
   if(tech) e.tech = tech; else delete e.tech; edRender();
 }
 function edPlay(){
-  if(!ED.ev.length || !ensureAudio()) return;
+  if(!ED.ev.length || !ensureAudio()) return; edMicOff();
   const spb = 60/80, t0 = A.ctx.currentTime + .15, tot = edTotal(); let t = 0;
   for(let b=0;b<Math.ceil(tot/12);b++) snd.click(t0 + b*spb, b%4 === 0);
   ED.ev.forEach(e => { if(!e.r) snd.pluck(t0 + t/12*spb, midiOf(e.s, e.f), e.t/12*spb); t += e.t; });
+  edRender();
 }
 function edSave(){
   const notes = ED.ev.filter(e => !e.r);
@@ -1412,18 +1468,70 @@ function edSave(){
   else state.custom.push({id:"u" + Date.now().toString(36), name:name, chord:ED.chord, ev:ev});
   OWN = null; save(); closeEditor(); renderHome();
 }
+/* playing notes in: inside a window of five frets almost every pitch has one place; ties go to the string nearest the previous note */
+const EM = {raf:0, cand:null, candT:0, silT:0, armed:true, lastReg:null, rmsPrev:0, detT:0, det:null};
+async function edMicOn(){
+  const ok = await micStart(); if(!ED) { micStop(); return; }
+  if(!ok){ ED.msg = "Das Mikrofon ist hier nicht verfügbar. Auf der GitHub-Seite kannst du Töne einspielen."; edRender(); return; }
+  ED.mic = true; EM.cand = null; EM.armed = true; EM.lastReg = null; EM.silT = 0; edRender();
+  cancelAnimationFrame(EM.raf); EM.raf = requestAnimationFrame(edMicTick);
+}
+function edMicOff(){ if(ED && ED.mic){ ED.mic = false; cancelAnimationFrame(EM.raf); micStop(); } }
+function edMicTick(ts){
+  if(!ED || !ED.mic || !M.an) return;
+  if(ts - EM.detT >= 45){ M.an.getFloatTimeDomainData(M.buf); EM.det = mpm(M.buf, A.ctx.sampleRate); EM.detT = ts; }
+  const d = EM.det; let cand = null;
+  if(d && d.freq && d.clarity >= .85){ const m = 69 + 12*Math.log2(d.freq/440), r = Math.round(m); if(Math.abs(m-r)*100 <= 45) cand = r; }
+  if(cand !== EM.cand){ EM.cand = cand; EM.candT = ts; }
+  const stable = cand !== null ? ts - EM.candT : 0;
+  if(cand === null){ if(!EM.silT) EM.silT = ts; if(ts - EM.silT > 90) EM.armed = true; } else EM.silT = 0;
+  if(d){ if(d.rms > .02 && d.rms > EM.rmsPrev*1.8) EM.armed = true; EM.rmsPrev = EM.rmsPrev*.8 + d.rms*.2; }
+  if(cand !== null && cand !== EM.lastReg && stable > 60) EM.armed = true;
+  if(EM.armed && cand !== null && stable >= 120){ EM.armed = false; EM.lastReg = cand; edHeard(cand); }
+  if(ED && ED.mic) EM.raf = requestAnimationFrame(edMicTick);
+}
+function edHeard(midi){
+  const cols = edCols(), opts = []; for(let st=1;st<=6;st++) cols.forEach(f => { if(midiOf(st, f) === midi) opts.push([st, f]); });
+  if(!opts.length){ ED.msg = nameOf(midi) + " liegt nicht in der gewählten Lage. Wechsle die Lage oder tippe den Ton an."; edRender(); return; }
+  let ref = null; for(let i=(ED.sel >= 0 ? ED.sel : ED.ev.length)-1;i>=0;i--){ if(!ED.ev[i].r){ ref = ED.ev[i]; break; } }
+  opts.sort((a,b) => (a[1] === 0) - (b[1] === 0) || (ref ? Math.abs(a[0]-ref.s) - Math.abs(b[0]-ref.s) : 0));
+  edPut({s:opts[0][0], f:opts[0][1], t:edTicks()}, true);
+}
 $("newLick").addEventListener("click", () => openEditor(null));
 $("edCancel").addEventListener("click", closeEditor);
 $("edSave").addEventListener("click", edSave);
 $("edPlay").addEventListener("click", edPlay);
+$("edMic").addEventListener("click", () => { if(ED.mic){ edMicOff(); edRender(); } else edMicOn(); });
 $("edChord").addEventListener("click", e => { const b = e.target.closest("button[data-ch]"); if(b){ ED.chord = b.dataset.ch; edRender(); } });
-$("edVal").addEventListener("click", e => { const b = e.target.closest("button[data-val]"); if(!b) return; if(b.dataset.val === "dot"){ if(ED.val === "q" || ED.val === "e") ED.dot = !ED.dot; } else ED.val = b.dataset.val; edRender(); });
+$("edTpl").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tpl]"), l = b && allLicks().find(x => x.id === b.dataset.tpl); if(!l) return;
+  ED.ev = l.ev ? l.ev.map(x => Object.assign({}, x)) : l.notes.map(n => ({s:n[0], f:n[1], t:(n[2]||1)*6}));
+  ED.chord = l.chord; ED.pos = edPosFor(ED.ev); if(ED.pos <= 1) ED.pos = 0; if(!$("edName").value) $("edName").value = l.name + " Variante"; edRender();
+});
+$("edVal").addEventListener("click", e => { const b = e.target.closest("button[data-val]"); if(b) edSetVal(b.dataset.val); });
 $("edTech").addEventListener("click", e => { const b = e.target.closest("button[data-tech]"); if(b) edSetTech(b.dataset.tech); });
-$("edGrid").addEventListener("click", e => { const b = e.target.closest("button[data-s]"); if(b) edAdd({s:+b.dataset.s, f:+b.dataset.f, t:edTicks()}); });
-$("edRest").addEventListener("click", () => edAdd({r:1, t:edTicks()}));
-$("edUndo").addEventListener("click", () => { ED.ev.pop(); edRender(); });
-$("edLeft").addEventListener("click", () => { ED.pos = Math.max(0, ED.pos-4); edRender(); });
-$("edRight").addEventListener("click", () => { ED.pos = Math.min(12, ED.pos+4); edRender(); });
+$("edGrid").addEventListener("click", e => { const b = e.target.closest("button[data-s]"); if(b) edPut({s:+b.dataset.s, f:+b.dataset.f, t:edTicks()}); });
+$("edTab").addEventListener("click", e => {
+  const x = e.clientX - $("edTab").getBoundingClientRect().left, h = ED.hit.find(q => x >= q.a && x < q.b);
+  edSelect(h && h.i !== ED.sel ? h.i : -1);
+});
+$("edSelBox").addEventListener("click", e => {
+  const b = e.target.closest("button[data-mode]"); if(!b) return; const m = b.dataset.mode;
+  if(m === "off"){ edSelect(-1); return; }
+  if(m === "del"){ ED.ev.splice(ED.sel, 1); ED.sel = -1; edFixTech(); edRender(); return; }
+  ED.mode = m; edRender();
+});
+$("edRest").addEventListener("click", () => edPut({r:1, t:edTicks()}));
+$("edUndo").addEventListener("click", () => { ED.ev.pop(); edFixTech(); edRender(); });
+$("edFill").addEventListener("click", () => { const into = edTotal() % 48; if(!into){ ED.msg = "Der Takt ist schon voll."; edRender(); return; } ED.ev.push({r:1, t:48-into}); edRender(); });
+$("edRep").addEventListener("click", () => {
+  const tot = edTotal(); let t = 0, from = -1; ED.ev.forEach((e,i) => { if(t === tot-48) from = i; t += e.t; });
+  if(!tot || tot % 48 || from < 0){ ED.msg = "Zum Wiederholen muss der letzte Takt voll sein."; edRender(); return; }
+  if(tot + 48 > ED_MAX){ ED.msg = "Mehr als vier Takte passen nicht in ein Lick."; edRender(); return; }
+  ED.ev = ED.ev.concat(ED.ev.slice(from).map(e => Object.assign({}, e))); edFixTech(); edRender();
+});
+$("edLeft").addEventListener("click", () => { ED.pos = ED.pos <= 2 ? 0 : ED.pos - 2; edRender(); });
+$("edRight").addEventListener("click", () => { ED.pos = Math.min(20, ED.pos < 2 ? 2 : ED.pos + 2); edRender(); });
 let edDelArmed = 0;
 $("edDel").addEventListener("click", () => {
   if(Date.now() - edDelArmed < 4000){ state.custom = state.custom.filter(x => x.id !== ED.id); delete state.prog[ED.id]; delete state.prog[ED.id+":d"]; OWN = null; save(); closeEditor(); renderHome(); edDelArmed = 0; }
