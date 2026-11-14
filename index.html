@@ -20,6 +20,10 @@
   --glow-cool:0 0 2px #fff,0 0 9px var(--slow),0 0 24px var(--slow),0 0 60px color-mix(in srgb,var(--slow) 65%,transparent);
   --glow-soft:0 0 6px color-mix(in srgb,var(--accent) 80%,transparent),0 0 30px color-mix(in srgb,var(--accent) 55%,transparent);
   --glow-plain:0 0 18px rgba(255,255,255,.28);
+  --tube-green:#eafff2;
+  --glow-green:0 0 2px #fff,0 0 9px var(--lv1),0 0 24px var(--lv1),0 0 56px color-mix(in srgb,var(--lv1) 60%,transparent);
+  --box-green:0 0 14px color-mix(in srgb,var(--lv1) 60%,transparent),inset 0 0 14px color-mix(in srgb,var(--lv1) 35%,transparent);
+  --gear-glow:drop-shadow(0 0 3px var(--slow)) drop-shadow(0 0 8px color-mix(in srgb,var(--slow) 70%,transparent));
   --sign-shadow:0 0 8px color-mix(in srgb,var(--slow) 75%,transparent),0 0 22px color-mix(in srgb,var(--slow) 45%,transparent),inset 0 0 8px color-mix(in srgb,var(--slow) 55%,transparent);
   --glow-cool-soft:0 0 6px color-mix(in srgb,var(--slow) 80%,transparent),0 0 22px color-mix(in srgb,var(--slow) 55%,transparent);
   --lv1:#3dff8f; --lv2:#2ee6d6; --lv3:#b07cff; --lv4:#ff5ad2; --lv5:#ffd447;
@@ -36,6 +40,7 @@
   --ok:#2c8a57; --warn:#a06f0c; --bad:#c04444;
   --tube-warm:var(--accent); --tube-cool:var(--slow);
   --glow-warm:none; --glow-cool:none; --glow-soft:none; --glow-plain:none; --glow-cool-soft:none; --sign-shadow:none;
+  --tube-green:var(--lv1); --glow-green:none; --box-green:none; --gear-glow:none;
   --lv1:#16904a; --lv2:#0c8a82; --lv3:#6b3fd1; --lv4:#c2259a; --lv5:#967000;
   --btn-bg:var(--accent); --btn-fg:#fff; --btn-shadow:none;
   color-scheme:light;
@@ -56,6 +61,27 @@ button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outl
 .nav button:hover{color:var(--text)}
 .nav button[aria-current="page"]{color:var(--tube-cool);text-shadow:var(--glow-cool-soft)}
 .nav button[aria-current="page"]::after{content:"";position:absolute;left:8px;right:8px;bottom:4px;height:2px;border-radius:1px;background:var(--slow);box-shadow:var(--sign-shadow)}
+.nav{flex:1 0 100%}
+.gear{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;color:var(--muted)}
+.gear svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+.gear:hover,.gear[aria-current="page"]{color:var(--tube-cool)}
+.gear{color:var(--tube-cool)}
+.gear svg{filter:var(--gear-glow)}
+/* tuner */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.chips button{border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--muted)}
+.chips button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:600}
+.tstrings{display:flex;gap:8px;justify-content:space-between;max-width:460px}
+.tstr{flex:1 1 0;min-width:0;height:58px;display:grid;place-items:center;border:2px solid var(--line);border-radius:14px;font-family:var(--font-neon);font-size:26px;color:var(--muted)}
+.tstr.on{border-color:var(--accent);color:var(--tube-warm);text-shadow:var(--glow-soft);box-shadow:var(--btn-shadow)}
+.tstr.ok{border-color:var(--lv1);color:var(--tube-green);text-shadow:var(--glow-green);box-shadow:var(--box-green)}
+.tread{display:flex;flex-direction:column;gap:8px;margin:22px 0 0}
+#tState{min-height:1.5em}
+#tNote{font-family:var(--font-neon);font-size:96px;line-height:1;color:var(--tube-warm);text-shadow:var(--glow-warm);min-width:1.2em}
+#tNote.ok{color:var(--tube-green);text-shadow:var(--glow-green)}
+#tNote.off{color:transparent;text-shadow:none;-webkit-text-stroke:1.5px var(--muted)}
+#tState{font-size:22px;font-weight:650}
+#tMeter{width:100%;max-width:560px;height:120px;display:block}
 .view:not(.on){display:none}
 @media (max-width:560px){
   .rows .spark{display:none}
@@ -198,12 +224,15 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 <div id="home">
   <header class="top">
     <div class="brand"><b class="sign" aria-label="NeonGuitarLab"><i>Neon</i> <em>Guitar Lab</em></b></div>
+    <button class="gear" id="gearBtn" type="button" data-go="optionen" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.4"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2.4v3.2M12 18.4v3.2M2.4 12h3.2M18.4 12h3.2M5.2 5.2l2.3 2.3M16.5 16.5l2.3 2.3M5.2 18.8l2.3-2.3M16.5 7.5l2.3-2.3"/></svg>
+    </button>
     <nav class="nav" id="nav" aria-label="Bereiche">
       <button type="button" data-go="heute">Heute</button>
       <button type="button" data-go="licks">Licks</button>
       <button type="button" data-go="griffbrett">Griffbrett</button>
       <button type="button" data-go="vokabular">Vokabular</button>
-      <button type="button" data-go="optionen">Optionen</button>
+      <button type="button" data-go="tuner">Tuner</button>
     </nav>
   </header>
 
@@ -242,7 +271,16 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <div class="legend"><span style="--lv:var(--lv1)"><i></i>begonnen</span><span style="--lv:var(--lv2)"><i></i>gefestigt</span><span style="--lv:var(--lv5)"><i></i>Stufe abgeschlossen</span></div>
     <p class="note">Schritt für Schritt lernen, wo welcher Ton liegt. Das Mikrofon hört zu, und es geht erst weiter, wenn der Ton stimmt. Eine Lektion gilt als sauber, wenn du höchstens eine Hilfe brauchst. Grün ab dem ersten sauberen Tag, Türkis ab drei Tagen, Gold für eine ganze Stufe.</p>
     <div id="fbList"></div>
-    <div class="toolrow"><button class="ghost" id="tunerBtn" type="button">Stimmgerät</button></div>
+  </section>
+
+  <section class="view" data-view="tuner">
+    <h2><span class="neon">Tuner</span></h2>
+    <p class="note">Spiele eine Saite einzeln an. Die passende Röhre leuchtet auf, und der Zeiger wird grün, sobald der Ton stimmt. Die Übungen der App gehen weiterhin von der Standardstimmung aus.</p>
+    <div class="chips" id="tuneSel" role="group" aria-label="Stimmung"></div>
+    <div class="tstrings" id="tStrings"></div>
+    <div class="tread"><div id="tNote" class="off">E</div><div id="tState"></div></div>
+    <canvas id="tMeter" aria-label="Abweichung in Cent"></canvas>
+    <div class="toolrow"><button class="ghost" id="tMic" type="button">Mikrofon einschalten</button></div>
   </section>
 
   <section class="view" data-view="vokabular">
@@ -377,7 +415,7 @@ const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel
 /* ================= state ================= */
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
-  return {v:1, updatedAt:0, settings:{theme:"dark", beat:"click", chords:true, lickSound:false, fretboard:false, minutes:10},
+  return {v:1, updatedAt:0, settings:{theme:"dark", tuning:"std", beat:"click", chords:true, lickSound:false, fretboard:false, minutes:10},
           introduced:2, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}};
 }
 let state = fresh();
@@ -615,6 +653,7 @@ function fit(cv){
 }
 
 function startSession(s){
+  tunerStop();
   if(!ensureAudio()){ return; }
   sess = s; sess.i = 0; sess.results = []; sess.total = s.blocks.reduce((a,b) => a + blockSec(b), 0); sess.done = 0;
   $("practice").hidden = false; $("ratePanel").hidden = true; $("sumPanel").hidden = true;
@@ -927,14 +966,6 @@ async function startQuiz(cfg){
   const ok = await micStart(); if(!Q) return;
   setMic(ok); showPrompt(); cancelAnimationFrame(qraf); qraf = requestAnimationFrame(qTick);
 }
-async function startTuner(){
-  openQuiz(); $("qTitle").textContent = "Stimmgerät"; $("qCount").textContent = ""; $("qShow").hidden = true;
-  Q = {mode:"tuner", cand:null, cents:0, seen:0};
-  $("qNote").textContent = ""; $("qSub").textContent = "Spiele eine leere Saite"; $("qMsg").textContent = "Die Saiten von tief nach hoch: E A D G B E";
-  const ok = await micStart(); if(!Q) return;
-  setMic(ok); if(!ok) $("qSub").textContent = "Das Mikrofon ist hier nicht verfügbar";
-  cancelAnimationFrame(qraf); qraf = requestAnimationFrame(qTick);
-}
 function setMic(ok){
   $("qMic").textContent = ok ? "Mikrofon an" : "Mikrofon aus"; $("qMic").className = "pill" + (ok ? " solid" : "");
   if(Q && Q.mode === "quiz"){ $("qManual").hidden = ok; if(!ok) $("qHeard").textContent = "Ohne Mikrofon bestätigst du selbst mit Gespielt."; }
@@ -1052,6 +1083,77 @@ function drawMeter(cents){
   const x = mid + Math.max(-50, Math.min(50, cents))/50*(x1-mid), col = Math.abs(cents) < 6 ? C.ok : C.accent;
   g.fillStyle = col; glow(g, col, 14); g.fillRect(x-2, y-34, 4, 68); noGlow(g);
 }
+/* ================= tuner ================= */
+const TUNINGS = [
+  {id:"std", name:"Standard", midi:[40,45,50,55,59,64], lab:["E","A","D","G","B","E"]},
+  {id:"dropd", name:"Drop D", midi:[38,45,50,55,59,64], lab:["D","A","D","G","B","E"]},
+  {id:"dadgad", name:"DADGAD", midi:[38,45,50,55,57,62], lab:["D","A","D","G","A","D"]},
+  {id:"opend", name:"Open D", midi:[38,45,50,54,57,62], lab:["D","A","D","F#","A","D"]},
+  {id:"openg", name:"Open G", midi:[38,43,50,55,59,62], lab:["D","G","D","G","B","D"]},
+  {id:"eb", name:"Halbton tiefer", midi:[39,44,49,54,58,63], lab:["Eb","Ab","Db","Gb","Bb","Eb"]}
+];
+const T = {on:false, raf:0, cents:0, seen:0, str:-1, detT:0, det:null, cand:null, candT:0};
+function tuning(){ return TUNINGS.find(t => t.id === state.settings.tuning) || TUNINGS[0]; }
+function renderTuner(){
+  const tu = tuning();
+  $("tuneSel").innerHTML = TUNINGS.map(t => '<button type="button" data-tune="'+t.id+'" aria-pressed="'+(t.id === tu.id)+'">'+t.name+'</button>').join("");
+  $("tStrings").innerHTML = tu.lab.map((l,i) => '<span class="tstr" data-i="'+i+'">'+l+'</span>').join("");
+  T.str = -1; T.seen = 0; $("tNote").textContent = tu.lab[0]; $("tNote").className = "off";
+  $("tState").textContent = T.on ? "Spiele eine Saite an" : ""; $("tMic").textContent = T.on ? "Mikrofon ausschalten" : "Mikrofon einschalten";
+  drawTuner(null, false);
+}
+async function tunerStart(){
+  if(T.on) return;
+  const ok = await micStart();
+  if(!document.querySelector('.view.on[data-view="tuner"]')){ micStop(); return; }
+  if(!ok){ $("tState").textContent = "Das Mikrofon ist nicht verfügbar. Erlaube den Zugriff im Browser."; return; }
+  T.on = true; T.seen = 0; T.str = -1; $("tMic").textContent = "Mikrofon ausschalten"; $("tState").textContent = "Spiele eine Saite an";
+  cancelAnimationFrame(T.raf); T.raf = requestAnimationFrame(tunerTick);
+}
+function tunerStop(){
+  if(!T.on) return;
+  T.on = false; cancelAnimationFrame(T.raf); micStop();
+  $("tMic").textContent = "Mikrofon einschalten"; $("tState").textContent = ""; $("tNote").className = "off";
+  document.querySelectorAll(".tstr").forEach(el => el.className = "tstr"); drawTuner(null, false);
+}
+function tunerTick(ts){
+  if(!T.on || !M.an) return;
+  if(ts - T.detT >= 45){ M.an.getFloatTimeDomainData(M.buf); T.det = mpm(M.buf, A.ctx.sampleRate); T.detT = ts; }
+  const d = T.det, tu = tuning(); let m = null;
+  if(d && d.freq && d.clarity >= .85) m = 69 + 12*Math.log2(d.freq/440);
+  const near = m === null ? null : Math.round(m);
+  if(near !== T.cand){ T.cand = near; T.candT = ts; }
+  if(m !== null && ts - T.candT > 80){
+    let bi = 0; tu.midi.forEach((t,i) => { if(Math.abs(m-t) < Math.abs(m-tu.midi[bi])) bi = i; });
+    const diff = (m - tu.midi[bi])*100, onString = Math.abs(diff) <= 250;
+    const c = onString ? diff : (m - near)*100;
+    T.cents = T.seen && T.str === (onString ? bi : -2) ? T.cents*.75 + c*.25 : c; T.seen = ts; T.str = onString ? bi : -2;
+    const ok = onString && Math.abs(T.cents) < 5;
+    $("tNote").textContent = onString ? tu.lab[bi] : nameOf(near); $("tNote").className = ok ? "ok" : "";
+    $("tState").textContent = !onString ? "Kein Saitenton dieser Stimmung" : ok ? "stimmt" : T.cents < 0 ? "zu tief, höher stimmen" : "zu hoch, tiefer stimmen";
+    document.querySelectorAll(".tstr").forEach((el,i) => el.className = "tstr" + (onString && i === bi ? (ok ? " ok" : " on") : ""));
+    drawTuner(T.cents, ok);
+  }else if(T.seen && ts - T.seen > 1800){
+    T.seen = 0; $("tNote").className = "off"; $("tState").textContent = "Spiele eine Saite an";
+    document.querySelectorAll(".tstr").forEach(el => el.className = "tstr"); drawTuner(null, false);
+  }
+  T.raf = requestAnimationFrame(tunerTick);
+}
+function drawTuner(cents, ok){
+  const q = fit($("tMeter")), g = q.ctx, w = q.w, h = q.h; if(w < 10) return; g.clearRect(0,0,w,h);
+  const y = h*.46, x0 = 14, x1 = w-14, mid = (x0+x1)/2, X = c => mid + Math.max(-50, Math.min(50, c))/50*(x1-mid);
+  const green = getComputedStyle(document.documentElement).getPropertyValue("--lv1").trim();
+  // target window in the middle: a faint green tube that lights up when the note is in tune
+  g.strokeStyle = green; g.globalAlpha = ok ? 1 : .35; g.lineWidth = 2; if(ok) glow(g, green, 14);
+  rr(g, X(-5), y-30, X(5)-X(-5), 60, 8); g.stroke(); noGlow(g); g.globalAlpha = 1;
+  g.strokeStyle = C.line; g.lineWidth = 2; g.beginPath(); g.moveTo(x0, y); g.lineTo(X(-5), y); g.moveTo(X(5), y); g.lineTo(x1, y); g.stroke();
+  g.fillStyle = C.muted; for(let c=-50;c<=50;c+=10){ if(c === 0) continue; g.fillRect(X(c)-.5, y-7, 1, 14); }
+  g.font = "500 13px "+FONT_N; g.textBaseline = "alphabetic"; g.textAlign = "left"; g.fillText("zu tief", x0, y+50); g.textAlign = "right"; g.fillText("zu hoch", x1, y+50); g.textAlign = "left";
+  if(cents === null) return;
+  const col = ok ? green : C.accent, x = X(cents);
+  g.fillStyle = col; glow(g, col, 18); rr(g, x-3, y-36, 6, 72, 3); g.fill(); noGlow(g);
+  g.fillStyle = ok ? "#fff" : C.bg; g.globalAlpha = ok ? .9 : 0; rr(g, x-1, y-32, 2, 64, 1); g.fill(); g.globalAlpha = 1;
+}
 function runLesson(l){
   quizCard(l.title, l.intro, () => startQuiz({title:l.title, prompts:lessonPrompts(l), onDone:r => {
     const rec = fbRec(l.id), clean = r.helps <= 1, first = !rec.days.length; rec.runs++;
@@ -1165,7 +1267,6 @@ $("fbList").addEventListener("click", e => {
   const s = e.target.closest("button[data-skip]"); if(s){ runSkip(+s.dataset.skip); return; }
   const b = e.target.closest("button[data-fb]"); if(b) runLesson(FB.find(l => l.id === b.dataset.fb));
 });
-$("tunerBtn").addEventListener("click", startTuner);
 $("qGo").addEventListener("click", () => { $("qCard").hidden = true; ensureAudio(); if(quizCard.go) quizCard.go(); });
 $("qDone").addEventListener("click", () => { closeQuiz(); renderHome(); });
 $("qQuit").addEventListener("click", () => { if(sess) leave(); else { closeQuiz(); renderHome(); } });
@@ -1178,16 +1279,20 @@ $("beatSeg").addEventListener("click", e => { const b = e.target.closest("button
 [["swChords","chords"],["swLick","lickSound"],["swFret","fretboard"]].forEach(p => $(p[0]).addEventListener("click", () => { state.settings[p[1]] = !state.settings[p[1]]; save(); renderHome(); }));
 $("themeSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.theme = b.dataset.theme; save(); applyTheme(); renderHome(); });
 /* menu: one area at a time instead of one long page */
-const VIEWS = ["heute","licks","griffbrett","vokabular","optionen"];
+const VIEWS = ["heute","licks","griffbrett","vokabular","tuner","optionen"];
 function showView(v, quiet){
   if(!VIEWS.includes(v)) v = "heute";
   document.querySelectorAll(".view").forEach(el => el.classList.toggle("on", el.dataset.view === v));
-  document.querySelectorAll("#nav button").forEach(b => { if(b.dataset.go === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  document.querySelectorAll("#nav button, #gearBtn").forEach(b => { if(b.dataset.go === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   if(!quiet){ try{ if(location.hash.slice(1) !== v) location.hash = v; }catch(e){} }
   if(v === "heute") drawPreview();
+  if(v === "tuner"){ renderTuner(); if(!quiet) tunerStart(); } else tunerStop();
   window.scrollTo(0, 0);
 }
 $("nav").addEventListener("click", e => { const b = e.target.closest("button[data-go]"); if(b) showView(b.dataset.go); });
+$("gearBtn").addEventListener("click", () => showView("optionen"));
+$("tuneSel").addEventListener("click", e => { const b = e.target.closest("button[data-tune]"); if(!b) return; state.settings.tuning = b.dataset.tune; save(); renderTuner(); });
+$("tMic").addEventListener("click", () => { if(T.on) tunerStop(); else tunerStart(); });
 window.addEventListener("hashchange", () => showView(location.hash.slice(1), true));
 $("lickList").addEventListener("click", e => {
   const b = e.target.closest("button[data-lick]"); if(!b) return;
