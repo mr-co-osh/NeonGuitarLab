@@ -51,7 +51,7 @@ button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outl
 .top{display:flex;justify-content:space-between;align-items:center;gap:16px}
 .brand{display:flex;align-items:baseline;flex-wrap:wrap}
 .brand{align-items:center}
-.sign{font-family:var(--font-neon);font-weight:400;font-size:21px;line-height:1;padding:7px 14px 8px;border:2px solid var(--tube-cool);border-radius:14px;box-shadow:var(--sign-shadow);white-space:nowrap}
+.sign{font-family:var(--font-neon);font-weight:400;font-size:24px;line-height:1;white-space:nowrap}
 .sign i{font-style:normal;color:var(--tube-warm);text-shadow:var(--glow-soft)}
 .sign em{font-style:normal;color:var(--tube-cool);text-shadow:var(--glow-cool-soft)}
 .brand span{color:var(--muted);font-weight:400;margin-left:8px}
@@ -150,6 +150,23 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .sumlist li{padding:10px 2px;border-bottom:1px solid var(--line);display:flex;flex-direction:column}
 .sumlist li span{color:var(--muted);font-size:14px}
 .panel .primary{flex:none;font-size:18px}
+/* ---------- fretboard trainer ---------- */
+.stagehead{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;padding:18px 2px 8px;flex-wrap:wrap}
+.stagehead b{font-size:16px}
+.stagehead.locked{opacity:.45}
+.toolrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+#quiz{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:20}
+#qfill{height:100%;width:0;background:var(--text)}
+.qmain{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(200px,36%) 1fr;gap:8px 18px;padding:4px 20px 6px;align-items:center}
+@media (orientation:portrait){.qmain{grid-template-columns:1fr;grid-template-rows:auto 1fr;align-items:start}}
+.qprompt{display:flex;flex-direction:column;gap:6px;min-width:0}
+#qNote{font-family:var(--font-neon);font-size:clamp(60px,30vh,150px);line-height:1;color:var(--tube-warm);text-shadow:var(--glow-warm);white-space:nowrap}
+#qNote.ok{color:var(--tube-cool);text-shadow:var(--glow-cool)}
+#qSub{font-size:clamp(18px,6.2vh,30px);font-weight:650;line-height:1.15;text-wrap:balance}
+#qMsg{min-height:1.5em;color:var(--muted);font-size:clamp(14px,4.4vh,19px)}
+#qBoard{width:100%;height:100%;min-height:150px;display:block}
+.qfoot{flex:none;display:flex;gap:10px;justify-content:space-between;align-items:center;padding:0 20px 12px;flex-wrap:wrap}
+#qHeard{color:var(--muted);font-size:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
 </style>
 </head>
@@ -188,6 +205,13 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <h2>Licks der Stufe 1</h2>
     <p class="note">Moll-Pentatonik in A, fünfter Bund. Tippe ein Lick an, um es frei zu üben. Die Punkte zeigen saubere Tage. Bei fünf gilt ein Lick als gefestigt und die Bursts werden länger, nach acht kommt eine Sechzehntel-Phase mit eigenem Dauertempo dazu.</p>
     <ul class="rows" id="lickList"></ul>
+  </section>
+
+  <section>
+    <h2>Griffbrett</h2>
+    <p class="note">Schritt für Schritt lernen, wo welcher Ton liegt. Das Mikrofon hört zu, und es geht erst weiter, wenn der Ton stimmt. Eine Lektion gilt als sauber, wenn du höchstens eine Hilfe brauchst.</p>
+    <div id="fbList"></div>
+    <div class="toolrow"><button class="ghost" id="tunerBtn" type="button">Stimmgerät</button></div>
   </section>
 
   <section>
@@ -252,6 +276,33 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
   </div>
 </div>
 
+<div id="quiz" hidden>
+  <div class="pbar"><div id="qfill"></div></div>
+  <div class="phead">
+    <button class="xbtn" id="qQuit" type="button">Beenden</button>
+    <div class="pinfo"><span id="qTitle" style="color:var(--text);font-weight:700"></span><span class="num" id="qCount"></span></div>
+    <div class="pctl"><span class="pill" id="qMic">Mikrofon</span></div>
+  </div>
+  <div class="qmain">
+    <div class="qprompt"><div id="qNote"></div><div id="qSub"></div><div id="qMsg"></div></div>
+    <canvas id="qBoard"></canvas>
+  </div>
+  <div class="qfoot">
+    <span id="qHeard"></span>
+    <span style="display:flex;gap:8px"><button class="ghost" id="qManual" type="button" hidden>Gespielt</button><button class="ghost" id="qShow" type="button">Zeigen</button></span>
+  </div>
+  <div class="panel" id="qCard" hidden>
+    <h2 id="qCardTitle"></h2>
+    <p id="qCardText"></p>
+    <button class="primary" id="qGo" type="button">Los</button>
+  </div>
+  <div class="panel" id="qEnd" hidden>
+    <h2 id="qEndTitle"></h2>
+    <p id="qEndText"></p>
+    <button class="primary" id="qDone" type="button">Fertig</button>
+  </div>
+</div>
+
 <script>
 "use strict";
 /* ================= content ================= */
@@ -290,7 +341,7 @@ const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
   return {v:1, updatedAt:0, settings:{theme:"dark", beat:"click", chords:true, lickSound:false, fretboard:false, minutes:10},
-          introduced:2, prog:{}, days:[], seconds:0};
+          introduced:2, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}};
 }
 let state = fresh();
 try{ const raw = localStorage.getItem(KEY); if(raw){ const s = JSON.parse(raw); if(s && s.v===1) state = Object.assign(fresh(), s, {settings:Object.assign(fresh().settings, s.settings||{})}); } }catch(e){}
@@ -449,6 +500,7 @@ function buildSession(minutes){
   const blocks = [warmBlock(plan.warm, peek(main.id).bpm), lickBlock(main, "Hauptlick", plan.main, true)];
   if(plan.rep) blocks.push(stage(second.id) >= 3 ? durBlock(second, plan.rep) : lickBlock(second, "Wiederholung", plan.rep, false));
   if(plan.main2) blocks.push(lickBlock(third, "Zweites Lick", plan.main2, true));
+  if(plan.rep && fbLearned().length) blocks.push({kind:"fret", title:"Griffbrett", sec:100, rated:false});
   blocks.push(vocabBlock(plan.vocab));
   return {kind:"daily", blocks:blocks};
 }
@@ -459,7 +511,7 @@ function buildTest(){
     return {kind:"test", title:"Einstufung", rateName:l.name+" bei "+t+" BPM", bpm:t, bars:bars, rated:true, shape:l.notes, chord:l.chord};
   })};
 }
-function blockSec(b){ return b.bars.length*240/b.bpm; }
+function blockSec(b){ return b.sec || b.bars.length*240/b.bpm; }
 
 /* ================= audio ================= */
 const A = {ctx:null, out:null, noise:null};
@@ -508,7 +560,7 @@ let sess = null, run = null, raf = 0, timer = 0, paused = false, wake = null, C 
 
 function readColors(){
   const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
-  C = {bg:g("--bg"), line:g("--line"), text:g("--text"), muted:g("--muted"), accent:g("--accent"), slow:g("--slow"), glow:state.settings.theme === "dark"};
+  C = {bg:g("--bg"), line:g("--line"), text:g("--text"), muted:g("--muted"), accent:g("--accent"), slow:g("--slow"), ok:g("--ok"), glow:state.settings.theme === "dark"};
 }
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return "rgba("+(n>>16)+","+((n>>8)&255)+","+(n&255)+","+a+")"; }
 function fit(cv){
@@ -528,7 +580,16 @@ function startSession(s){
   startBlock();
 }
 function startBlock(){
-  const b = sess.blocks[sess.i], spb = 60/b.bpm, notes = [], events = [];
+  const b = sess.blocks[sess.i];
+  if(b.kind === "fret"){
+    run = null; clearInterval(timer); cancelAnimationFrame(raf);
+    startQuiz({title:"Griffbrett · Wiederholung", prompts:reviewPrompts(8), onDone:r => {
+      sess.done += b.sec; state.seconds += b.sec; sess.results.push({name:"Griffbrett", msg:r.clean+" von "+r.total+" Tönen ohne Hilfe."});
+      closeQuiz(); nextBlock();
+    }});
+    return;
+  }
+  const spb = 60/b.bpm, notes = [], events = [];
   b.bars.forEach((bar, i) => {
     const base = i*4;
     for(let k=0;k<4;k++) events.push({b:base+k, kind:"beat", k:k, count:bar.type==="count"});
@@ -711,6 +772,7 @@ function fillSummary(list){
   list.forEach(x => { const li = document.createElement("li"), b = document.createElement("b"), s = document.createElement("span"); b.textContent = x.name; s.textContent = x.msg; li.append(b, s); ul.append(li); });
 }
 function leave(){
+  closeQuiz();
   clearInterval(timer); cancelAnimationFrame(raf); run = null; sess = null; paused = false;
   if(A.ctx && A.ctx.state === "suspended") A.ctx.resume().catch(()=>{});
   try{ if(wake){ wake.release(); wake = null; } }catch(e){}
@@ -721,6 +783,263 @@ function togglePause(){
   if(!run) return;
   paused = !paused; $("pauseBtn").textContent = paused ? "Weiter" : "Pause";
   if(paused) A.ctx.suspend().catch(()=>{}); else A.ctx.resume().then(schedule).catch(()=>{});
+}
+
+/* ================= pitch detection ================= */
+/* McLeod pitch method: normalised square difference, first strong peak. Works on single notes. */
+const NSDF = new Float32Array(1200);
+function mpm(buf, sr){
+  const N = Math.min(2048, buf.length), off = buf.length - N;
+  let e = 0; for(let i=0;i<N;i++){ const v = buf[off+i]; e += v*v; }
+  const rms = Math.sqrt(e/N); if(rms < .006) return {rms:rms, freq:0, clarity:0};
+  const maxLag = Math.min(1199, N>>1, Math.floor(sr/70)), minLag = Math.max(2, Math.floor(sr/1400));
+  for(let t=0;t<=maxLag;t++){
+    let acf = 0, m = 0;
+    for(let i=0, n=N-t;i<n;i++){ const a = buf[off+i], b = buf[off+i+t]; acf += a*b; m += a*a + b*b; }
+    NSDF[t] = m > 0 ? 2*acf/m : 0;
+  }
+  let pos = 0; while(pos < maxLag && NSDF[pos] > 0) pos++;
+  const peaks = []; let top = 0;
+  while(pos < maxLag){
+    if(NSDF[pos] > 0){
+      let pk = pos; while(pos < maxLag && NSDF[pos] > 0){ if(NSDF[pos] > NSDF[pk]) pk = pos; pos++; }
+      if(pk >= minLag && pk < maxLag && NSDF[pk] >= NSDF[pk-1] && NSDF[pk] >= NSDF[pk+1]){ peaks.push(pk); if(NSDF[pk] > top) top = NSDF[pk]; }
+    }else pos++;
+  }
+  if(!peaks.length || top < .5) return {rms:rms, freq:0, clarity:top};
+  let pk = peaks[0]; for(let i=0;i<peaks.length;i++){ if(NSDF[peaks[i]] >= top*.9){ pk = peaks[i]; break; } }
+  const a = NSDF[pk-1], b = NSDF[pk], c = NSDF[pk+1], d = a - 2*b + c, shift = d ? .5*(a-c)/d : 0;
+  return {rms:rms, freq:sr/(pk+shift), clarity:b};
+}
+const M = {stream:null, an:null, buf:null};
+async function micStart(){
+  if(M.stream) return true;
+  try{
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+    const st = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
+    if(!ensureAudio()){ st.getTracks().forEach(t => t.stop()); return false; }
+    const src = A.ctx.createMediaStreamSource(st), an = A.ctx.createAnalyser(); an.fftSize = 4096; an.smoothingTimeConstant = 0; src.connect(an);
+    M.stream = st; M.an = an; M.src = src; M.buf = new Float32Array(4096); return true;
+  }catch(e){ return false; }
+}
+function micStop(){ try{ if(M.stream) M.stream.getTracks().forEach(t => t.stop()); if(M.src) M.src.disconnect(); }catch(e){} M.stream = null; M.an = null; M.src = null; }
+
+/* ================= fretboard lessons ================= */
+const NOTE = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const STR = {6:"tiefen E\u2011Saite", 5:"A\u2011Saite", 4:"D\u2011Saite", 3:"G\u2011Saite", 2:"B\u2011Saite", 1:"hohen E\u2011Saite"};
+const STAGES = {1:"Stammtöne auf E- und A-Saite", 2:"Oktavformen", 3:"Stammtöne auf allen Saiten"};
+const nameOf = m => NOTE[((m%12)+12)%12];
+function nat(s, lo, hi){ const out = []; for(let f=lo;f<=hi;f++) if([0,2,4,5,7,9,11].includes((OPEN[s]+f)%12)) out.push([s,f]); return out; }
+const oct = (s, frets, ds, df) => frets.map(f => [[s,f],[s-ds,f+df]]);
+const FB = [
+  {stage:1, id:"e1", title:"Tiefe E-Saite, Bund 0 bis 5", pool:nat(6,0,5), intro:"Auf der tiefen E-Saite liegen die Grundtöne vieler Akkorde. Zwischen E und F liegt nur ein Bund, zwischen den anderen Tönen hier liegen zwei."},
+  {stage:1, id:"e2", title:"Tiefe E-Saite, Bund 7 bis 12", pool:nat(6,7,12), intro:"Weiter oben geht es mit B, C, D und E weiter. Zwischen B und C liegt wieder nur ein Bund. Am 12. Bund beginnt alles von vorn."},
+  {stage:1, id:"e3", title:"Tiefe E-Saite, alle Töne", pool:nat(6,0,12), mixed:true, intro:"Jetzt die ganze Saite durcheinander. Die App zeigt den Bund nicht mehr an."},
+  {stage:1, id:"a1", title:"A-Saite, Bund 0 bis 5", pool:nat(5,0,5), intro:"Die A-Saite ist die zweite Landkarte für Grundtöne. Hier liegen A, B, C und D."},
+  {stage:1, id:"a2", title:"A-Saite, Bund 7 bis 12", pool:nat(5,7,12), intro:"Weiter oben auf der A-Saite: E, F, G und am 12. Bund wieder A."},
+  {stage:1, id:"a3", title:"A-Saite, alle Töne", pool:nat(5,0,12), mixed:true, intro:"Die ganze A-Saite durcheinander, ohne Anzeige des Bundes."},
+  {stage:1, id:"ea", title:"E- und A-Saite gemischt", pool:nat(6,0,12).concat(nat(5,0,12)), mixed:true, intro:"Beide Saiten zusammen. Achte darauf, welche Saite gefragt ist."},
+  {stage:2, id:"o1", title:"Oktave von der E-Saite zur D-Saite", pairs:oct(6,[1,3,5,7,8],2,2), intro:"Denselben Ton findest du eine Oktave höher zwei Saiten weiter und zwei Bünde höher. Spiele erst den tiefen Ton, dann seine Oktave."},
+  {stage:2, id:"o2", title:"Oktave von der A-Saite zur G-Saite", pairs:oct(5,[2,3,5,7,8],2,2), intro:"Dieselbe Form eine Saite weiter: zwei Saiten weiter, zwei Bünde höher."},
+  {stage:2, id:"o3", title:"Oktave zur B-Saite und zur hohen E-Saite", pairs:oct(4,[2,3,5,7],2,3).concat(oct(3,[2,4,5,7],2,3)), intro:"Von der D-Saite und der G-Saite aus verschiebt sich die Form: zwei Saiten weiter, aber drei Bünde höher."},
+  {stage:2, id:"o4", title:"Alle Oktavformen gemischt", pairs:oct(6,[1,3,5,7,8],2,2).concat(oct(5,[2,3,5,7,8],2,2), oct(4,[2,3,5,7],2,3), oct(3,[2,4,5,7],2,3)), mixed:true, intro:"Alle vier Formen durcheinander, ohne Anzeige."},
+  {stage:3, id:"d1", title:"D-Saite", pool:nat(4,0,12), intro:"Die D-Saite. Nutze die Oktavform von der tiefen E-Saite, wenn du einen Ton suchst."},
+  {stage:3, id:"g1", title:"G-Saite", pool:nat(3,0,12), intro:"Die G-Saite. Hier hilft die Oktavform von der A-Saite."},
+  {stage:3, id:"b1", title:"B-Saite", pool:nat(2,0,12), intro:"Die B-Saite. Zwischen B und C liegt nur ein Bund, das C sitzt also direkt am 1. Bund."},
+  {stage:3, id:"h1", title:"Hohe E-Saite", pool:nat(1,0,12), intro:"Die hohe E-Saite hat dieselben Töne wie die tiefe, zwei Oktaven höher."},
+  {stage:3, id:"c1", title:"Ein Ton auf allen Saiten: C und G", pool:[[6,8],[5,3],[4,10],[3,5],[2,1],[1,8],[6,3],[5,10],[4,5],[3,0],[2,8],[1,3]], intro:"Jetzt suchst du denselben Ton auf jeder Saite, erst C, dann G."},
+  {stage:3, id:"x1", title:"Alle Saiten gemischt", pool:[6,5,4,3,2,1].reduce((a,s) => a.concat(nat(s,0,12)), []), mixed:true, intro:"Das ganze Griffbrett bis zum 12. Bund, ohne Anzeige."}
+];
+function fbRec(id){ return state.fb.l[id] || (state.fb.l[id] = {days:[], runs:0}); }
+function fbPeek(id){ return state.fb.l[id] || {days:[], runs:0}; }
+function fbDone(l){ return !!state.fb.skip[l.stage] || fbPeek(l.id).days.length > 0; }
+function fbOpen(i){ return i === 0 || fbDone(FB[i-1]); }
+function fbLearned(){ return FB.filter(fbDone); }
+function itemsOf(l){ return l.pairs ? l.pairs.map(p => ({steps:p})) : l.pool.map(n => ({steps:[n]})); }
+function draw(items, n){
+  const out = []; let bag = [];
+  while(out.length < n){
+    if(!bag.length){ bag = items.slice(); for(let i=bag.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)), t = bag[i]; bag[i] = bag[j]; bag[j] = t; } if(out.length && bag.length > 1 && bag[bag.length-1] === out[out.length-1].src){ const t = bag[0]; bag[0] = bag[bag.length-1]; bag[bag.length-1] = t; } }
+    const it = bag.pop(); out.push({steps:it.steps, guided:false, src:it});
+  }
+  return out;
+}
+function lessonPrompts(l){
+  const items = itemsOf(l), guided = !l.mixed && !fbPeek(l.id).days.length;
+  return (guided ? items.map(it => ({steps:it.steps, guided:true, src:it})) : []).concat(draw(items, l.pairs ? 8 : Math.max(8, Math.min(12, items.length*2))));
+}
+function reviewPrompts(n){ const all = []; fbLearned().forEach(l => itemsOf(l).forEach(it => all.push(it))); return draw(all, n); }
+
+/* ================= quiz ================= */
+let Q = null, qraf = 0;
+function openQuiz(){ $("quiz").hidden = false; $("qCard").hidden = true; $("qEnd").hidden = true; $("qManual").hidden = true; $("qShow").hidden = false; $("qHeard").textContent = ""; $("qMsg").textContent = ""; $("qNote").className = ""; }
+function closeQuiz(){ cancelAnimationFrame(qraf); Q = null; micStop(); $("quiz").hidden = true; }
+function quizCard(title, text, go){ openQuiz(); $("qTitle").textContent = title; $("qCount").textContent = ""; $("qNote").textContent = ""; $("qSub").textContent = ""; $("qCardTitle").textContent = title; $("qCardText").textContent = text; $("qCard").hidden = false; quizCard.go = go; drawBoard({dots:[]}); }
+async function startQuiz(cfg){
+  openQuiz(); $("qTitle").textContent = cfg.title;
+  Q = {cfg:cfg, prompts:cfg.prompts, i:0, step:0, helps:0, armed:true, cand:null, candT:0, silT:0, lastReg:null, rmsPrev:0, found:[], lock:0, pending:false, mode:"quiz"};
+  const ok = await micStart(); if(!Q) return;
+  setMic(ok); showPrompt(); cancelAnimationFrame(qraf); qraf = requestAnimationFrame(qTick);
+}
+async function startTuner(){
+  openQuiz(); $("qTitle").textContent = "Stimmgerät"; $("qCount").textContent = ""; $("qShow").hidden = true;
+  Q = {mode:"tuner", cand:null, cents:0, seen:0};
+  $("qNote").textContent = ""; $("qSub").textContent = "Spiele eine leere Saite"; $("qMsg").textContent = "Die Saiten von tief nach hoch: E A D G B E";
+  const ok = await micStart(); if(!Q) return;
+  setMic(ok); if(!ok) $("qSub").textContent = "Das Mikrofon ist hier nicht verfügbar";
+  cancelAnimationFrame(qraf); qraf = requestAnimationFrame(qTick);
+}
+function setMic(ok){
+  $("qMic").textContent = ok ? "Mikrofon an" : "Mikrofon aus"; $("qMic").className = "pill" + (ok ? " solid" : "");
+  if(Q && Q.mode === "quiz"){ $("qManual").hidden = ok; if(!ok) $("qHeard").textContent = "Ohne Mikrofon bestätigst du selbst mit Gespielt."; }
+}
+const fretTxt = f => f === 0 ? "leere Saite" : f + ". Bund";
+function showPrompt(){
+  const p = Q.prompts[Q.i]; Q.step = 0; Q.wrongThis = 0; Q.revealed = p.guided; Q.helped = false; Q.t0 = performance.now(); Q.pending = false;
+  $("qNote").className = ""; $("qMsg").textContent = p.guided ? "Kennenlernen: Die App zeigt dir den Ton." : ""; promptText();
+  $("qCount").textContent = (Q.i+1)+" / "+Q.prompts.length; $("qfill").style.width = (Q.i/Q.prompts.length*100)+"%";
+}
+function promptText(){
+  const p = Q.prompts[Q.i], st = p.steps[Math.min(Q.step, p.steps.length-1)];
+  $("qNote").textContent = nameOf(midiOf(p.steps[0][0], p.steps[0][1]));
+  let sub = (p.steps.length > 1 && Q.step > 0 ? "jetzt die Oktave auf der " : "auf der ") + STR[st[0]];
+  if(Q.revealed) sub += ", " + fretTxt(st[1]);
+  $("qSub").textContent = sub;
+}
+function qHit(){
+  const p = Q.prompts[Q.i]; Q.step++; Q.armed = false;
+  if(Q.step < p.steps.length){ Q.wrongThis = 0; Q.t0 = performance.now(); if(!p.guided) Q.revealed = false; $("qMsg").textContent = "Richtig."; promptText(); return; }
+  if(p.guided) p.steps.forEach(s => Q.found.push(s));
+  $("qNote").className = "ok"; $("qMsg").textContent = "Richtig."; Q.pending = true; Q.lock = performance.now() + 650;
+}
+function qMiss(m, target){
+  Q.armed = false; Q.wrongThis++;
+  $("qMsg").textContent = (m % 12 === target % 12) ? "Richtiger Ton, aber eine andere Oktave." : "Das war ein " + nameOf(m) + ".";
+  if(Q.wrongThis >= 2) qReveal();
+}
+function qReveal(){
+  if(!Q || Q.mode !== "quiz" || Q.revealed || Q.pending) return;
+  Q.revealed = true; if(!Q.helped){ Q.helped = true; Q.helps++; } promptText();
+}
+function qNext(){
+  Q.i++; if(Q.i < Q.prompts.length){ showPrompt(); return; }
+  const total = Q.prompts.filter(p => !p.guided).length, r = {total:total, helps:Q.helps, clean:total - Q.helps}, cb = Q.cfg.onDone;
+  cancelAnimationFrame(qraf); $("qfill").style.width = "100%"; Q.mode = "end"; cb(r);
+}
+function qTick(ts){
+  if(!Q || Q.mode === "end") return;
+  /* listen about twenty times a second: enough for single notes and light on a phone */
+  if(M.an && (!Q.detT || ts - Q.detT >= 45)){ M.an.getFloatTimeDomainData(M.buf); Q.det = mpm(M.buf, A.ctx.sampleRate); Q.detT = ts; }
+  const det = M.an ? Q.det : null;
+  let cand = null, cents = 0;
+  if(det && det.freq && det.clarity >= .85){ const m = 69 + 12*Math.log2(det.freq/440), r = Math.round(m); cents = (m-r)*100; if(Q.mode === "tuner" || Math.abs(cents) <= 45) cand = r; }
+  if(cand !== Q.cand){ Q.cand = cand; Q.candT = ts; }
+  const stable = cand !== null ? ts - Q.candT : 0;
+  if(Q.mode === "tuner"){
+    if(cand !== null && stable > 80){ Q.cents = Q.seen ? Q.cents*.7 + cents*.3 : cents; Q.seen = ts; $("qNote").textContent = nameOf(cand); $("qNote").className = Math.abs(Q.cents) < 6 ? "ok" : ""; $("qSub").textContent = Math.abs(Q.cents) < 6 ? "stimmt" : Q.cents < 0 ? "zu tief" : "zu hoch"; }
+    drawMeter(Q.seen && ts - Q.seen < 1500 ? Q.cents : null);
+  }else{
+    quizStep(det, cand, stable, ts);
+    if(Q && Q.mode === "quiz") boardNow();
+  }
+  if(Q && Q.mode !== "end") qraf = requestAnimationFrame(qTick);
+}
+function quizStep(det, cand, stable, ts){
+  if(M.an) $("qHeard").textContent = cand !== null && stable > 60 ? "Du spielst: " + nameOf(cand) : "";
+  if(Q.pending){ if(ts >= Q.lock) qNext(); return; }
+  if(cand === null){ if(!Q.silT) Q.silT = ts; if(ts - Q.silT > 90) Q.armed = true; } else Q.silT = 0;
+  if(det){ if(det.rms > .02 && det.rms > Q.rmsPrev*1.8) Q.armed = true; Q.rmsPrev = Q.rmsPrev*.8 + det.rms*.2; }
+  if(cand !== null && cand !== Q.lastReg && stable > 60) Q.armed = true;
+  const p = Q.prompts[Q.i], st = p.steps[Q.step], target = midiOf(st[0], st[1]);
+  if(Q.armed && cand !== null && stable >= 100){
+    if(cand === target){ Q.lastReg = cand; qHit(); }
+    else if(stable >= 190){ Q.lastReg = cand; qMiss(cand, target); }
+  }
+  if(!Q.revealed && !Q.pending && ts - Q.t0 > 12000) qReveal();
+}
+function boardNow(){
+  const p = Q.prompts[Q.i], dots = [];
+  if(p.guided) Q.found.forEach(s => dots.push({s:s[0], f:s[1], kind:"dim"}));
+  for(let k=0;k<Math.min(Q.step, p.steps.length);k++) dots.push({s:p.steps[k][0], f:p.steps[k][1], kind:"found"});
+  const st = p.steps[Q.step];
+  if(st && Q.revealed) dots.push({s:st[0], f:st[1], kind:"target"});
+  drawBoard({dots:dots, hl:st ? st[0] : null});
+}
+function drawBoard(o){
+  const q = fit($("qBoard")), g = q.ctx, w = q.w, h = q.h; g.clearRect(0,0,w,h);
+  const left = 30, right = 10, top = h*.12, bot = h*.78, gap = (bot-top)/5, nutW = Math.max(26, (w-left-right)/13*.7), fw = (w-left-right-nutW)/12;
+  const fx = f => f === 0 ? left + nutW/2 : left + nutW + (f-.5)*fw, sy = s => top + (s-1)*gap;
+  g.fillStyle = C.line;
+  [3,5,7,9].forEach(f => { g.beginPath(); g.arc(fx(f), (top+bot)/2, Math.min(5, gap*.16), 0, 6.2832); g.fill(); });
+  [1.5,3.5].forEach(k => { g.beginPath(); g.arc(fx(12), top+k*gap, Math.min(5, gap*.16), 0, 6.2832); g.fill(); });
+  g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath();
+  for(let k=1;k<=12;k++){ const x = Math.round(left+nutW+k*fw)+.5; g.moveTo(x, top); g.lineTo(x, bot); } g.stroke();
+  g.fillStyle = C.muted; g.fillRect(Math.round(left+nutW)-2, top, 3, bot-top);
+  const fsz = Math.max(10, Math.min(14, gap*.5));
+  for(let s=1;s<=6;s++){
+    const on = o.hl === s, yy = Math.round(sy(s))+.5;
+    g.strokeStyle = on ? C.slow : C.muted; g.globalAlpha = on ? 1 : .55; g.lineWidth = on ? 2.5 : 1; if(on) glow(g, C.slow, 10);
+    g.beginPath(); g.moveTo(left, yy); g.lineTo(w-right, yy); g.stroke(); noGlow(g); g.globalAlpha = 1;
+    g.fillStyle = on ? C.slow : C.muted; g.font = "600 "+fsz+"px "+FONT_N; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(["E","B","G","D","A","E"][s-1], left/2, yy);
+  }
+  g.fillStyle = C.muted; g.font = "500 "+fsz+"px "+FONT_N; g.textBaseline = "alphabetic";
+  [3,5,7,9,12].forEach(f => g.fillText(String(f), fx(f), Math.min(h-3, bot+gap*.95)));
+  const r = Math.max(8, Math.min(18, gap*.46, fw*.42));
+  g.textBaseline = "middle"; g.font = "600 "+Math.round(r*1.05)+"px "+FONT_N;
+  (o.dots||[]).forEach(d => {
+    const x = fx(d.f), yy = sy(d.s), lab = nameOf(midiOf(d.s, d.f));
+    g.beginPath(); g.arc(x, yy, r, 0, 6.2832);
+    if(d.kind === "found"){ g.fillStyle = C.ok; g.fill(); g.fillStyle = C.bg; }
+    else if(d.kind === "target"){ g.fillStyle = C.bg; g.fill(); g.strokeStyle = C.accent; g.lineWidth = 2.5; glow(g, C.accent, 12); g.stroke(); noGlow(g); g.fillStyle = C.accent; }
+    else{ g.fillStyle = C.bg; g.fill(); g.strokeStyle = C.muted; g.lineWidth = 1.2; g.stroke(); g.fillStyle = C.muted; }
+    g.fillText(lab, x, yy+1);
+  });
+  g.textAlign = "left";
+}
+function drawMeter(cents){
+  const q = fit($("qBoard")), g = q.ctx, w = q.w, h = q.h; g.clearRect(0,0,w,h);
+  const y = h*.55, x0 = w*.08, x1 = w*.92, mid = (x0+x1)/2;
+  g.strokeStyle = C.line; g.lineWidth = 2; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+  g.fillStyle = C.muted; for(let c=-50;c<=50;c+=10){ const x = mid + c/50*(x1-mid); g.fillRect(x-.5, y-(c===0 ? 22 : 8), 1, c===0 ? 44 : 16); }
+  g.font = "500 13px "+FONT_N; g.textAlign = "center"; g.fillText("zu tief", x0+30, y+40); g.fillText("zu hoch", x1-30, y+40); g.textAlign = "left";
+  if(cents === null) return;
+  const x = mid + Math.max(-50, Math.min(50, cents))/50*(x1-mid), col = Math.abs(cents) < 6 ? C.ok : C.accent;
+  g.fillStyle = col; glow(g, col, 14); g.fillRect(x-2, y-34, 4, 68); noGlow(g);
+}
+function runLesson(l){
+  quizCard(l.title, l.intro, () => startQuiz({title:l.title, prompts:lessonPrompts(l), onDone:r => {
+    const rec = fbRec(l.id), clean = r.helps <= 1, first = !rec.days.length; rec.runs++;
+    if(clean && !rec.days.includes(dstr())) rec.days.push(dstr()); save();
+    const i = FB.indexOf(l), nxt = FB[i+1];
+    $("qEndTitle").textContent = clean ? "Sauber" : "Noch einmal";
+    $("qEndText").textContent = r.clean+" von "+r.total+" Tönen ohne Hilfe. " + (clean ? (first && nxt ? "Die nächste Lektion ist offen: "+nxt.title+"." : "Nach drei sauberen Tagen gilt die Lektion als gefestigt.") : "Wiederhole die Lektion, bis du höchstens eine Hilfe brauchst.");
+    $("qEnd").hidden = false;
+  }}));
+}
+function runSkip(stage){
+  const all = []; FB.filter(l => l.stage === stage).forEach(l => itemsOf(l).forEach(it => all.push(it)));
+  quizCard("Kann ich schon: Stufe "+stage, "Acht Töne ohne Anzeige. Wenn du keine Hilfe brauchst, gilt die ganze Stufe als gelernt.", () => startQuiz({title:"Kann ich schon: Stufe "+stage, prompts:draw(all, 8), onDone:r => {
+    const pass = r.helps === 0; if(pass){ state.fb.skip[stage] = true; save(); }
+    $("qEndTitle").textContent = pass ? "Stufe übersprungen" : "Noch nicht ganz";
+    $("qEndText").textContent = r.clean+" von "+r.total+" Tönen ohne Hilfe. " + (pass ? "Die nächste Stufe ist offen." : "Geh die Lektionen der Stufe durch, dann sitzt es.");
+    $("qEnd").hidden = false;
+  }}));
+}
+function renderFb(){
+  const box = $("fbList"); box.textContent = ""; let ul = null, stage = 0;
+  FB.forEach((l, i) => {
+    if(l.stage !== stage){
+      stage = l.stage; const firstIdx = i, open = fbOpen(firstIdx), head = document.createElement("div"); head.className = "stagehead" + (open ? "" : " locked");
+      const done = FB.filter(x => x.stage === stage).every(fbDone);
+      head.innerHTML = "<b>Stufe "+stage+" · "+STAGES[stage]+"</b>" + (open && !done ? '<button class="ghost" type="button" data-skip="'+stage+'">Kann ich schon</button>' : done ? '<span class="pill solid">gelernt</span>' : '<span class="pill">gesperrt</span>');
+      box.append(head); ul = document.createElement("ul"); ul.className = "rows"; box.append(ul);
+    }
+    const rec = fbPeek(l.id), open = fbOpen(i), li = document.createElement("li"), el = document.createElement(open ? "button" : "div");
+    el.className = "row" + (open ? "" : " locked"); if(open){ el.type = "button"; el.dataset.fb = l.id; }
+    const n = rec.days.length, st = !open ? ["", "gesperrt"] : n >= 3 ? ["solid", "gefestigt"] : n ? ["active", n+" von 3 Tagen"] : state.fb.skip[l.stage] ? ["active", "übersprungen"] : ["active", "neu"];
+    el.innerHTML = '<span class="rname">'+l.title+'</span><span class="rside"><span class="pill '+st[0]+'">'+st[1]+'</span></span>';
+    li.append(el); ul.append(li);
+  });
 }
 
 /* ================= start screen ================= */
@@ -785,10 +1104,21 @@ function renderHome(){
   ];
   const ml = $("mapList"); ml.textContent = "";
   map.forEach(m => { const li = document.createElement("li"); li.innerHTML = '<div class="row'+(m[3]==="gesperrt" ? " locked" : "")+'"><span class="rname">'+m[0]+'</span><span class="rmeta">'+m[1]+'</span><span class="rside"><span class="pill '+m[2]+'">'+m[3]+'</span></span></div>'; ml.append(li); });
+  renderFb();
   drawPreview();
 }
 
 /* ================= wiring ================= */
+$("fbList").addEventListener("click", e => {
+  const s = e.target.closest("button[data-skip]"); if(s){ runSkip(+s.dataset.skip); return; }
+  const b = e.target.closest("button[data-fb]"); if(b) runLesson(FB.find(l => l.id === b.dataset.fb));
+});
+$("tunerBtn").addEventListener("click", startTuner);
+$("qGo").addEventListener("click", () => { $("qCard").hidden = true; ensureAudio(); if(quizCard.go) quizCard.go(); });
+$("qDone").addEventListener("click", () => { closeQuiz(); renderHome(); });
+$("qQuit").addEventListener("click", () => { if(sess) leave(); else { closeQuiz(); renderHome(); } });
+$("qShow").addEventListener("click", qReveal);
+$("qManual").addEventListener("click", () => { if(Q && Q.mode === "quiz" && !Q.pending) qHit(); });
 $("startBtn").addEventListener("click", () => startSession(buildSession(state.settings.minutes)));
 $("testBtn").addEventListener("click", () => startSession(buildTest()));
 $("durSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.minutes = +b.dataset.min; save(); renderHome(); });
@@ -806,6 +1136,7 @@ $("pauseBtn").addEventListener("click", togglePause);
 $("fbBtn").addEventListener("click", () => { state.settings.fretboard = !state.settings.fretboard; setFret(state.settings.fretboard); save(); });
 $("ratePanel").addEventListener("click", e => { const b = e.target.closest("button[data-rate]"); if(b) rate(b.dataset.rate); });
 document.addEventListener("keydown", e => {
+  if(!$("quiz").hidden){ if(e.key === "Escape") $("qQuit").click(); return; }
   if($("practice").hidden) return;
   if(e.key === " " && run){ e.preventDefault(); togglePause(); }
   else if(e.key === "Escape") leave();
