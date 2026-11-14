@@ -97,6 +97,7 @@ button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outl
 .facts span{color:var(--muted);font-size:14px}
 
 section h2{margin:0 0 4px;font-size:22px;font-weight:700;letter-spacing:-.01em}
+section h2 .neon{font-family:var(--font-neon);font-weight:400;letter-spacing:0;color:var(--tube-warm);text-shadow:var(--glow-soft)}
 section .note{margin:0 0 14px;color:var(--muted);font-size:14px;max-width:62ch}
 .rows{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
 .rows li{border-bottom:1px solid var(--line)}
@@ -230,27 +231,29 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
   </section>
 
   <section class="view" data-view="licks">
-    <h2>Licks der Stufe 1</h2>
+    <h2><span class="neon">Licks</span> der Stufe 1</h2>
     <div class="legend" id="legend"></div>
     <p class="note">Moll-Pentatonik in A, fünfter Bund. Tippe ein Lick an, um es frei zu üben. Die Punkte zeigen saubere Tage. Die Farbe zeigt, wie weit ein Lick ist: Grün ab dem ersten sauberen Tag, Türkis ab fünf Tagen mit längeren Bursts, Violett ab acht Tagen mit Sechzehntel-Phase, Pink ab 100 BPM, Gold am Ziel.</p>
     <ul class="rows" id="lickList"></ul>
   </section>
 
   <section class="view" data-view="griffbrett">
-    <h2>Griffbrett</h2>
-    <p class="note">Schritt für Schritt lernen, wo welcher Ton liegt. Das Mikrofon hört zu, und es geht erst weiter, wenn der Ton stimmt. Eine Lektion gilt als sauber, wenn du höchstens eine Hilfe brauchst.</p>
+    <h2><span class="neon">Griffbrett</span></h2>
+    <div class="legend"><span style="--lv:var(--lv1)"><i></i>begonnen</span><span style="--lv:var(--lv2)"><i></i>gefestigt</span><span style="--lv:var(--lv5)"><i></i>Stufe abgeschlossen</span></div>
+    <p class="note">Schritt für Schritt lernen, wo welcher Ton liegt. Das Mikrofon hört zu, und es geht erst weiter, wenn der Ton stimmt. Eine Lektion gilt als sauber, wenn du höchstens eine Hilfe brauchst. Grün ab dem ersten sauberen Tag, Türkis ab drei Tagen, Gold für eine ganze Stufe.</p>
     <div id="fbList"></div>
     <div class="toolrow"><button class="ghost" id="tunerBtn" type="button">Stimmgerät</button></div>
   </section>
 
   <section class="view" data-view="vokabular">
-    <h2>Vokabular</h2>
-    <p class="note">Neue Stufen öffnen sich über gefestigte Licks. Anschlagtechniken öffnen sich über das Tempo.</p>
+    <h2><span class="neon">Vokabular</span></h2>
+    <div class="legend" id="legend2"></div>
+    <p class="note">Neue Stufen öffnen sich über gefestigte Licks. Anschlagtechniken öffnen sich über das Tempo. Die Farbe einer Stufe zeigt den Stand, den mindestens vier ihrer Licks erreicht haben.</p>
     <ul class="rows" id="mapList"></ul>
   </section>
 
   <section class="view" data-view="optionen">
-    <h2>Einstellungen</h2>
+    <h2><span class="neon">Einstellungen</span></h2>
     <div class="set">
       <div><div class="lbl">Design<small>Dunkel leuchtet, hell ist flächig.</small></div>
         <div class="seg" id="themeSeg" role="group" aria-label="Design">
@@ -895,6 +898,7 @@ const FB = [
 function fbRec(id){ return state.fb.l[id] || (state.fb.l[id] = {days:[], runs:0}); }
 function fbPeek(id){ return state.fb.l[id] || {days:[], runs:0}; }
 function fbDone(l){ return !!state.fb.skip[l.stage] || fbPeek(l.id).days.length > 0; }
+function fbLv(l){ return state.fb.skip[l.stage] || fbPeek(l.id).days.length >= 3 ? 2 : fbPeek(l.id).days.length ? 1 : 0; }
 function fbOpen(i){ return i === 0 || fbDone(FB[i-1]); }
 function fbLearned(){ return FB.filter(fbDone); }
 function itemsOf(l){ return l.pairs ? l.pairs.map(p => ({steps:p})) : l.pool.map(n => ({steps:[n]})); }
@@ -1072,13 +1076,14 @@ function renderFb(){
   FB.forEach((l, i) => {
     if(l.stage !== stage){
       stage = l.stage; const firstIdx = i, open = fbOpen(firstIdx), head = document.createElement("div"); head.className = "stagehead" + (open ? "" : " locked");
-      const done = FB.filter(x => x.stage === stage).every(fbDone);
-      head.innerHTML = "<b>Stufe "+stage+" · "+STAGES[stage]+"</b>" + (open && !done ? '<button class="ghost" type="button" data-skip="'+stage+'">Kann ich schon</button>' : done ? '<span class="pill solid">gelernt</span>' : '<span class="pill">gesperrt</span>');
+      const mine = FB.filter(x => x.stage === stage), done = mine.every(fbDone), firm = mine.every(x => fbLv(x) === 2);
+      head.innerHTML = "<b>Stufe "+stage+" · "+STAGES[stage]+"</b>" + (open && !done ? '<button class="ghost" type="button" data-skip="'+stage+'">Kann ich schon</button>' : done ? '<span class="pill lvp" style="--lv:var(--lv'+(firm ? 5 : 1)+')">'+(firm ? "abgeschlossen" : "durchlaufen")+'</span>' : '<span class="pill">gesperrt</span>');
       box.append(head); ul = document.createElement("ul"); ul.className = "rows"; box.append(ul);
     }
     const rec = fbPeek(l.id), open = fbOpen(i), li = document.createElement("li"), el = document.createElement(open ? "button" : "div");
     el.className = "row" + (open ? "" : " locked"); if(open){ el.type = "button"; el.dataset.fb = l.id; }
-    const n = rec.days.length, st = !open ? ["", "gesperrt"] : n >= 3 ? ["solid", "gefestigt"] : n ? ["active", n+" von 3 Tagen"] : state.fb.skip[l.stage] ? ["active", "übersprungen"] : ["active", "neu"];
+    const n = rec.days.length, lv = fbLv(l), st = !open ? ["", "gesperrt"] : n >= 3 ? ["lvp", "gefestigt"] : state.fb.skip[l.stage] ? ["lvp", "gekonnt"] : n ? ["lvp", n+" von 3 Tagen"] : ["active", "neu"];
+    if(open){ li.className = "lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")"); }
     el.innerHTML = '<span class="rname">'+l.title+'</span><span class="rside"><span class="pill '+st[0]+'">'+st[1]+'</span></span>';
     li.append(el); ul.append(li);
   });
@@ -1140,15 +1145,17 @@ function renderHome(){
   $("legend").innerHTML = [1,2,3,4,5].map(k => '<span style="--lv:var(--lv'+k+')"><i></i>'+LEVELS[k]+'</span>').join("");
 
   const fast = LICKS.filter(l => peek(l.id).bpm >= 100).length;
+  let agg = 0; for(let k=5;k>=1;k--){ if(LICKS.filter(l => level(l.id) >= k).length >= 4){ agg = k; break; } }
   const map = [
-    ["Stufe 1 · Moll-Pentatonik", solid+" von 6 Licks gefestigt", "active", "offen"],
-    ["Stufe 2 · Blues-Tonleiter", solid >= 4 ? "Freigeschaltet. Die Licks dieser Stufe folgen in der nächsten Version." : "Öffnet sich bei vier gefestigten Licks", solid >= 4 ? "solid" : "", solid >= 4 ? "frei" : "gesperrt"],
+    ["Stufe 1 · Moll-Pentatonik", solid+" von 6 Licks gefestigt", agg ? "lvp" : "active", agg ? LEVELS[agg] : "offen", agg],
+    ["Stufe 2 · Blues-Tonleiter", solid >= 4 ? "Freigeschaltet. Die Licks dieser Stufe folgen in der nächsten Version." : "Öffnet sich bei vier gefestigten Licks", solid >= 4 ? "active" : "", solid >= 4 ? "frei" : "gesperrt"],
     ["Stufe 3 · Dur-Pentatonik", "Folgt auf Stufe 2", "", "gesperrt"],
     ["Stufe 4 · Dur-Tonleiter", "Folgt auf Stufe 3", "", "gesperrt"],
-    ["Technik · Legato und Economy Picking", fast >= 3 ? "Freigeschaltet. Die Übungen folgen in einer späteren Version." : fast+" von 3 Licks bei 100 BPM", fast >= 3 ? "solid" : "", fast >= 3 ? "frei" : "gesperrt"]
+    ["Technik · Legato und Economy Picking", fast >= 3 ? "Freigeschaltet. Die Übungen folgen in einer späteren Version." : fast+" von 3 Licks bei 100 BPM", fast >= 3 ? "active" : "", fast >= 3 ? "frei" : "gesperrt"]
   ];
   const ml = $("mapList"); ml.textContent = "";
-  map.forEach(m => { const li = document.createElement("li"); li.innerHTML = '<div class="row'+(m[3]==="gesperrt" ? " locked" : "")+'"><span class="rname">'+m[0]+'</span><span class="rmeta">'+m[1]+'</span><span class="rside"><span class="pill '+m[2]+'">'+m[3]+'</span></span></div>'; ml.append(li); });
+  $("legend2").innerHTML = $("legend").innerHTML;
+  map.forEach(m => { const li = document.createElement("li"); if(m[3] !== "gesperrt"){ const lv = m[4] || 0; li.className = "lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")"); } li.innerHTML = '<div class="row'+(m[3]==="gesperrt" ? " locked" : "")+'"><span class="rname">'+m[0]+'</span><span class="rmeta">'+m[1]+'</span><span class="rside"><span class="pill '+m[2]+'">'+m[3]+'</span></span></div>'; ml.append(li); });
   renderFb();
   drawPreview();
 }
