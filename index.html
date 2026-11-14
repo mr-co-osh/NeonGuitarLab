@@ -20,6 +20,7 @@
   --glow-cool:0 0 2px #fff,0 0 9px var(--slow),0 0 24px var(--slow),0 0 60px color-mix(in srgb,var(--slow) 65%,transparent);
   --glow-soft:0 0 6px color-mix(in srgb,var(--accent) 80%,transparent),0 0 30px color-mix(in srgb,var(--accent) 55%,transparent);
   --glow-plain:0 0 18px rgba(255,255,255,.28);
+  --sign-shadow:0 0 8px color-mix(in srgb,var(--slow) 75%,transparent),0 0 22px color-mix(in srgb,var(--slow) 45%,transparent),inset 0 0 8px color-mix(in srgb,var(--slow) 55%,transparent);
   --glow-cool-soft:0 0 6px color-mix(in srgb,var(--slow) 80%,transparent),0 0 22px color-mix(in srgb,var(--slow) 55%,transparent);
   --btn-bg:transparent; --btn-fg:var(--tube-warm);
   --btn-shadow:0 0 14px color-mix(in srgb,var(--accent) 60%,transparent),inset 0 0 14px color-mix(in srgb,var(--accent) 38%,transparent);
@@ -33,7 +34,7 @@
   --accent:#d4451a; --slow:#1a6f9f;
   --ok:#2c8a57; --warn:#a06f0c; --bad:#c04444;
   --tube-warm:var(--accent); --tube-cool:var(--slow);
-  --glow-warm:none; --glow-cool:none; --glow-soft:none; --glow-plain:none; --glow-cool-soft:none;
+  --glow-warm:none; --glow-cool:none; --glow-soft:none; --glow-plain:none; --glow-cool-soft:none; --sign-shadow:none;
   --btn-bg:var(--accent); --btn-fg:#fff; --btn-shadow:none;
   color-scheme:light;
 }
@@ -49,7 +50,10 @@ button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outl
 #home{max-width:880px;margin:0 auto;padding:20px 20px 64px;display:flex;flex-direction:column;gap:40px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:16px}
 .brand{display:flex;align-items:baseline;flex-wrap:wrap}
-.brand b{font-family:var(--font-neon);font-weight:400;font-size:22px;color:var(--tube-cool);text-shadow:var(--glow-cool-soft)}
+.brand{align-items:center}
+.sign{font-family:var(--font-neon);font-weight:400;font-size:21px;line-height:1;padding:7px 14px 8px;border:2px solid var(--tube-cool);border-radius:14px;box-shadow:var(--sign-shadow);white-space:nowrap}
+.sign i{font-style:normal;color:var(--tube-warm);text-shadow:var(--glow-soft)}
+.sign em{font-style:normal;color:var(--tube-cool);text-shadow:var(--glow-cool-soft)}
 .brand span{color:var(--muted);font-weight:400;margin-left:8px}
 .ghost{border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px;color:var(--muted)}
 .ghost:hover{color:var(--text);border-color:var(--muted)}
@@ -153,7 +157,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 
 <div id="home">
   <header class="top">
-    <div class="brand"><b>NeonGuitarLab</b><span>Speedtrainer</span></div>
+    <div class="brand"><b class="sign" aria-label="NeonGuitarLab"><i>Neon</i> <em>Guitar Lab</em></b><span>Speedtrainer</span></div>
     <button class="ghost" id="themeBtn" type="button">Hell</button>
   </header>
 
