@@ -1264,7 +1264,9 @@ function quizStep(det, cand, stable, ts){
   if(cand !== null && cand !== Q.lastReg && stable > 60) Q.armed = true;
   const p = Q.prompts[Q.i], st = p.steps[Q.step], target = midiOf(st[0], st[1]);
   if(Q.armed && cand !== null && stable >= 100){
-    if(cand === target){ Q.lastReg = cand; qHit(); }
+    /* the open string and its 12th fret carry the same note: both count when a single note is asked for */
+    const twin = p.steps.length === 1 && (st[1] === 0 || st[1] === 12) ? midiOf(st[0], 12 - st[1]) : -1;
+    if(cand === target || cand === twin){ Q.lastReg = cand; qHit(); }
     else if(stable >= 190){ Q.lastReg = cand; qMiss(cand, target); }
   }
   if(!p.guided){
