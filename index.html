@@ -654,15 +654,20 @@ function phrase(notes, onset, o){
 }
 /* Sixteenth rhythms with rests and accents. Slots are sixteenths in a 4/4 bar; the picking hand keeps moving: down on even slots, up on odd ones. */
 const RHY = [
-  {name:"Galopp", hint:"Galopp: lang, kurz, kurz", slots:[0,2,3,4,6,7,8,10,11,12,14,15]},
-  {name:"Umgekehrter Galopp", hint:"Kurz, kurz, lang", slots:[0,1,2,4,5,6,8,9,10,12,13,14]},
-  {name:"3 + 3 + 2", hint:"Zähle 3 + 3 + 2", slots:[0,3,6,8,11,14]},
-  {name:"Akzente", hint:"Achtel, Akzente auf 3 + 3 + 2", slots:[0,2,4,6,8,10,12,14], acc:[0,3,6]}
+  {name:"Galopp", hint:"Galopp: zähle 1 + a, 2 + a", slots:[0,2,3,4,6,7,8,10,11,12,14,15]},
+  {name:"Umgekehrter Galopp", hint:"Zähle 1 e +, 2 e +", slots:[0,1,2,4,5,6,8,9,10,12,13,14]},
+  {name:"3 + 3 + 2", hint:"3 + 3 + 2: zähle 1, a, +, 3, a, +", slots:[0,3,6,8,11,14]},
+  {name:"Off-Beat", hint:"Zähle 1 + a, +: Akzent auf a und dem + danach", slots:[0,2,3,6,8,10,11,14], acc:[2,3,6,7]}
 ];
 function rhyBars(lick, r){
   const n = r.slots.length;
-  return phrase(lick.notes, k => ({b:Math.floor(k/n)*4 + r.slots[k%n]*.25, up:r.slots[k%n]%2===1, acc:!!r.acc && r.acc.includes(k%n)}), {type:"R", chord:lick.chord, hint:r.hint, label:r.name, mode:"Sechzehntel-Rhythmus"});
+  const bars = phrase(lick.notes, k => ({b:Math.floor(k/n)*4 + r.slots[k%n]*.25, up:r.slots[k%n]%2===1, acc:!!r.acc && r.acc.includes(k%n)}), {type:"R", chord:lick.chord, hint:r.hint, label:r.name, mode:"Sechzehntel-Rhythmus"});
+  /* which sixteenths sound: 1 = played, 2 = accented. Drawn as counting syllables above the zone. */
+  bars.forEach(b => { b.on = new Array(16).fill(0); b.notes.forEach(x => { b.on[Math.round(x.b*4)] = x.acc ? 2 : 1; }); });
+  return bars;
 }
+/* For 3/4 and 6/8 the lick is stretched to twelve notes so the bars run through without a long held note. */
+function twelve(notes){ const n = notes.length; if(n >= 12) return notes.slice(0, 11).concat([notes[n-1]]); let out = notes.slice(); while(out.length < 12) out = out.concat(notes.slice(Math.max(0, n - (12 - out.length)))); return out.slice(0, 12); }
 function rhyCount(id){ const d = peek(id).days.length; return d < 5 ? 0 : Math.min(RHY.length, 1 + Math.floor((d-5)/2)); }
 function rhythmBlock(lick){
   const bpm = Math.max(50, peek(lick.id).bpm - 8), bars = [countBar(lick.chord)], add = x => bars.push.apply(bars, x);
@@ -676,19 +681,19 @@ const GUESTS = {trip:"Triolen", "34":"3/4-Takt", "68":"6/8-Takt"};
 function guestBlock(lick, kind, sec){
   const base = peek(lick.id).bpm, c = lick.chord, nt = lick.notes, bars = [], add = x => bars.push.apply(bars, x);
   let bpb = 4, bpm, cyc, note;
-  const alt = k => k%2===1;
+  const alt = k => k%2===1, n12 = twelve(nt);
   if(kind === "trip"){
     bpm = Math.max(44, Math.round(base*.62)); note = "Drei Töne pro Schlag";
     const T = () => phrase(nt, k => ({b:k/3, up:alt(k), acc:k%3===0}), {chord:c, mode:"Achteltriolen", label:"Triolen", sub:3});
     cyc = () => { add(mkBars(nt, "S", {chord:c, hint:"Langsam, den Puls spüren"})); add(mkBars(nt, "N", {chord:c, label:"Achtel"})); add(T()); add(T()); add(mkBars(nt, "N", {chord:c, label:"Achtel"})); add(T()); add(T()); };
   }else if(kind === "34"){
     bpb = 3; bpm = Math.max(48, base - 8); note = "Drei Schläge pro Takt";
-    const W = () => phrase(nt, k => ({b:k*.5, up:alt(k), acc:k%6===0}), {bpb:3, chord:c, mode:"Achtel im 3/4", label:"3/4"});
-    cyc = () => { add(phrase(nt, k => ({b:k}), {bpb:3, type:"S", chord:c, hint:"Zähle 1 2 3, schwer auf der Eins", mode:"Viertel im 3/4"})); add(W()); add(W()); add(W()); };
+    const W = () => phrase(n12, k => ({b:k*.5, up:alt(k), acc:k%6===0}), {bpb:3, chord:c, mode:"Achtel im 3/4", label:"3/4"});
+    cyc = () => { add(phrase(n12, k => ({b:k, acc:k%3===0}), {bpb:3, type:"S", chord:c, hint:"Zähle 1 2 3, schwer auf der Eins", mode:"Viertel im 3/4"})); add(W()); add(W()); add(W()); };
   }else{
     bpb = 2; bpm = Math.max(44, Math.round(base*.62)); note = "Zwei Schläge, jeder in drei geteilt";
-    const W = () => phrase(nt, k => ({b:k/3, up:alt(k), acc:k%3===0}), {bpb:2, chord:c, mode:"Achtel im 6/8", label:"6/8", sub:3});
-    cyc = () => { add(phrase(nt, k => ({b:k}), {bpb:2, type:"S", chord:c, hint:"Zähle 1 2 3 4 5 6, schwer auf 1 und 4", mode:"Punktierte Viertel", sub:3})); add(W()); add(W()); add(W()); };
+    const W = () => phrase(n12, k => ({b:k/3, up:alt(k), acc:k%3===0}), {bpb:2, chord:c, mode:"Achtel im 6/8", label:"6/8", sub:3});
+    cyc = () => { add(phrase(n12, k => ({b:k}), {bpb:2, type:"S", chord:c, hint:"Zähle 1 2 3 4 5 6, schwer auf 1 und 4", mode:"Punktierte Viertel", sub:3})); add(W()); add(W()); add(W()); };
   }
   for(let k=0;k<Math.ceil(3/bpb);k++) bars.push(countBar(c));
   const n = barsFor(sec, bpm, 6, bpb); do cyc(); while(bars.length < n);
@@ -941,13 +946,23 @@ function drawLane(beat){
   for(let i=first;i<=last;i++){
     const bar = run.bars[i], prev = run.bars[i-1], x0 = X(i*bpb);
     g.strokeStyle = C.muted; g.globalAlpha = .55; g.beginPath(); g.moveTo(Math.round(x0)+.5, top); g.lineTo(Math.round(x0)+.5, bot); g.stroke(); g.globalAlpha = 1;
-    let lx = x0 + 8;
+    let lx = x0 + 8; const cfs = Math.max(11, fs*.6), ly = bar.on ? ZY - 6 - cfs*1.25 : top-gap*.95;
+    if(bar.on){
+      g.textAlign = "center";
+      for(let k=0;k<16;k++){
+        const v = bar.on[k], lab = k%4 === 0 ? String(k/4+1) : ["e","+","a"][k%4-1];
+        g.font = (v ? "700 " : "500 ")+Math.round(v === 2 ? cfs*1.25 : cfs)+"px "+FONT_N;
+        g.fillStyle = v === 2 ? C.text : v ? C.groove : C.muted; g.globalAlpha = v ? 1 : .4; if(v) glow(g, C.groove, v === 2 ? 12 : 7);
+        g.fillText(lab, X(i*bpb + k*.25), ZY - 6); noGlow(g);
+      }
+      g.globalAlpha = 1; g.textAlign = "left";
+    }
     if(bar.chord && (!prev || prev.chord !== bar.chord || prev.type === "count") && bar.type !== "count"){
-      g.fillStyle = C.text; g.font = "700 "+Math.round(fs*.8)+"px "+FONT_D; g.fillText(bar.chord, lx, top-gap*.95); lx += g.measureText(bar.chord).width + 12;
+      g.fillStyle = C.text; g.font = "700 "+Math.round(fs*(bar.on ? .6 : .8))+"px "+FONT_D; g.fillText(bar.chord, lx, ly); lx += g.measureText(bar.chord).width + 12;
     }
     const zoneStart = !!ZC[bar.type] && (!prev || prev.type !== bar.type);
     const tag = zoneStart ? ZT[bar.type] + (bar.type === "R" && bar.label ? " · " + bar.label : "") : bar.label;
-    if(tag){ const tc = ZC[bar.type] || C.muted; g.fillStyle = tc; if(zoneStart) glow(g, tc, 10); g.font = "600 "+Math.round(fs*.56)+"px "+FONT_D; g.fillText(tag.toUpperCase(), lx, top-gap*1.02); noGlow(g); }
+    if(tag){ const tc = ZC[bar.type] || C.muted; g.fillStyle = tc; if(zoneStart) glow(g, tc, 10); g.font = "600 "+Math.round(fs*.56)+"px "+FONT_D; g.fillText(tag.toUpperCase(), lx, bar.on ? ly : top-gap*1.02); noGlow(g); }
     g.fillStyle = C.muted;
     for(let k=0;k<bpb;k++){
       const bx = X(i*bpb+k);
