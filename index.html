@@ -28,6 +28,7 @@
   --gear-glow:drop-shadow(0 0 3px var(--slow)) drop-shadow(0 0 8px color-mix(in srgb,var(--slow) 70%,transparent));
   --sign-shadow:0 0 8px color-mix(in srgb,var(--slow) 75%,transparent),0 0 22px color-mix(in srgb,var(--slow) 45%,transparent),inset 0 0 8px color-mix(in srgb,var(--slow) 55%,transparent);
   --glow-cool-soft:0 0 6px color-mix(in srgb,var(--slow) 80%,transparent),0 0 22px color-mix(in srgb,var(--slow) 55%,transparent);
+  --root:#ff3348;
   --lv1:#3dff8f; --lv2:#2ee6d6; --lv3:#b07cff; --lv4:#ff5ad2; --lv5:#ffd447;
   --btn-bg:transparent; --btn-fg:var(--tube-warm);
   --btn-shadow:0 0 14px color-mix(in srgb,var(--accent) 60%,transparent),inset 0 0 14px color-mix(in srgb,var(--accent) 38%,transparent);
@@ -44,6 +45,7 @@
   --glow-warm:none; --glow-cool:none; --glow-soft:none; --glow-plain:none; --glow-cool-soft:none; --sign-shadow:none;
   --tube-violet:var(--lv3); --glow-violet:none;
   --tube-green:var(--lv1); --glow-green:none; --box-green:none; --gear-glow:none;
+  --root:#c8102e;
   --lv1:#16904a; --lv2:#0c8a82; --lv3:#6b3fd1; --lv4:#c2259a; --lv5:#967000;
   --btn-bg:var(--accent); --btn-fg:#fff; --btn-shadow:none;
   color-scheme:light;
@@ -237,7 +239,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .edgrid span.mk{color:var(--text)}
 .edgrid button{height:46px;border:1px solid var(--line);border-radius:9px;font-family:var(--font-num);font-size:14px;color:var(--muted)}
 .edgrid button:hover,.edgrid button:active{border-color:var(--accent);color:var(--text)}
-.edgrid button.rt{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.edgrid button.rt{color:var(--root);border-color:color-mix(in srgb,var(--root) 50%,var(--line))}
 .chips button[aria-disabled="true"]{opacity:.35}
 /* ---------- fretboard trainer ---------- */
 .stagehead{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;padding:18px 2px 8px;flex-wrap:wrap}
@@ -377,6 +379,11 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
           <button type="button" data-key="Am">A-Moll</button>
           <button type="button" data-key="Em">E-Moll</button>
           <button type="button" data-key="Bm">B-Moll</button>
+        </div></div>
+      <div><div class="lbl">Position 1 in E-Moll<small>Mit leeren Saiten in den ersten drei Bünden, oder dieselbe Form eine Oktave höher.</small></div>
+        <div class="seg" id="emSeg" role="group" aria-label="Lage von Position 1 in E-Moll">
+          <button type="button" data-em="open">Offene Lage</button>
+          <button type="button" data-em="high">12. Bund</button>
         </div></div>
       <div><div class="lbl">Zeitlimit im Griffbrett<small>So lange hast du pro Ton. Danach zählt es als Fehler.</small></div>
         <div class="seg" id="limSeg" role="group" aria-label="Zeitlimit im Griffbrett">
@@ -547,7 +554,7 @@ const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel
 /* ================= state ================= */
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
-  return {v:1, updatedAt:0, settings:{theme:"dark", key:"auto", tuning:"std", fbLimit:5, limV:2, beat:"click", harmony:"chord", warmup:true, lickSound:false, fretboard:false, minutes:10},
+  return {v:1, updatedAt:0, settings:{theme:"dark", key:"auto", emOpen:true, tuning:"std", fbLimit:5, limV:2, beat:"click", harmony:"chord", warmup:true, lickSound:false, fretboard:false, minutes:10},
           introduced:3, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}, vp:{}, custom:[]};
 }
 let state = fresh(), OWN = null;
@@ -567,12 +574,13 @@ function curKey(){ const k = state.settings.key; if(KEYS[k]) return k; const o =
 /* how far a position moves for a key: the lowest place on the neck that keeps every note on a fretted string */
 function keyShift(key, pos){
   const fr = POS[pos].map(n => n[1]), lo = Math.min.apply(null, fr), off = KEYS[key].off;
+  if(key === "Em" && pos === 1) return state.settings.emOpen !== false ? off - 12 : off;   // open strings, or the same shape at the 12th fret
   return lo + off - 12 >= 1 ? off - 12 : off;
 }
 const KCACHE = {};
 function keyed(l, key){
   key = key || curKey(); if(key === "Am") return l;
-  const ck = key+":"+l.id; if(KCACHE[ck]) return KCACHE[ck];
+  const ck = key+(state.settings.emOpen !== false ? "o:" : "h:")+l.id; if(KCACHE[ck]) return KCACHE[ck];
   const sh = keyShift(key, l.pos || 1), tr = n => [n[0], n[1]+sh].concat(n.length > 2 ? [n[2]] : []);
   const o = Object.assign({}, l, {chord:KEYS[key].tr[l.chord] || l.chord});
   if(l.notes) o.notes = l.notes.map(tr);
@@ -913,7 +921,7 @@ let sess = null, run = null, raf = 0, timer = 0, paused = false, wake = null, C 
 
 function readColors(){
   const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
-  C = {bg:g("--bg"), line:g("--line"), text:g("--text"), muted:g("--muted"), accent:g("--accent"), slow:g("--slow"), ok:g("--ok"), groove:g("--lv3"), glow:state.settings.theme === "dark"};
+  C = {bg:g("--bg"), line:g("--line"), text:g("--text"), muted:g("--muted"), accent:g("--accent"), slow:g("--slow"), ok:g("--ok"), root:g("--root"), groove:g("--lv3"), glow:state.settings.theme === "dark"};
 }
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return "rgba("+(n>>16)+","+((n>>8)&255)+","+(n&255)+","+a+")"; }
 function fit(cv){
@@ -1061,14 +1069,14 @@ function drawLane(beat){
   g.font = "600 "+Math.round(fs)+"px "+FONT_N; g.textAlign = "center"; g.textBaseline = "middle";
   for(let i=0;i<run.notes.length;i++){
     const n = run.notes[i], x = X(n.ab); if(x < -40 || x > w+40) continue;
-    const yy = y(n.s), txt = String(n.f), tw = g.measureText(txt).width, bw = tw+8, bh = fs*1.12, col = n.root ? C.accent : C.text, bt = run.bars[n.bar].type;
+    const yy = y(n.s), txt = String(n.f), tw = g.measureText(txt).width, bw = tw+8, bh = fs*1.12, col = n.root ? C.root : C.text, bt = run.bars[n.bar].type;
     const isCur = i === curIdx && beat - n.ab < Math.max(n.dur, .25);
     g.globalAlpha = 1; g.fillStyle = C.bg; g.fillRect(x-bw/2, yy-bh/2, bw, bh);
     if(ZC[bt]){ g.fillStyle = rgba(ZC[bt], zAlpha(yy)); g.fillRect(x-bw/2, yy-bh/2, bw, bh); }
     if(n.acc){ g.globalAlpha = i < curIdx ? .3 : 1; g.fillStyle = C.text; g.fillText(">", x, top-gap*.42); g.globalAlpha = 1; }
     if(isCur){ g.fillStyle = col; glow(g, col, 16); rr(g, x-bw/2-3, yy-bh/2-1, bw+6, bh+2, 6); g.fill(); noGlow(g); g.fillStyle = C.bg; g.fillText(txt, x, yy+1); }
     else{
-      g.globalAlpha = i < curIdx ? .26 : 1; g.fillStyle = col; if(n.root && i > curIdx) glow(g, C.accent, 9); g.fillText(txt, x, yy+1); noGlow(g);
+      g.globalAlpha = i < curIdx ? .26 : 1; g.fillStyle = col; if(n.root && i > curIdx) glow(g, C.root, 9); g.fillText(txt, x, yy+1); noGlow(g);
       if(n.target){ g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.arc(x, yy, fs*.78, 0, 6.2832); g.stroke(); }
     }
     if(n.tech){
@@ -1112,9 +1120,9 @@ function drawFret(beat){
     const pc = midiOf(n[0],n[1])%12, cx = x0+(n[1]-lo+.5)*fw, cy = top+(n[0]-1)*gap, root = ch && pc === ch.root, tone = root ? "1" : pc === third ? "3" : pc === fifth ? "5" : "", on = cur && cur.s === n[0] && cur.f === n[1];
     g.beginPath(); g.arc(cx, cy, on ? r+2 : r, 0, 6.2832);
     if(on){ g.fillStyle = C.text; glow(g, C.text, 8); g.fill(); noGlow(g); }
-    else if(root){ g.fillStyle = C.accent; g.fill(); }
-    else if(tone){ g.fillStyle = C.muted; g.fill(); }
-    else{ g.fillStyle = C.bg; g.fill(); g.strokeStyle = C.muted; g.lineWidth = 1.5; g.stroke(); }
+    else if(root){ g.fillStyle = C.root; g.fill(); }
+    else if(tone){ g.fillStyle = C.ok; g.fill(); }
+    else{ g.fillStyle = C.bg; g.fill(); g.strokeStyle = C.ok; g.lineWidth = 1.5; g.stroke(); }
     if(tone && r >= 6){ g.fillStyle = C.bg; g.fillText(tone, cx, cy+.5); }
   });
   g.textAlign = "left";
@@ -1400,9 +1408,13 @@ function drawBoard(o){
   (o.dots||[]).forEach(d => {
     const x = fx(d.f), yy = sy(d.s), lab = nameOf(midiOf(d.s, d.f));
     g.beginPath(); g.arc(x, yy, r, 0, 6.2832);
-    if(d.kind === "found"){ g.fillStyle = C.ok; g.fill(); g.fillStyle = C.bg; }
-    else if(d.kind === "target"){ g.fillStyle = C.bg; g.fill(); g.strokeStyle = C.accent; g.lineWidth = 2.5; glow(g, C.accent, 12); g.stroke(); noGlow(g); g.fillStyle = C.accent; }
-    else{ const c = d.root ? C.accent : C.muted; g.fillStyle = C.bg; g.fill(); g.strokeStyle = c; g.lineWidth = d.root ? 1.8 : 1.2; g.stroke(); g.fillStyle = c; }
+    const c = d.root ? C.root : C.ok;
+    if(d.kind === "found"){ g.fillStyle = c; g.fill(); g.fillStyle = C.bg; }
+    else if(d.kind === "target"){
+      g.fillStyle = C.bg; g.fill(); g.strokeStyle = c; g.lineWidth = 2.5; g.stroke();
+      g.beginPath(); g.arc(x, yy, r+4, 0, 6.2832); g.strokeStyle = C.text; g.lineWidth = 1.5; glow(g, C.text, 10); g.stroke(); noGlow(g); g.fillStyle = c;
+    }
+    else{ g.fillStyle = C.bg; g.fill(); g.strokeStyle = c; g.lineWidth = 1.6; g.stroke(); g.fillStyle = c; }
     g.fillText(lab, x, yy+1);
   });
   g.textAlign = "left";
@@ -1470,7 +1482,7 @@ function edRender(){
   $("edMic").setAttribute("aria-pressed", String(ED.mic)); $("edMic").textContent = ED.mic ? "Einspielen läuft" : "Einspielen";
   const tot = edTotal(), into = tot % 48, n = ED.ev.filter(e => !e.r).length;
   $("edInfo").textContent = n + (n === 1 ? " Ton" : " Töne") + " · " + beatsTxt(tot) + " Schläge";
-  $("edMsg").textContent = ED.msg || (ED.mic ? "Spiele den nächsten Ton auf der Gitarre. Er wird mit dem gewählten Notenwert eingetragen." : sel ? (ED.mode === "insert" ? "Der nächste Ton wird vor dem gewählten eingefügt." : "Tippe einen anderen Bund, Notenwert oder eine Spielweise, um den gewählten Ton zu ändern.") : !tot ? "Wähle einen Notenwert und tippe dann auf das Griffbrett. Grundtöne des Akkords sind orange." : into ? "Im Takt sind noch " + beatsTxt(48-into) + " Schläge frei. Beim Speichern wird der letzte Ton bis zum Taktende gehalten." : "Der Takt ist voll. Tippe einen Ton im Tab an, um ihn zu ändern.");
+  $("edMsg").textContent = ED.msg || (ED.mic ? "Spiele den nächsten Ton auf der Gitarre. Er wird mit dem gewählten Notenwert eingetragen." : sel ? (ED.mode === "insert" ? "Der nächste Ton wird vor dem gewählten eingefügt." : "Tippe einen anderen Bund, Notenwert oder eine Spielweise, um den gewählten Ton zu ändern.") : !tot ? "Wähle einen Notenwert und tippe dann auf das Griffbrett. Grundtöne des Akkords sind rot." : into ? "Im Takt sind noch " + beatsTxt(48-into) + " Schläge frei. Beim Speichern wird der letzte Ton bis zum Taktende gehalten." : "Der Takt ist voll. Tippe einen Ton im Tab an, um ihn zu ändern.");
   ED.msg = ""; drawEd();
 }
 function drawEd(){
@@ -1491,7 +1503,7 @@ function drawEd(){
     g.font = "500 "+Math.round(fs*.55)+"px "+FONT_N; g.fillStyle = C.muted; g.fillText(valTxt(e.t), x, bot + gap*1.25);
     if(e.r){ g.font = "600 "+Math.round(fs)+"px "+FONT_N; g.fillText("–", x, (top+bot)/2); prev = null; }
     else{
-      const y = top+(e.s-1)*gap, txt = String(e.f), col = midiOf(e.s, e.f)%12 === ch.root ? C.accent : C.text;
+      const y = top+(e.s-1)*gap, txt = String(e.f), col = midiOf(e.s, e.f)%12 === ch.root ? C.root : C.text;
       g.font = "600 "+Math.round(fs)+"px "+FONT_N; const tw = g.measureText(txt).width;
       g.fillStyle = C.bg; g.fillRect(x-tw/2-4, y-fs*.56, tw+8, fs*1.12); g.fillStyle = col; g.fillText(txt, x, y+1);
       if(e.tech){ g.fillStyle = C.text; g.font = "600 "+Math.round(fs*.62)+"px "+FONT_N;
@@ -1714,7 +1726,7 @@ function posPrompts(pos, key){
 function runPos(pos, key){
   const K = KEYS[key], r = posRange(pos, key), rec = vpPeek(pos, key), title = "Position "+pos+" · "+K.name;
   const intro = key !== "Am" ? "Dieselbe Form an einem neuen Ort: Bund "+r[0]+" bis "+r[1]+". Der Grundton ist jetzt "+NOTE[K.root]+"."
-    : !rec.days.length ? "Zwei Töne pro Saite, zwischen Bund "+r[0]+" und "+r[1]+". Die orange umrandeten Töne sind der Grundton A. Erst zeigt dir die App die Form, dann spielst du sie auf und ab, zum Schluss findest du einzelne Töne ohne Bild."
+    : !rec.days.length ? "Zwei Töne pro Saite, zwischen Bund "+r[0]+" und "+r[1]+". Die roten Kreise sind der Grundton A, alle anderen Töne sind grün. Erst zeigt dir die App die Form, dann spielst du sie auf und ab, zum Schluss findest du einzelne Töne ohne Bild."
     : rec.days.length < 2 ? "Auf und ab durch die Form, dann einzelne Töne finden." : "Jetzt ohne Bild: auf und ab aus dem Kopf, dann einzelne Töne finden.";
   quizCard(title, intro, () => startQuiz({title:title, rootPc:K.root, prompts:posPrompts(pos, key), onDone:res => {
     const rc = vpRec(pos, key), clean = res.helps <= 2, firstClean = clean && !rc.days.length; rc.runs++;
@@ -1757,8 +1769,8 @@ function drawChord(){
     const x = x0+i*sw, st = 6-i;
     if(f < 0){ g.fillStyle = C.muted; g.fillText("x", x, top-11); return; }
     const isRoot = midiOf(st, f)%12 === root;
-    if(f === 0){ g.strokeStyle = isRoot ? C.accent : C.muted; g.lineWidth = 1.5; g.beginPath(); g.arc(x, top-11, 4, 0, 6.2832); g.stroke(); return; }
-    g.fillStyle = isRoot ? C.accent : C.text; if(isRoot) glow(g, C.accent, 8); g.beginPath(); g.arc(x, top+(f-.5)*fh, Math.min(7, sw*.38), 0, 6.2832); g.fill(); noGlow(g);
+    if(f === 0){ g.strokeStyle = isRoot ? C.root : C.ok; g.lineWidth = 1.5; g.beginPath(); g.arc(x, top-11, 4, 0, 6.2832); g.stroke(); return; }
+    g.fillStyle = isRoot ? C.root : C.ok; if(isRoot) glow(g, C.root, 8); g.beginPath(); g.arc(x, top+(f-.5)*fh, Math.min(7, sw*.38), 0, 6.2832); g.fill(); noGlow(g);
   });
   g.textAlign = "left";
 }
@@ -1814,8 +1826,8 @@ function drawPreview(){
   g.font = "600 "+Math.round(fs)+"px "+FONT_N; g.textAlign = "center"; g.textBaseline = "middle";
   const n = lick.notes.length, step = (w-40)/n;
   lick.notes.forEach((nt, i) => {
-    const x = 20 + step*(i+.5), yy = top+(nt[0]-1)*gap, txt = String(nt[1]), tw = g.measureText(txt).width, root = midiOf(nt[0],nt[1])%12 === ch.root, col = root ? C.accent : C.text;
-    g.fillStyle = C.bg; g.fillRect(x-tw/2-4, yy-fs*.56, tw+8, fs*1.12); g.fillStyle = col; if(root) glow(g, C.accent, 9); g.fillText(txt, x, yy+1); noGlow(g);
+    const x = 20 + step*(i+.5), yy = top+(nt[0]-1)*gap, txt = String(nt[1]), tw = g.measureText(txt).width, root = midiOf(nt[0],nt[1])%12 === ch.root, col = root ? C.root : C.text;
+    g.fillStyle = C.bg; g.fillRect(x-tw/2-4, yy-fs*.56, tw+8, fs*1.12); g.fillStyle = col; if(root) glow(g, C.root, 9); g.fillText(txt, x, yy+1); noGlow(g);
     if(i === n-1){ g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.arc(x, yy, fs*.82, 0, 6.2832); g.stroke(); }
   });
   g.textAlign = "left";
@@ -1834,7 +1846,8 @@ function renderHome(){
   const mdeg = main.own ? "" : degName(main.chord);
   $("todaySub").textContent = peek(main.id).bpm+" BPM · "+main.goal+(main.own ? "" : " · Position "+main.pos);
   $("chName").textContent = "Akkord "+main.chord+(mdeg ? " · Stufe "+mdeg : "");
-  $("chInfo").textContent = main.own ? "Eigenes Lick, unabhängig von der Tonart" : "Tonart "+KEYS[curKey()].name+(KEYS[state.settings.key] ? "" : openKeys().length > 1 ? ", wechselt wöchentlich" : "")+". Der Grundton ist orange.";
+  $("chInfo").textContent = main.own ? "Eigenes Lick, unabhängig von der Tonart" : "Tonart "+KEYS[curKey()].name+(KEYS[state.settings.key] ? "" : openKeys().length > 1 ? ", wechselt wöchentlich" : "")+". Der Grundton ist rot.";
+  document.querySelectorAll("#emSeg button").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.em === "open") === (st.emOpen !== false))));
   document.querySelectorAll("#keySeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.key === (KEYS[st.key] ? st.key : "auto"))));
   $("fStreak").textContent = streak(); $("fMin").textContent = Math.round(state.seconds/60);
   const solid = LICKS.filter(l => isSolid(l.id)).length; $("fSolid").textContent = solid+"/"+LICKS.length;
@@ -1899,6 +1912,7 @@ $("startBtn").addEventListener("click", () => startSession(buildSession(state.se
 $("testBtn").addEventListener("click", () => startSession(buildTest()));
 $("durSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.minutes = +b.dataset.min; save(); renderHome(); });
 $("harmSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.harmony = b.dataset.harm; save(); renderHome(); });
+$("emSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.emOpen = b.dataset.em === "open"; save(); renderHome(); });
 $("keySeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.key = b.dataset.key; save(); renderHome(); });
 $("posList").addEventListener("click", e => { const b = e.target.closest("button[data-pos]"); if(b && !b.disabled) runPos(+b.dataset.pos, b.dataset.key); });
 $("limSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.fbLimit = +b.dataset.lim; save(); renderHome(); });
