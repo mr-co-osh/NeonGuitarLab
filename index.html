@@ -219,6 +219,22 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .chordtxt b{font-size:20px}
 .chordtxt span{color:var(--muted);font-size:14px}
 .seg{flex-wrap:wrap;border-radius:22px}
+/* ---------- compact lick rows ---------- */
+.grp{margin:22px 0 6px;color:var(--muted);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+.rows .row.slim{grid-template-columns:minmax(0,1fr) auto;padding:13px 2px 13px 18px;gap:0 14px}
+.row.slim .rside{grid-row:auto;grid-column:2;flex-direction:row;align-items:center;gap:10px;margin:0}
+.rdetail{padding:0 2px 16px 18px;display:flex;flex-direction:column;gap:10px}
+.rdetail p{margin:0;color:var(--muted);font-size:14px}
+.rdetail .line{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.rdetail .chip{font-family:var(--font-num);font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.rows .rdetail .spark{display:block}
+.quiet{margin:14px 0 0;color:var(--muted);font-size:14px}
+.fold{margin-top:30px;border-top:1px solid var(--line);padding-top:14px}
+.fold summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.fold summary::-webkit-details-marker{display:none}
+.fold summary::after{content:"+";font-family:var(--font-num);color:var(--muted);font-size:20px}
+.fold[open] summary::after{content:"\2013"}
+.fold .note{margin-top:8px}
 /* ---------- own licks ---------- */
 .rows li.own{display:flex;align-items:center;gap:10px}
 .rows li.own .row{flex:1 1 auto;min-width:0}
@@ -302,27 +318,26 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <div class="facts">
       <div><b id="fStreak">0</b><span>Tage in Folge</span></div>
       <div><b id="fMin">0</b><span>Minuten geübt</span></div>
-      <div><b id="fSolid">0/6</b><span>Licks gefestigt</span></div>
+      <div><b id="fSolid">0</b><span>Licks im Repertoire</span></div>
     </div>
   </section>
 
   <section class="view" data-view="licks">
-    <h2><span class="neon">Licks</span> der Moll-Pentatonik</h2>
+    <h2><span class="neon">Licks</span></h2>
     <div class="legend" id="legend"></div>
-    <p class="note">Neue Licks kommen mit jeder Position, die du im Vokabular lernst. Tippe ein Lick an, um es frei zu üben. Die Punkte zeigen saubere Tage. Die Farbe zeigt, wie weit ein Lick ist: Grün ab dem ersten sauberen Tag, Türkis ab fünf Tagen mit längeren Bursts, Violett ab acht Tagen mit Sechzehntel-Phase, Pink ab 100 BPM, Gold am Ziel.</p>
-    <ul class="rows" id="lickList"></ul>
-    <h2 style="margin-top:34px"><span class="neon">Eigene</span> Licks</h2>
-    <p class="note">Schreibe ein eigenes Lick. Es durchläuft dieselben Schritte wie alle anderen: langsam beginnen, Bursts, Tempo und Farben.</p>
-    <ul class="rows" id="ownList"></ul>
+    <p class="note">Höchstens vier Licks sind gleichzeitig in Arbeit. Tippe eines an, um mehr zu sehen.</p>
+    <div id="lickBox"></div>
     <div class="toolrow"><button class="ghost" id="newLick" type="button">Eigenes Lick anlegen</button></div>
-    <h2 style="margin-top:34px"><span class="neon">Rhythmus</span> ausprobieren</h2>
-    <p class="note">Kurze Runden ohne Bewertung mit dem heutigen Lick. In der täglichen Einheit kommen Triolen, 3/4 und 6/8 nur ab und zu als Gast vor. Die Sechzehntel-Rhythmen gehören zu jedem gefestigten Lick.</p>
-    <div class="toolrow" id="tryRow">
-      <button class="ghost" type="button" data-try="rhy">Sechzehntel-Rhythmen</button>
-      <button class="ghost" type="button" data-try="trip">Triolen</button>
-      <button class="ghost" type="button" data-try="34">3/4-Takt</button>
-      <button class="ghost" type="button" data-try="68">6/8-Takt</button>
-    </div>
+    <details class="fold">
+      <summary>Rhythmus ausprobieren</summary>
+      <p class="note">Kurze Runden ohne Bewertung mit dem heutigen Lick.</p>
+      <div class="toolrow" id="tryRow" style="margin-top:0">
+        <button class="ghost" type="button" data-try="rhy">Sechzehntel-Rhythmen</button>
+        <button class="ghost" type="button" data-try="trip">Triolen</button>
+        <button class="ghost" type="button" data-try="34">3/4-Takt</button>
+        <button class="ghost" type="button" data-try="68">6/8-Takt</button>
+      </div>
+    </details>
   </section>
 
   <section class="view" data-view="griffbrett">
@@ -589,10 +604,6 @@ function keyed(l, key){
 }
 function vocabK(){ return keyed(VOCAB); }
 function degName(chord){ const c = CHORDS[chord]; return c ? DEG[(c.root - KEYS[curKey()].root + 12) % 12] || "" : ""; }
-function openIds(){
-  const s = {}; LICKS.filter(l => l.pos === 1).slice(0, state.introduced).forEach(l => s[l.id] = 1);
-  LICKS.filter(l => l.pos > 1 && posDone(l.pos)).forEach(l => s[l.id] = 1); return s;
-}
 function allLicks(){ return LICKS.map(l => keyed(l)).concat(ownLicks()); }
 const src = l => l.ev || l.notes;
 const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
@@ -654,17 +665,23 @@ function streak(){
   while(set.has(dstr(d))){ n++; d.setDate(d.getDate()-1); }
   return n;
 }
-function activeLicks(){ const o = openIds(); return LICKS.filter(l => o[l.id]).map(l => keyed(l)).concat(ownLicks()); }
-function maybeIntroduce(){
-  const first = LICKS.filter(l => l.pos === 1);
-  while(state.introduced < first.length && first.slice(0, state.introduced).every(l => peek(l.id).days.length >= 1)) state.introduced++;
+/* Every lick that is unlocked: position 1 from the start, the others once their position is learned, plus own licks. */
+function unlocked(){ return LICKS.filter(l => l.pos === 1 || posDone(l.pos)).map(l => keyed(l)).concat(ownLicks()); }
+const MAX_WORK = 4;
+/* At most four licks are in work at a time, so each one comes round often enough. A started lick keeps its place;
+   free places go to own licks first, then to the built-in ones in order. A solid lick moves to the repertoire. */
+function working(){
+  const u = unlocked().filter(l => !isSolid(l.id)), first = l => (peek(l.id).hist[0] || [""])[0];
+  const started = u.filter(l => peek(l.id).hist.length).sort((a,b) => first(a) < first(b) ? -1 : first(a) > first(b) ? 1 : 0);
+  const fresh = u.filter(l => !peek(l.id).hist.length); fresh.sort((a,b) => (b.own ? 1 : 0) - (a.own ? 1 : 0));
+  return started.concat(fresh).slice(0, MAX_WORK);
 }
-function lickOrder(){
-  return activeLicks().slice().sort((a,b) => {
-    const sa = isSolid(a.id) ? 1 : 0, sb = isSolid(b.id) ? 1 : 0; if(sa !== sb) return sa - sb;
-    const la = peek(a.id).last || "", lb = peek(b.id).last || ""; return la < lb ? -1 : la > lb ? 1 : (b.own ? 1 : 0) - (a.own ? 1 : 0);
-  });
-}
+function repertoire(){ return unlocked().filter(l => isSolid(l.id)); }
+function waiting(){ const w = working(); return unlocked().filter(l => !isSolid(l.id) && !w.includes(l)); }
+function activeLicks(){ return working().concat(repertoire()); }
+function maybeIntroduce(){}
+const byLast = (a,b) => { const la = peek(a.id).last || "", lb = peek(b.id).last || ""; return la < lb ? -1 : la > lb ? 1 : (b.own ? 1 : 0) - (a.own ? 1 : 0); };
+function lickOrder(){ const w = working(); return (w.length ? w : repertoire()).slice().sort(byLast); }
 
 /* ---- saving: this device first, then the Claude account when the page is allowed to ---- */
 let syncRef = null, syncBusy = false, syncDirty = false, syncTimer = 0;
@@ -850,8 +867,9 @@ function vocabBlock(sec){
 function buildSession(minutes){
   maybeIntroduce();
   const o = lickOrder(), main = o[0], third = o[1] || o[0];
-  const old = activeLicks().filter(l => l !== main && peek(l.id).hist.length).sort((a,b) => { const la = peek(a.id).last, lb = peek(b.id).last; return la < lb ? -1 : la > lb ? 1 : 0; });
-  const second = old[0] || o[1] || o[0];
+  /* the repetition block alternates: one day a lick from the repertoire, the next a lick in work */
+  const rp = repertoire().sort(byLast), wk = working().filter(l => l !== main && peek(l.id).hist.length).sort(byLast);
+  const second = (rp.length && (dayNo() % 2 === 0 || !wk.length)) ? rp[0] : wk[0] || rp[0] || o[1] || o[0];
   const plan = minutes === 5 ? {warm:45, main:150, vocab:90} : minutes === 20 ? {warm:110, main:320, rep:170, main2:300, vocab:200} : minutes === 15 ? {warm:90, main:280, rep:140, main2:150, vocab:170} : {warm:70, main:230, rep:110, vocab:150};
   const warm = state.settings.warmup !== false, mainSec = plan.main + (warm ? 0 : plan.warm);
   const blocks = warm ? [warmBlock(plan.warm, peek(main.id).bpm, main)] : [];
@@ -1759,6 +1777,31 @@ function runPos(pos, key){
     $("qEndTitle").textContent = clean ? "Sauber" : "Noch einmal"; $("qEndText").textContent = resTxt(res) + " " + more; $("qEnd").hidden = false;
   }}));
 }
+/* The licks view: what is in work, what is in the repertoire, and one quiet line for everything still to come. */
+let ROWOPEN = null;
+function lickRow(l, tag){
+  const p = peek(l.id), lv = level(l.id), isV = l.id === VOCAB.id, li = document.createElement("li"), open = ROWOPEN === l.id;
+  li.className = "lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")");
+  let h = '<button class="row slim" type="button" data-open="'+l.id+'" aria-expanded="'+open+'"><span class="rname">'+esc(l.name)+'</span>'+
+    '<span class="rside"><span class="rtempo">'+p.bpm+' BPM</span><span class="pill '+(lv ? "lvp" : "active")+'">'+(tag || LEVELS[lv])+'</span></span></button>';
+  if(open){
+    const chords = isV ? vocabK().parts.map(x => x.chord).join(" · ") : l.chord, dg = isV || l.own ? "" : degName(l.chord), st = isV ? 1 : stage(l.id);
+    h += '<div class="rdetail"><div class="line"><span class="chip">'+chords+(dg ? ' · Stufe '+dg : '')+'</span>'+(l.own || isV ? '' : '<span class="chip">Position '+l.pos+'</span>')+(l.own ? '<span class="chip">eigenes Lick</span>' : '')+'</div>'+
+      '<p>'+(isV ? "Drei Teile, erst einzeln, dann verbunden. Steht am Ende jeder Einheit." : esc(l.goal)+(STAGE_TXT[st] || ""))+(st >= 3 ? " · Dauertempo "+durRec(l.id).bpm+" BPM" : "")+'</p>'+
+      '<div class="line">'+dotsHtml(p.days.length)+'<span style="color:var(--muted);font-size:14px">'+Math.min(5, p.days.length)+' von 5 sauberen Tagen</span>'+spark(p.hist)+'</div>'+
+      '<div class="line"><button class="ghost" type="button" data-lick="'+l.id+'">Frei üben</button>'+(l.own ? '<button class="ghost" type="button" data-edit="'+l.id+'">Ändern</button>' : '')+'</div></div>';
+  }
+  li.innerHTML = h; return li;
+}
+function renderLicks(){
+  const box = $("lickBox"); box.textContent = "";
+  const group = (title, list, tag) => { if(!list.length) return; const hd = document.createElement("p"); hd.className = "grp"; hd.textContent = title; const ul = document.createElement("ul"); ul.className = "rows"; list.forEach(l => ul.append(lickRow(l, tag))); box.append(hd, ul); };
+  group("In Arbeit", working()); group("Zum Abschluss jeder Einheit", [vocabK()]); group("Repertoire", repertoire());
+  const w = waiting().length, locked = LICKS.filter(l => l.pos > 1 && !posDone(l.pos)).length, parts = [];
+  if(w) parts.push(w + (w === 1 ? " Lick wartet" : " Licks warten") + " auf einen freien Platz.");
+  if(locked) parts.push(locked + " weitere kommen mit den Positionen im Vokabular.");
+  if(parts.length){ const q = document.createElement("p"); q.className = "quiet"; q.textContent = parts.join(" "); box.append(q); }
+}
 function renderVocab(){
   const key = curKey(), fixed = !!KEYS[state.settings.key], ul = $("posList"); ul.textContent = "";
   $("keyLine").textContent = fixed ? "Tonart: " + KEYS[key].name + ", fest eingestellt." : openKeys().length > 1 ? "Tonart dieser Woche: " + KEYS[key].name + ". Sie wechselt wöchentlich zwischen " + openKeys().map(k => KEYS[k].name).join(", ") + "." : "Tonart: A-Moll. Weitere Tonarten öffnen sich, sobald Position 1 sitzt.";
@@ -1867,38 +1910,14 @@ function renderHome(){
   document.querySelectorAll("#emSeg button").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.em === "open") === (st.emOpen !== false))));
   document.querySelectorAll("#keySeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.key === (KEYS[st.key] ? st.key : "auto"))));
   $("fStreak").textContent = streak(); $("fMin").textContent = Math.round(state.seconds/60);
-  const solid = LICKS.filter(l => isSolid(l.id)).length; $("fSolid").textContent = solid+"/"+LICKS.length;
+  const solid = repertoire().length; $("fSolid").textContent = solid;
   document.querySelectorAll("#durSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.min === st.minutes)));
   document.querySelectorAll("#beatSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.beat === st.beat)));
   document.querySelectorAll("#limSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.lim === st.fbLimit)));
   document.querySelectorAll("#harmSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.harm === st.harmony)));
   $("swWarm").setAttribute("aria-checked", String(st.warmup)); $("swLick").setAttribute("aria-checked", String(st.lickSound)); $("swFret").setAttribute("aria-checked", String(st.fretboard));
 
-  const ul = $("lickList"); ul.textContent = "";
-  const oid = openIds();
-  LICKS.map(l => keyed(l)).forEach(l => {
-    const p = peek(l.id), open = !!oid[l.id], li = document.createElement("li"), el = document.createElement(open ? "button" : "div");
-    el.className = "row" + (open ? "" : " locked"); if(open){ el.type = "button"; el.dataset.lick = l.id; }
-    const lv = level(l.id), status = !open ? ["", "kommt als Nächstes"] : [lv ? "lvp" : "active", LEVELS[lv]];
-    if(open){ li.className = "lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")"); }
-    el.innerHTML = '<span class="rname">'+l.name+'<span class="chip">'+l.chord+'</span><span class="chip">Pos. '+l.pos+'</span></span><span class="rmeta">'+(open ? l.goal+STAGE_TXT[stage(l.id)] : l.pos === 1 ? "Öffnet sich, wenn jedes offene Lick einen sauberen Tag hat" : "Öffnet sich mit Position "+l.pos+" im Vokabular")+'</span>'+
-      '<span class="rside"><span style="display:flex;gap:10px;align-items:center">'+spark(p.hist)+'<span class="rtempo">'+p.bpm+' BPM'+(stage(l.id) >= 3 ? ' · Dauer '+durRec(l.id).bpm : '')+'</span></span><span style="display:flex;gap:10px;align-items:center">'+dotsHtml(p.days.length)+'<span class="pill '+status[0]+'">'+status[1]+'</span></span></span>';
-    li.append(el); ul.append(li);
-  });
-  { const p = peek(VOCAB.id), li = document.createElement("li"), el = document.createElement("button"); el.className = "row"; el.type = "button"; el.dataset.lick = VOCAB.id;
-    el.innerHTML = '<span class="rname">'+VOCAB.name+'<span class="chip">'+vocabK().parts.map(x => x.chord).join(" · ")+'</span></span><span class="rmeta">Drei Teile, erst einzeln, dann verbunden. Steht am Ende jeder Einheit.</span>'+
-      '<span class="rside"><span style="display:flex;gap:10px;align-items:center">'+spark(p.hist)+'<span class="rtempo">'+p.bpm+' BPM</span></span><span style="display:flex;gap:10px;align-items:center">'+dotsHtml(p.days.length)+'<span class="pill '+(level(VOCAB.id) ? "lvp" : "active")+'">'+LEVELS[level(VOCAB.id)]+'</span></span></span>';
-    li.className = "lv lv"+level(VOCAB.id); li.style.setProperty("--lv", "var(--lv"+Math.max(1, level(VOCAB.id))+")");
-    li.append(el); ul.append(li); }
-  const ol = $("ownList"); ol.textContent = "";
-  ownLicks().forEach(l => {
-    const p = peek(l.id), lv = level(l.id), li = document.createElement("li"), bars = Math.round(l.ev.reduce((a,e) => a + e.t, 0)/48);
-    li.className = "own lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")");
-    li.innerHTML = '<button class="row" type="button" data-lick="'+l.id+'"><span class="rname">'+esc(l.name)+'<span class="chip">'+l.chord+'</span></span><span class="rmeta">'+l.notes.length+' Töne · '+bars+(bars === 1 ? ' Takt' : ' Takte')+STAGE_TXT[stage(l.id)]+'</span>'+
-      '<span class="rside"><span style="display:flex;gap:10px;align-items:center">'+spark(p.hist)+'<span class="rtempo">'+p.bpm+' BPM'+(stage(l.id) >= 3 ? ' · Dauer '+durRec(l.id).bpm : '')+'</span></span><span style="display:flex;gap:10px;align-items:center">'+dotsHtml(p.days.length)+'<span class="pill '+(lv ? "lvp" : "active")+'">'+LEVELS[lv]+'</span></span></span></button>'+
-      '<button class="ghost" type="button" data-edit="'+l.id+'">Ändern</button>';
-    ol.append(li);
-  });
+  renderLicks();
   $("legend").innerHTML = [1,2,3,4,5].map(k => '<span style="--lv:var(--lv'+k+')"><i></i>'+LEVELS[k]+'</span>').join("");
 
   const fast = LICKS.filter(l => peek(l.id).bpm >= 100).length, allPos = POS_ORDER.every(posDone);
@@ -1952,16 +1971,15 @@ $("gearBtn").addEventListener("click", () => showView("optionen"));
 $("tuneSel").addEventListener("click", e => { const b = e.target.closest("button[data-tune]"); if(!b) return; state.settings.tuning = b.dataset.tune; save(); renderTuner(); });
 $("tMic").addEventListener("click", () => { if(T.on) tunerStop(); else tunerStart(); });
 window.addEventListener("hashchange", () => showView(location.hash.slice(1), true));
-$("ownList").addEventListener("click", e => {
+$("lickBox").addEventListener("click", e => {
   const ed = e.target.closest("button[data-edit]"); if(ed){ openEditor(ed.dataset.edit); return; }
-  const b = e.target.closest("button[data-lick]"); if(!b) return;
-  const l = allLicks().find(x => x.id === b.dataset.lick); if(!l) return;
-  const bl = [lickBlock(l, "Freies Üben", 180, true)]; if(stage(l.id) >= 3) bl.push(durBlock(l, 100)); startSession({kind:"free", blocks:bl});
-});
-$("lickList").addEventListener("click", e => {
-  const b = e.target.closest("button[data-lick]"); if(!b) return;
-  if(b.dataset.lick === VOCAB.id){ startSession({kind:"free", blocks:[vocabBlock(150)]}); return; }
-  const l = allLicks().find(x => x.id === b.dataset.lick); if(!l) return; const bl = [lickBlock(l, "Freies Üben", 180, true)]; if(stage(l.id) >= 3) bl.push(durBlock(l, 100)); startSession({kind:"free", blocks:bl});
+  const go = e.target.closest("button[data-lick]");
+  if(go){
+    if(go.dataset.lick === VOCAB.id){ startSession({kind:"free", blocks:[vocabBlock(150)]}); return; }
+    const l = allLicks().find(x => x.id === go.dataset.lick); if(!l) return;
+    const bl = [lickBlock(l, "Freies Üben", 180, true)]; if(stage(l.id) >= 3) bl.push(durBlock(l, 100)); startSession({kind:"free", blocks:bl}); return;
+  }
+  const op = e.target.closest("button[data-open]"); if(op){ ROWOPEN = ROWOPEN === op.dataset.open ? null : op.dataset.open; renderLicks(); }
 });
 $("tryRow").addEventListener("click", e => {
   const b = e.target.closest("button[data-try]"); if(!b) return;
