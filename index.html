@@ -425,6 +425,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
           <button type="button" data-lim="5">5 s</button>
           <button type="button" data-lim="8">8 s</button>
         </div></div>
+      <div><div class="lbl">Hör-Moment<small>Zwei Phrasen zum Nachspielen am Ende der täglichen Einheit, sobald du eine Position kennst.</small></div><button class="switch" role="switch" id="swEar" type="button" aria-label="Hör-Moment"></button></div>
       <div><div class="lbl">Griffbrett anzeigen<small>Ein schmaler Streifen unter dem Tab.</small></div><button class="switch" role="switch" id="swFret" type="button" aria-label="Griffbrett anzeigen"></button></div>
       <div><div class="lbl">Einstufungstest<small>Etwa drei Minuten. Legt das Starttempo deiner Licks fest.</small></div><button class="ghost" id="testBtn" type="button">Test starten</button></div>
       <div><div class="lbl">Fortschritt übertragen<small id="syncMsg">Der Fortschritt liegt auf diesem Gerät.</small></div>
@@ -597,7 +598,7 @@ const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel
 /* ================= state ================= */
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
-  return {v:1, updatedAt:0, settings:{theme:"dark", key:"auto", emOpen:true, tuning:"std", fbLimit:5, limV:2, beat:"click", harmony:"chord", warmup:true, lickSound:false, fretboard:false, minutes:10},
+  return {v:1, updatedAt:0, settings:{theme:"dark", key:"auto", emOpen:true, tuning:"std", fbLimit:5, limV:2, beat:"click", harmony:"chord", warmup:true, earEnd:true, lickSound:false, fretboard:false, minutes:10},
           introduced:3, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}, vp:{}, custom:[]};
 }
 let state = fresh(), OWN = null;
@@ -913,6 +914,7 @@ function buildSession(minutes){
   if(plan.rep && familiar && day % 3 === 2) blocks.push(guestBlock(familiar, ["trip","34","68"][Math.floor(day/3) % 3], 90));
   if(plan.rep && fbLearned().length) blocks.push({kind:"fret", title:"Griffbrett", sec:100, rated:false});
   blocks.push(vocabBlock(plan.vocab));
+  if(state.settings.earEnd !== false && POS_ORDER.some(posDone)) blocks.push({kind:"hear", title:"Hör-Moment", sec:40, rated:false});
   return {kind:"daily", blocks:blocks};
 }
 function buildTest(){
@@ -994,6 +996,15 @@ function startSession(s){
 }
 function startBlock(){
   const b = sess.blocks[sess.i];
+  if(b.kind === "hear"){
+    $("skipBtn").hidden = true; run = null; clearInterval(timer); cancelAnimationFrame(raf);
+    const done = POS_ORDER.filter(posDone), pos = done[dayNo() % done.length], key = curKey(), rec = hearRec(pos);
+    startQuiz({title:"Hör-Moment · Position "+pos, rootPc:KEYS[key].root, prompts:hearPhrases(pos, key, rec.lvl, rec.pic, 2), onDone:r => {
+      sess.done += b.sec; state.seconds += b.sec; sess.results.push({name:"Hör-Moment", msg:r.clean+" von "+r.total+" Phrasen direkt gehört. Serie: "+hearStreak().cur+"."});
+      closeQuiz(); nextBlock();
+    }});
+    return;
+  }
   if(b.kind === "fret"){
     $("skipBtn").hidden = true; run = null; clearInterval(timer); cancelAnimationFrame(raf);
     startQuiz({title:"Griffbrett · Wiederholung", prompts:reviewPrompts(8), onDone:r => {
@@ -1386,7 +1397,7 @@ function playPhrase(){
   $("qNote").textContent = "Hör zu"; $("qNote").className = "word listen";
 }
 function earHelp(){ if(!Q.helped){ Q.helped = true; Q.helps++; } }
-function qCount(){ $("qCount").textContent = (Q.i+1)+" / "+Q.prompts.length + (Q.errors ? " · " + Q.errors + " Fehler" : ""); }
+function qCount(){ $("qCount").textContent = (Q.i+1)+" / "+Q.prompts.length + (Q.prompts[Q.i].ear ? " · Serie " + hearStreak().cur : Q.errors ? " · " + Q.errors + " Fehler" : ""); }
 /* a wrong note, an expired time limit and "Zeigen" each count as one error; guided notes never count */
 function qError(){
   const p = Q.prompts[Q.i]; if(p.guided) return;
@@ -1409,7 +1420,9 @@ function qHit(){
   const p = Q.prompts[Q.i]; Q.step++; Q.armed = false;
   if(p.ear){
     if(Q.step < p.steps.length){ Q.revealed = !!Q.revealAll; $("qMsg").textContent = "Richtig."; promptText(); return; }
-    const kr = Q.cfg.rootPc; promptText();
+    const kr = Q.cfg.rootPc, hs = hearStreak(); promptText();
+    if(Q.helped) hs.cur = 0; else { hs.cur++; if(hs.cur > hs.best) hs.best = hs.cur; }
+    $("qCount").textContent = (Q.i+1)+" / "+Q.prompts.length+" · Serie "+hs.cur;
     $("qNote").textContent = "Richtig"; $("qNote").className = "word ok";
     $("qMsg").textContent = p.steps.map(n => IVL[(midiOf(n[0], n[1]) - kr + 120) % 12] || nameOf(midiOf(n[0], n[1]))).join(", ") + ".";
     Q.pending = true; Q.lock = performance.now() + 1700; return;
@@ -1835,12 +1848,14 @@ function posPrompts(pos, key){
 /* Listening levels per position. Each level is played first with the shape on screen, then without it. */
 const HEAR = ["", "Zwei Töne", "Drei Töne in Schritten", "Drei Töne mit Sprüngen", "Vier Töne, freier Start"];
 function hearRec(pos, create){ const k = "h"+pos; if(!state.vp) state.vp = {}; const d = {lvl:1, pic:true, days:[], runs:0}; if(create) return state.vp[k] || (state.vp[k] = d); return state.vp[k] || d; }
-function hearPhrases(pos, key, lvl, pic){
+/* the one number for listening: how many phrases in a row were heard without help */
+function hearStreak(){ if(!state.vp) state.vp = {}; return state.vp.hs || (state.vp.hs = {cur:0, best:0}); }
+function hearPhrases(pos, key, lvl, pic, count){
   const pat = posPattern(pos, key), r = posRange(pos, key), lo = Math.max(0, r[0]-1), hi = r[1]+1, kr = KEYS[key].root;
   const roots = []; pat.forEach((n,i) => { if(midiOf(n[0], n[1])%12 === kr) roots.push(i); });
   const rnd = a => a[Math.floor(Math.random()*a.length)], inR = i => i >= 0 && i < pat.length, out = [];
   let guard = 0, lastKey = "";
-  while(out.length < 8 && guard++ < 400){
+  while(out.length < (count || 5) && guard++ < 400){
     let idx = [rnd(roots)];
     if(lvl === 1){ const j = idx[0] + rnd([-4,-3,-2,-1,1,2,3,4]); if(!inR(j)) continue; idx.push(j); }
     else if(lvl === 2){ const d = rnd([1,-1]), a = idx[0]+d, b = a + rnd([d, -d]); if(!inR(a) || !inR(b)) continue; idx.push(a, b); }
@@ -1855,15 +1870,15 @@ function runHear(pos){
   const key = curKey(), rec = hearRec(pos), title = "Hören · Position "+pos+" · "+KEYS[key].name;
   const intro = (rec.lvl < 4 ? "Die App spielt eine kurze Phrase, die auf dem Grundton beginnt. Der Grundton wird dir gezeigt, den Rest hörst du." : "Die App spielt erst den Grundton zur Orientierung, dann vier Töne mit freiem Start.") + " Spiel die Phrase nach. Es gibt kein Zeitlimit, und Herantasten ist erlaubt. " + (rec.pic ? "Die Punkte zeigen dir, wo die Töne der Position liegen." : "Diesmal ohne Bild.");
   quizCard(title + " · " + HEAR[rec.lvl], intro, () => startQuiz({title:title, rootPc:KEYS[key].root, prompts:hearPhrases(pos, key, rec.lvl, rec.pic), onDone:res => {
-    const rc = hearRec(pos, true), clean = res.helps <= 1; rc.runs++; let more = "Wiederhole die Runde, bis höchstens eine Phrase Hilfe braucht.";
-    if(clean){
-      if(!rc.days.includes(dstr())) rc.days.push(dstr());
+    const rc = hearRec(pos, true), good = res.helps <= 1, hs = hearStreak(); rc.runs++; let more = "Die nächste Runde bringt neue Phrasen auf derselben Stufe.";
+    if(!rc.days.includes(dstr())) rc.days.push(dstr());
+    if(good){
       if(rc.pic){ rc.pic = false; more = "Als Nächstes dieselbe Stufe ohne Bild."; }
       else if(rc.lvl < 4){ rc.lvl++; rc.pic = true; more = "Neue Stufe: " + HEAR[rc.lvl] + "."; }
       else more = "Das ist die höchste Stufe. Jede Runde bringt neue Phrasen.";
     }
     save();
-    $("qEndTitle").textContent = clean ? "Sauber" : "Noch einmal"; $("qEndText").textContent = res.clean + " von " + res.total + " Phrasen ohne Hilfe. " + more; $("qEnd").hidden = false;
+    $("qEndTitle").textContent = "Runde geschafft"; $("qEndText").textContent = res.clean + " von " + res.total + " Phrasen direkt gehört. Beste Serie: " + hs.best + ". " + more; $("qEnd").hidden = false;
   }}));
 }
 function runPos(pos, key){
@@ -1933,7 +1948,7 @@ function renderVocab(){
         return '<button type="button" class="keyb'+(l2 ? " lvp" : "")+'" style="--lv:var(--lv'+Math.max(1, l2)+')" data-pos="'+pos+'" data-key="'+k+'"'+(ok ? "" : " disabled")+'>'+KEYS[k].name+'</button>'; };
       const hr = hearRec(pos);
       h += '<div class="rdetail"><p>'+nl+' Licks in dieser Lage'+(posDone(pos) ? "" : ". E-Moll und B-Moll öffnen sich, sobald A-Moll sitzt")+'.</p><div class="line">'+["Am","Em","Bm"].map(btn).join("")+'</div>'+
-        '<div class="line"><button type="button" class="keyb'+(hr.days.length ? " lvp" : "")+'" style="--lv:var(--lv'+(hr.lvl >= 4 && !hr.pic ? 2 : 1)+')" data-hear="'+pos+'"'+(posDone(pos) ? "" : " disabled")+'>Hören und nachspielen</button><span style="color:var(--muted);font-size:14px">'+(posDone(pos) ? "Stufe "+hr.lvl+" von 4: "+HEAR[hr.lvl]+(hr.pic ? "" : ", ohne Bild") : "öffnet sich mit der Position")+'</span></div></div>';
+        '<div class="line"><button type="button" class="keyb'+(hr.days.length ? " lvp" : "")+'" style="--lv:var(--lv'+(hr.lvl >= 4 && !hr.pic ? 2 : 1)+')" data-hear="'+pos+'"'+(posDone(pos) ? "" : " disabled")+'>Hören und nachspielen</button><span style="color:var(--muted);font-size:14px">'+(posDone(pos) ? "Stufe "+hr.lvl+" von 4: "+HEAR[hr.lvl]+(hr.pic ? "" : ", ohne Bild")+(hearStreak().best ? " · beste Serie "+hearStreak().best : "") : "öffnet sich mit der Position")+'</span></div></div>';
     }
     li.innerHTML = h; ul.append(li);
   });
@@ -2051,7 +2066,7 @@ function renderHome(){
   document.querySelectorAll("#beatSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.beat === st.beat)));
   document.querySelectorAll("#limSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.lim === st.fbLimit)));
   document.querySelectorAll("#harmSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.harm === st.harmony)));
-  $("swWarm").setAttribute("aria-checked", String(st.warmup)); $("swLick").setAttribute("aria-checked", String(st.lickSound)); $("swFret").setAttribute("aria-checked", String(st.fretboard));
+  $("swWarm").setAttribute("aria-checked", String(st.warmup)); $("swEar").setAttribute("aria-checked", String(st.earEnd !== false)); $("swLick").setAttribute("aria-checked", String(st.lickSound)); $("swFret").setAttribute("aria-checked", String(st.fretboard));
 
   renderLicks();
   $("legend").innerHTML = [1,2,3,4,5].map(k => '<span style="--lv:var(--lv'+k+')"><i></i>'+LEVELS[k]+'</span>').join("");
@@ -2095,7 +2110,7 @@ $("posList").addEventListener("click", e => {
 });
 $("limSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.fbLimit = +b.dataset.lim; save(); renderHome(); });
 $("beatSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.beat = b.dataset.beat; save(); renderHome(); });
-[["swWarm","warmup"],["swLick","lickSound"],["swFret","fretboard"]].forEach(p => $(p[0]).addEventListener("click", () => { state.settings[p[1]] = !state.settings[p[1]]; save(); renderHome(); }));
+[["swWarm","warmup"],["swEar","earEnd"],["swLick","lickSound"],["swFret","fretboard"]].forEach(p => $(p[0]).addEventListener("click", () => { state.settings[p[1]] = !state.settings[p[1]]; save(); renderHome(); }));
 $("themeSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.theme = b.dataset.theme; save(); applyTheme(); renderHome(); });
 /* menu: one area at a time instead of one long page */
 const VIEWS = ["heute","licks","griffbrett","vokabular","tuner","optionen"];
