@@ -294,11 +294,11 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .qmain{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(200px,36%) 1fr;gap:8px 18px;padding:4px 20px 6px;align-items:center}
 @media (orientation:portrait){.qmain{grid-template-columns:1fr;grid-template-rows:auto 1fr;align-items:start}}
 .qprompt{display:flex;flex-direction:column;gap:6px;min-width:0}
-#qNote{font-family:var(--font-neon);font-size:clamp(60px,30vh,150px);line-height:1;color:var(--tube-warm);text-shadow:var(--glow-warm);white-space:nowrap}
+#qNote{font-family:var(--font-neon);font-size:clamp(60px,30vh,150px);line-height:1;color:var(--tube-warm);text-shadow:var(--glow-warm);white-space:nowrap;height:clamp(60px,30vh,150px);display:flex;align-items:center}
 #qNote.ok{color:var(--tube-cool);text-shadow:var(--glow-cool)}
 #qNote.word{font-size:clamp(38px,15vh,68px)}
 #qNote.word.listen{color:var(--tube-cool);text-shadow:var(--glow-cool)}
-#qSub{font-size:clamp(18px,6.2vh,30px);font-weight:650;line-height:1.15;text-wrap:balance}
+#qSub{font-size:clamp(18px,6.2vh,30px);font-weight:650;line-height:1.15;min-height:3.45em}
 #qMsg{min-height:1.5em;color:var(--muted);font-size:clamp(14px,4.4vh,19px)}
 .qtime{height:4px;border-radius:2px;background:var(--line);max-width:280px}
 #qTime{display:block;height:100%;width:100%;border-radius:2px;background:var(--slow);box-shadow:var(--sign-shadow)}
@@ -1427,7 +1427,14 @@ function showPrompt(){
 }
 /* ---- listening: the app plays a short phrase, you play it back. No time limit; trying around is fine, only help counts. ---- */
 const IVL = {0:"Grundton", 3:"kleine Terz", 5:"Quarte", 7:"Quinte", 10:"kleine Septime"};
-const earTone = (t, m, len) => tone(t, "triangle", hz(m), 0, .42, len, .005);
+/* a soft synth lead: two slightly detuned saws and a quiet square an octave below, through a low-pass that opens and closes */
+function earTone(t, m, len){
+  const c = A.ctx, f = c.createBiquadFilter(), g = c.createGain(), fr = hz(m);
+  f.type = "lowpass"; f.Q.value = 5; f.frequency.setValueAtTime(fr*1.5, t); f.frequency.linearRampToValueAtTime(Math.min(6000, fr*6), t+.05); f.frequency.exponentialRampToValueAtTime(fr*2, t+len);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.2, t+.02); g.gain.setValueAtTime(.2, t+len*.7); g.gain.linearRampToValueAtTime(0, t+len+.08);
+  [["sawtooth", 1, -7, 1], ["sawtooth", 1, 7, 1], ["square", .5, 0, .45]].forEach(v => { const o = c.createOscillator(), vg = c.createGain(); o.type = v[0]; o.frequency.value = fr*v[1]; o.detune.value = v[2]; vg.gain.value = v[3]; o.connect(vg); vg.connect(f); o.start(t); o.stop(t+len+.12); });
+  f.connect(g); g.connect(A.out);
+}
 function playPhrase(){
   if(!Q || Q.mode !== "quiz") return; const p = Q.prompts[Q.i]; if(!p.ear || Q.pending || !ensureAudio()) return;
   let t = A.ctx.currentTime + .3;
@@ -1880,7 +1887,7 @@ function posPrompts(pos, key){
   const mk = (n, grp, up, guided) => ({steps:[n], guided:guided, exact:true, pattern:guided ? pat : shown, group:grp, lo:lo, hi:hi, label:{sub:(up ? "aufwärts" : "abwärts") + " auf der " + STR[n[0]]}});
   if(first) pat.forEach(n => out.push(mk(n, "g", true, true)));
   pat.forEach(n => out.push(mk(n, "a", true, false)));
-  pat.slice(0, 11).reverse().forEach(n => out.push(mk(n, "d", false, false)));
+  pat.slice().reverse().forEach(n => out.push(mk(n, "d", false, false)));
   const roots = pat.filter(n => midiOf(n[0], n[1])%12 === KEYS[key].root), rest = shuffled(pat.filter(n => midiOf(n[0], n[1])%12 !== KEYS[key].root)).slice(0, 5);
   shuffled(roots.concat(rest)).forEach(n => out.push({steps:[n], guided:false, exact:true, lo:lo, hi:hi}));
   return out;
@@ -1897,7 +1904,7 @@ function arpPrompts(pos, key){
   const mk = (n, grp, chord, set, rootPc, up, guided) => ({steps:[n], guided:guided, exact:true, pattern:guided || shown ? set : [], group:grp, rootPc:rootPc, lo:lo, hi:hi, label:{sub:chord+"-Arpeggio "+(up ? "aufwärts" : "abwärts")+" auf der "+STR[n[0]]}});
   if(first) t1.forEach(n => out.push(mk(n, "g", tonic, t1, K.root, true, true)));
   t1.forEach(n => out.push(mk(n, "a", tonic, t1, K.root, true, false)));
-  t1.slice(0, -1).reverse().forEach(n => out.push(mk(n, "d", tonic, t1, K.root, false, false)));
+  t1.slice().reverse().forEach(n => out.push(mk(n, "d", tonic, t1, K.root, false, false)));
   t3.forEach(n => out.push(mk(n, "m", third, t3, r3, true, false)));
   const fn = n => ({0:"Grundton", 3:"Terz", 7:"Quinte"})[(pc(n) - K.root + 12) % 12];
   shuffled(t1).slice(0, 6).forEach(n => out.push({steps:[n], guided:false, exact:true, rootPc:K.root, lo:lo, hi:hi, label:{note:fn(n), word:true, sub:"von "+tonic+" auf der "+STR[n[0]]}}));
