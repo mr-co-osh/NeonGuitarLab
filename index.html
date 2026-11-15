@@ -553,6 +553,15 @@ const LICKS = [
   {id:"l13", pos:5, name:"Tiefe Lage", chord:"Am", goal:"endet auf dem Grundton", notes:[[6,5],[5,3],[5,5],[4,2],[4,5],[3,2],[3,5],[3,2]]},
   {id:"l14", pos:5, name:"Offene Tür", chord:"Em", goal:"endet auf der Terz", notes:[[1,3],[2,5],[2,3],[3,5],[3,2],[4,5],[4,2],[4,5]]}
 ];
+/* Licks that walk from one position into the next with a slide. They open once both positions are learned. */
+const E8 = (s, f, tech) => tech ? {s:s, f:f, t:6, tech:tech} : {s:s, f:f, t:6};
+LICKS.push(
+  {id:"c1", needs:[1,2], name:"Brücke 1 nach 2", chord:"Am", goal:"wechselt mit einem Slide die Lage, endet auf dem Grundton", ev:[E8(4,5),E8(4,7),E8(3,5),E8(3,7),E8(3,9,"s"),E8(2,8),E8(1,8),E8(2,10)]},
+  {id:"c2", needs:[5,1], name:"Brücke 5 nach 1", chord:"Am", goal:"wechselt mit einem Slide die Lage, endet auf dem Grundton", ev:[E8(5,3),E8(5,5),E8(4,2),E8(4,5),E8(4,7,"s"),E8(3,5),E8(3,7),E8(4,7)]},
+  {id:"c3", needs:[2,3], name:"Brücke 2 nach 3", chord:"C", goal:"wechselt mit einem Slide die Lage, endet auf der Terz", ev:[E8(4,7),E8(4,10),E8(3,7),E8(3,9),E8(2,8),E8(2,10),E8(2,13,"s"),E8(1,12)]},
+  {id:"c4", needs:[3,4], name:"Brücke 3 nach 4", chord:"Am", goal:"wechselt mit einem Slide die Lage, endet auf dem Grundton", ev:[E8(4,10),E8(4,12),E8(3,9),E8(3,12),E8(3,14,"s"),E8(2,13),E8(2,15),E8(3,14)]}
+);
+LICKS.forEach(l => { if(l.ev) l.notes = l.ev.filter(e => !e.r).map(e => [e.s, e.f]); });
 /* The five positions of the minor pentatonic in A, low string to high. Learned in this order: 1, 2 above it, 5 below it, then 3 and 4. */
 const POS = {
   1:[[6,5],[6,8],[5,5],[5,7],[4,5],[4,7],[3,5],[3,7],[2,5],[2,8],[1,5],[1,8]],
@@ -613,9 +622,12 @@ const KCACHE = {};
 function keyed(l, key){
   key = key || curKey(); if(key === "Am") return l;
   const ck = key+(state.settings.emOpen !== false ? "o:" : "h:")+l.id; if(KCACHE[ck]) return KCACHE[ck];
-  const sh = keyShift(key, l.pos || 1), tr = n => [n[0], n[1]+sh].concat(n.length > 2 ? [n[2]] : []);
+  /* a lick across two positions moves as one piece: an octave lower whenever that still fits on the neck */
+  const lo = l.needs ? Math.min.apply(null, l.notes.map(n => n[1])) : 0, off = KEYS[key].off;
+  const sh = l.needs ? (lo + off - 12 >= 0 ? off - 12 : off) : keyShift(key, l.pos || 1), tr = n => [n[0], n[1]+sh].concat(n.length > 2 ? [n[2]] : []);
   const o = Object.assign({}, l, {chord:KEYS[key].tr[l.chord] || l.chord});
   if(l.notes) o.notes = l.notes.map(tr);
+  if(l.ev) o.ev = l.ev.map(e => e.r ? e : Object.assign({}, e, {f:e.f+sh}));
   if(l.parts) o.parts = l.parts.map(pt => Object.assign({}, pt, {chord:KEYS[key].tr[pt.chord] || pt.chord, notes:pt.notes.map(tr)}));
   return KCACHE[ck] = o;
 }
@@ -683,7 +695,9 @@ function streak(){
   return n;
 }
 /* Every lick that is unlocked: position 1 from the start, the others once their position is learned, plus own licks. */
-function unlocked(){ return LICKS.filter(l => l.pos === 1 || posDone(l.pos)).map(l => keyed(l)).concat(ownLicks()); }
+const lickFree = l => l.needs ? l.needs.every(posDone) : l.pos === 1 || posDone(l.pos);
+const posTxt = l => l.needs ? "Position " + l.needs[0] + " nach " + l.needs[1] : "Position " + l.pos;
+function unlocked(){ return LICKS.filter(lickFree).map(l => keyed(l)).concat(ownLicks()); }
 const MAX_WORK = 4;
 /* At most four licks are in work at a time, so each one comes round often enough. A started lick keeps its place;
    free places go to own licks first, then to the built-in ones in order. A solid lick moves to the repertoire. */
@@ -837,7 +851,7 @@ function lickBlock(lick, title, sec, full){
   if(full && !p.hist.length) bars.push.apply(bars, mkBars(src(lick), "S", {chord:lick.chord, hint:"Langsam kennenlernen"}));
   while(bars.length < n-2){
     const t = pat[i++ % pat.length];
-    if(t === "R" && !lick.own){ const r = RHY[Math.floor(rk++/2) % Math.max(1, nr)]; bars.push.apply(bars, rhyBars(lick, r)); }
+    if(t === "R" && !lick.own && !lick.ev){ const r = RHY[Math.floor(rk++/2) % Math.max(1, nr)]; bars.push.apply(bars, rhyBars(lick, r)); }
     else bars.push.apply(bars, mkBars(src(lick), t === "R" ? "N" : t, {chord:lick.chord, hint:t==="S" ? HINTS[h++ % HINTS.length] : ""}));
   }
   bars.push.apply(bars, mkBars(src(lick), "S", {chord:lick.chord, hint:"Zielton aushalten"}));
@@ -1787,7 +1801,7 @@ function runPos(pos, key){
     if(clean){
       more = "Nach drei sauberen Tagen gilt die Position als gefestigt.";
       if(firstClean && key === "Am"){
-        const nl = LICKS.filter(l => l.pos === pos && pos > 1).length, nx = POS_ORDER[POS_ORDER.indexOf(pos)+1];
+        const nl = LICKS.filter(l => (l.pos === pos && pos > 1) || (l.needs && l.needs.includes(pos) && l.needs.every(posDone))).length, nx = POS_ORDER[POS_ORDER.indexOf(pos)+1];
         more = "Neu offen: dieselbe Position in E-Moll und B-Moll" + (nl ? ", " + nl + " Licks in dieser Lage" : "") + (nx ? " und Position " + nx + "." : ".");
       }else if(firstClean && pos === 1) more = K.name + " gehört jetzt zu den Tonarten, zwischen denen die App wöchentlich wechselt.";
     }
@@ -1803,7 +1817,7 @@ function lickRow(l, tag){
     '<span class="rside"><span class="rtempo">'+p.bpm+' BPM</span><span class="pill '+(lv ? "lvp" : "active")+'">'+(tag || LEVELS[lv])+'</span></span></button>';
   if(open){
     const chords = isV ? vocabK().parts.map(x => x.chord).join(" · ") : l.chord, dg = isV || l.own ? "" : degName(l.chord), st = isV ? 1 : stage(l.id);
-    h += '<div class="rdetail"><div class="line"><span class="chip">'+chords+(dg ? ' · Stufe '+dg : '')+'</span>'+(l.own || isV ? '' : '<span class="chip">Position '+l.pos+'</span>')+(l.own ? '<span class="chip">eigenes Lick</span>' : '')+'</div>'+
+    h += '<div class="rdetail"><div class="line"><span class="chip">'+chords+(dg ? ' · Stufe '+dg : '')+'</span>'+(l.own || isV ? '' : '<span class="chip">'+posTxt(l)+'</span>')+(l.own ? '<span class="chip">eigenes Lick</span>' : '')+'</div>'+
       '<p>'+(isV ? "Drei Teile, erst einzeln, dann verbunden. Steht am Ende jeder Einheit." : esc(l.goal)+(STAGE_TXT[st] || ""))+(st >= 3 ? " · Dauertempo "+durRec(l.id).bpm+" BPM" : "")+'</p>'+
       '<div class="line">'+dotsHtml(p.days.length)+'<span style="color:var(--muted);font-size:14px">'+Math.min(5, p.days.length)+' von 5 sauberen Tagen</span>'+spark(p.hist)+'</div>'+
       '<div class="line"><button class="ghost" type="button" data-lick="'+l.id+'">Frei üben</button>'+(l.own ? '<button class="ghost" type="button" data-edit="'+l.id+'">Ändern</button>' : '')+'</div></div>';
@@ -1814,7 +1828,7 @@ function renderLicks(){
   const box = $("lickBox"); box.textContent = "";
   const group = (title, list, tag) => { if(!list.length) return; const hd = document.createElement("p"); hd.className = "grp"; hd.textContent = title; const ul = document.createElement("ul"); ul.className = "rows"; list.forEach(l => ul.append(lickRow(l, tag))); box.append(hd, ul); };
   group("In Arbeit", working()); group("Zum Abschluss jeder Einheit", [vocabK()]); group("Repertoire", repertoire());
-  const w = waiting().length, locked = LICKS.filter(l => l.pos > 1 && !posDone(l.pos)).length, parts = [];
+  const w = waiting().length, locked = LICKS.filter(l => !lickFree(l)).length, parts = [];
   if(w) parts.push(w + (w === 1 ? " Lick wartet" : " Licks warten") + " auf einen freien Platz.");
   if(locked) parts.push(locked + " weitere kommen mit den Positionen im Vokabular.");
   if(parts.length){ const q = document.createElement("p"); q.className = "quiet"; q.textContent = parts.join(" "); box.append(q); }
@@ -1947,7 +1961,7 @@ function renderHome(){
   const main = lickOrder()[0], st = state.settings;
   $("todayTitle").textContent = main.name;
   const mdeg = main.own ? "" : degName(main.chord);
-  $("todaySub").textContent = peek(main.id).bpm+" BPM · "+main.goal+(main.own ? "" : " · Position "+main.pos);
+  $("todaySub").textContent = peek(main.id).bpm+" BPM · "+main.goal+(main.own ? "" : " · "+posTxt(main));
   $("chName").textContent = "Akkord "+main.chord+(mdeg ? " · Stufe "+mdeg : "");
   $("chInfo").textContent = main.own ? "Eigenes Lick, unabhängig von der Tonart" : "Tonart "+KEYS[curKey()].name+(KEYS[state.settings.key] ? "" : openKeys().length > 1 ? ", wechselt wöchentlich" : "")+". Der Grundton ist rot.";
   document.querySelectorAll("#emSeg button").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.em === "open") === (st.emOpen !== false))));
