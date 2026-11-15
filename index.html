@@ -4,9 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NeonGuitarLab</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@500;600&family=Tilt+Neon&display=swap" rel="stylesheet">
+<style>
+/* fonts are served from this site itself, nothing is loaded from other servers */
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:400 800;font-display:swap;src:url(fonts/bricolage-grotesque-latin-opsz-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-mono-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-mono-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Tilt Neon";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/tilt-neon-latin-400-normal.woff2) format("woff2")}
+</style>
 <style>
 /* Layout idea: a night wall with two neon signs. Everything is quiet and dark except the
    words that tell you what to do now: warm tube for Burst, cool tube for Slow down.
@@ -243,6 +247,9 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .rows .row.slim.sub{padding-left:34px}
 .rows .row.slim .rcount{font-family:var(--font-num);font-size:13px;color:var(--muted)}
 .subfoot{padding:10px 2px 14px 34px}
+.legal{padding-top:12px;max-width:62ch}
+.legal p{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.5}
+.legal b{color:var(--text)}
 /* ---------- statistics ---------- */
 #statBox{display:flex;flex-direction:column;gap:26px;padding-top:16px}
 .stat h3{margin:0 0 4px;font-size:15px;font-weight:700}
@@ -460,6 +467,18 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
       </div>
       <div><div class="lbl">Fortschritt löschen<small>Setzt alle Licks auf den Anfang zurück.</small></div><button class="ghost" id="resetBtn" type="button">Löschen</button></div>
     </div>
+    <details class="fold" id="privacy" style="margin-top:22px">
+      <summary>Datenschutz</summary>
+      <div class="legal">
+        <p><b>Kurz gesagt:</b> NeonGuitarLab sammelt keine Daten über dich. Es gibt keine Anmeldung, keine Cookies, keine Werbung und keine Auswertung deines Verhaltens.</p>
+        <p><b>Mikrofon.</b> Für Tonerkennung und Stimmgerät fragt die App nach dem Mikrofon. Der Klang wird ausschließlich in deinem Gerät ausgewertet. Er wird weder aufgezeichnet noch gespeichert noch übertragen. Du kannst die Freigabe jederzeit in deinem Browser zurücknehmen; die App lässt sich dann mit dem Knopf „Gespielt“ weiter nutzen.</p>
+        <p><b>Fortschritt.</b> Dein Übestand, deine Einstellungen und deine eigenen Licks liegen im Speicher deines Browsers auf diesem Gerät (Local Storage). Das ist für die Funktion der App nötig. Niemand außer dir hat darauf Zugriff. Mit „Fortschritt löschen“ oder dem Löschen der Website-Daten im Browser entfernst du alles.</p>
+        <p><b>Hosting.</b> Die Seite wird über GitHub Pages ausgeliefert, einen Dienst der GitHub, Inc. (USA). Beim Aufruf verarbeitet GitHub technisch notwendige Verbindungsdaten wie deine IP-Adresse, um die Seite auszuliefern und den Dienst abzusichern. Grundlage ist das berechtigte Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Näheres steht in der Datenschutzerklärung von GitHub.</p>
+        <p><b>Schriften und andere Dateien.</b> Alle Schriften, Klänge und Bilder kommen von dieser Seite selbst. Es werden keine Inhalte von anderen Servern nachgeladen.</p>
+        <p><b>Deine Rechte.</b> Soweit Daten über dich verarbeitet werden, hast du nach der DSGVO das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung und Widerspruch sowie das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.</p>
+        <p><b>Verantwortlich.</b> Der Betreiber dieser Seite, erreichbar über das GitHub-Konto mr-co-osh.</p>
+      </div>
+    </details>
   </section>
 </div>
 
