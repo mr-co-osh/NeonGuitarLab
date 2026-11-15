@@ -277,6 +277,8 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .qprompt{display:flex;flex-direction:column;gap:6px;min-width:0}
 #qNote{font-family:var(--font-neon);font-size:clamp(60px,30vh,150px);line-height:1;color:var(--tube-warm);text-shadow:var(--glow-warm);white-space:nowrap}
 #qNote.ok{color:var(--tube-cool);text-shadow:var(--glow-cool)}
+#qNote.word{font-size:clamp(38px,15vh,68px)}
+#qNote.word.listen{color:var(--tube-cool);text-shadow:var(--glow-cool)}
 #qSub{font-size:clamp(18px,6.2vh,30px);font-weight:650;line-height:1.15;text-wrap:balance}
 #qMsg{min-height:1.5em;color:var(--muted);font-size:clamp(14px,4.4vh,19px)}
 .qtime{height:4px;border-radius:2px;background:var(--line);max-width:280px}
@@ -506,7 +508,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
   </div>
   <div class="qfoot">
     <span id="qHeard"></span>
-    <span style="display:flex;gap:8px"><button class="ghost" id="qManual" type="button" hidden>Gespielt</button><button class="ghost" id="qShow" type="button">Zeigen</button></span>
+    <span style="display:flex;gap:8px"><button class="ghost" id="qAgain" type="button" hidden>Nochmal hören</button><button class="ghost" id="qManual" type="button" hidden>Gespielt</button><button class="ghost" id="qShow" type="button">Zeigen</button></span>
   </div>
   <div class="panel" id="qCard" hidden>
     <h2 id="qCardTitle"></h2>
@@ -1349,7 +1351,7 @@ function reviewPrompts(n){ const all = []; fbLearned().forEach(l => itemsOf(l).f
 
 /* ================= quiz ================= */
 let Q = null, qraf = 0;
-function openQuiz(){ $("quiz").hidden = false; $("qCard").hidden = true; $("qEnd").hidden = true; $("qManual").hidden = true; $("qShow").hidden = false; $("qHeard").textContent = ""; $("qMsg").textContent = ""; $("qNote").className = ""; }
+function openQuiz(){ $("quiz").hidden = false; $("qCard").hidden = true; $("qEnd").hidden = true; $("qManual").hidden = true; $("qShow").hidden = false; $("qAgain").hidden = true; $("qHeard").textContent = ""; $("qMsg").textContent = ""; $("qNote").className = ""; }
 function closeQuiz(){ cancelAnimationFrame(qraf); Q = null; micStop(); $("quiz").hidden = true; }
 function quizCard(title, text, go){ openQuiz(); $("qTitle").textContent = title; $("qCount").textContent = ""; $("qNote").textContent = ""; $("qSub").textContent = ""; $("qCardTitle").textContent = title; $("qCardText").textContent = text; $("qCard").hidden = false; quizCard.go = go; drawBoard({dots:[]}); }
 async function startQuiz(cfg){
@@ -1365,10 +1367,25 @@ function setMic(ok){
 const fretTxt = f => f === 0 ? "leere Saite" : f + ". Bund";
 function showPrompt(){
   const p = Q.prompts[Q.i]; Q.step = 0; Q.wrongThis = 0; Q.revealed = p.guided; Q.helped = false; Q.t0 = performance.now(); Q.pending = false; Q.timedOut = false;
-  $("qNote").className = ""; $("qMsg").textContent = p.guided ? "Kennenlernen: Die App zeigt dir den Ton." : ""; promptText();
-  $("qTimeBox").style.visibility = p.guided ? "hidden" : "visible"; $("qTime").style.width = "100%"; $("qTime").className = "";
+  $("qNote").className = ""; $("qMsg").textContent = p.guided ? "Kennenlernen: Die App zeigt dir den Ton." : ""; $("qAgain").hidden = !p.ear;
+  if(p.ear){ Q.revealAll = false; Q.revealed = !!p.rootFirst; }
+  promptText();
+  $("qTimeBox").style.visibility = p.guided || p.ear ? "hidden" : "visible"; $("qTime").style.width = "100%"; $("qTime").className = "";
   qCount(); $("qfill").style.width = (Q.i/Q.prompts.length*100)+"%";
+  if(p.ear) playPhrase();
 }
+/* ---- listening: the app plays a short phrase, you play it back. No time limit; trying around is fine, only help counts. ---- */
+const IVL = {0:"Grundton", 3:"kleine Terz", 5:"Quarte", 7:"Quinte", 10:"kleine Septime"};
+const earTone = (t, m, len) => tone(t, "triangle", hz(m), 0, .42, len, .005);
+function playPhrase(){
+  if(!Q || Q.mode !== "quiz") return; const p = Q.prompts[Q.i]; if(!p.ear || Q.pending || !ensureAudio()) return;
+  let t = A.ctx.currentTime + .3;
+  if(!p.rootFirst){ earTone(t, p.rootMidi, 1); t += 1.25; }
+  p.steps.forEach(n => { earTone(t, midiOf(n[0], n[1]), .6); t += .62; });
+  Q.listenAt = performance.now() + (t - A.ctx.currentTime)*1000 + 150; Q.earYou = false; Q.cand = null; Q.armed = false; Q.silT = 0;
+  $("qNote").textContent = "Hör zu"; $("qNote").className = "word listen";
+}
+function earHelp(){ if(!Q.helped){ Q.helped = true; Q.helps++; } }
 function qCount(){ $("qCount").textContent = (Q.i+1)+" / "+Q.prompts.length + (Q.errors ? " · " + Q.errors + " Fehler" : ""); }
 /* a wrong note, an expired time limit and "Zeigen" each count as one error; guided notes never count */
 function qError(){
@@ -1377,6 +1394,12 @@ function qError(){
 }
 function promptText(){
   const p = Q.prompts[Q.i], st = p.steps[Math.min(Q.step, p.steps.length-1)], lab = p.label || {};
+  if(p.ear){
+    const n = p.steps.length, done = Q.step >= n;
+    let t = done ? "" : "Ton " + (Q.step+1) + " von " + n;
+    if(!done && Q.revealed) t += ": " + nameOf(midiOf(st[0], st[1])) + " auf der " + STR[st[0]] + ", " + fretTxt(st[1]);
+    $("qSub").textContent = t; return;
+  }
   $("qNote").textContent = lab.note || nameOf(midiOf(p.steps[0][0], p.steps[0][1]));
   let sub = lab.sub || (p.steps.length > 1 && Q.step > 0 ? "jetzt die Oktave auf der " : "auf der ") + STR[st[0]];
   if(Q.revealed) sub += ", " + fretTxt(st[1]);
@@ -1384,17 +1407,31 @@ function promptText(){
 }
 function qHit(){
   const p = Q.prompts[Q.i]; Q.step++; Q.armed = false;
+  if(p.ear){
+    if(Q.step < p.steps.length){ Q.revealed = !!Q.revealAll; $("qMsg").textContent = "Richtig."; promptText(); return; }
+    const kr = Q.cfg.rootPc; promptText();
+    $("qNote").textContent = "Richtig"; $("qNote").className = "word ok";
+    $("qMsg").textContent = p.steps.map(n => IVL[(midiOf(n[0], n[1]) - kr + 120) % 12] || nameOf(midiOf(n[0], n[1]))).join(", ") + ".";
+    Q.pending = true; Q.lock = performance.now() + 1700; return;
+  }
   if(Q.step < p.steps.length){ Q.wrongThis = 0; Q.t0 = performance.now(); Q.timedOut = false; if(!p.guided) Q.revealed = false; $("qMsg").textContent = "Richtig."; promptText(); return; }
   if(p.group) (Q.grp[p.group] = Q.grp[p.group] || []).push(p.steps[0]); else if(p.guided) p.steps.forEach(s => Q.found.push(s));
   $("qNote").className = "ok"; $("qMsg").textContent = "Richtig."; Q.pending = true; Q.lock = performance.now() + 650;
 }
 function qMiss(m, target){
+  if(Q.prompts[Q.i].ear){
+    Q.armed = false; Q.wrongThis++; $("qMsg").textContent = m > target ? "Zu hoch." : "Zu tief.";
+    if(Q.wrongThis >= 4){ Q.revealAll = true; Q.revealed = true; earHelp(); promptText(); }
+    else if(Q.wrongThis >= 2 && !Q.revealed){ Q.revealed = true; earHelp(); promptText(); }
+    return;
+  }
   Q.armed = false; Q.wrongThis++; qError();
   $("qMsg").textContent = (m % 12 === target % 12) ? "Richtiger Ton, aber eine andere Oktave." : "Das war ein " + nm2(m, Q.prompts[Q.i].flat) + ".";
   if(Q.wrongThis >= 2 && !Q.revealed){ Q.revealed = true; promptText(); }
 }
 function qReveal(){
   if(!Q || Q.mode !== "quiz" || Q.revealed || Q.pending) return;
+  if(Q.prompts[Q.i].ear){ Q.revealed = true; earHelp(); promptText(); return; }
   Q.revealed = true; qError(); promptText();
 }
 function qNext(){
@@ -1423,6 +1460,12 @@ function qTick(ts){
 function quizStep(det, cand, stable, ts){
   if(M.an) $("qHeard").textContent = cand !== null && stable > 60 ? "Du spielst: " + nm2(cand, Q.prompts[Q.i].flat) : "";
   if(Q.pending){ if(ts >= Q.lock) qNext(); return; }
+  const pe = Q.prompts[Q.i];
+  if(pe.ear){
+    /* the microphone is ignored while the app itself is playing */
+    if(performance.now() < Q.listenAt){ Q.cand = null; Q.candT = ts; Q.armed = false; Q.silT = 0; return; }
+    if(!Q.earYou){ Q.earYou = true; Q.armed = true; $("qNote").textContent = "Jetzt du"; $("qNote").className = "word"; }
+  }
   if(cand === null){ if(!Q.silT) Q.silT = ts; if(ts - Q.silT > 90) Q.armed = true; } else Q.silT = 0;
   if(det){ if(det.rms > .02 && det.rms > Q.rmsPrev*1.8) Q.armed = true; Q.rmsPrev = Q.rmsPrev*.8 + det.rms*.2; }
   if(cand !== null && cand !== Q.lastReg && stable > 60) Q.armed = true;
@@ -1433,7 +1476,7 @@ function quizStep(det, cand, stable, ts){
     if(cand === target || cand === twin){ Q.lastReg = cand; qHit(); }
     else if(stable >= 190){ Q.lastReg = cand; qMiss(cand, target); }
   }
-  if(!p.guided){
+  if(!p.guided && !p.ear){
     const lim = (state.settings.fbLimit || 5)*1000, left = Math.max(0, Math.min(1, 1 - (ts - Q.t0)/lim));
     $("qTime").style.width = (left*100).toFixed(1)+"%"; $("qTime").className = left < .25 ? "low" : "";
     if(!left && !Q.timedOut){ Q.timedOut = true; qError(); Q.revealed = true; promptText(); $("qMsg").textContent = "Zeit abgelaufen. So liegt der Ton."; }
@@ -1446,7 +1489,7 @@ function boardNow(){
   for(let k=0;k<Math.min(Q.step, p.steps.length);k++) dots.push(mk(p.steps[k], "found"));
   const st = p.steps[Q.step];
   if(st && Q.revealed) dots.push(mk(st, "target"));
-  drawBoard({dots:dots, hl:st ? st[0] : null, lo:p.lo, hi:p.hi, flat:p.flat});
+  drawBoard({dots:dots, hl:st && (!p.ear || Q.revealed) ? st[0] : null, lo:p.lo, hi:p.hi, flat:p.flat, noLab:!!p.ear});
 }
 /* the whole neck to the 12th fret by default; lessons on one position zoom into a few frets */
 function drawBoard(o){
@@ -1472,7 +1515,7 @@ function drawBoard(o){
   const r = Math.max(8, Math.min(20, gap*.46, fw*.42));
   g.textBaseline = "middle"; g.font = "600 "+Math.round(r*1.05)+"px "+FONT_N;
   (o.dots||[]).forEach(d => {
-    const x = fx(d.f), yy = sy(d.s), lab = nm2(midiOf(d.s, d.f), o.flat);
+    const x = fx(d.f), yy = sy(d.s), lab = o.noLab && d.kind === "dim" ? "" : nm2(midiOf(d.s, d.f), o.flat);
     g.beginPath(); g.arc(x, yy, r, 0, 6.2832);
     const c = d.root ? C.root : C.ok;
     if(d.kind === "found"){ g.fillStyle = c; g.fill(); g.fillStyle = C.bg; }
@@ -1789,6 +1832,40 @@ function posPrompts(pos, key){
   shuffled(roots.concat(rest)).forEach(n => out.push({steps:[n], guided:false, exact:true, lo:lo, hi:hi}));
   return out;
 }
+/* Listening levels per position. Each level is played first with the shape on screen, then without it. */
+const HEAR = ["", "Zwei Töne", "Drei Töne in Schritten", "Drei Töne mit Sprüngen", "Vier Töne, freier Start"];
+function hearRec(pos, create){ const k = "h"+pos; if(!state.vp) state.vp = {}; const d = {lvl:1, pic:true, days:[], runs:0}; if(create) return state.vp[k] || (state.vp[k] = d); return state.vp[k] || d; }
+function hearPhrases(pos, key, lvl, pic){
+  const pat = posPattern(pos, key), r = posRange(pos, key), lo = Math.max(0, r[0]-1), hi = r[1]+1, kr = KEYS[key].root;
+  const roots = []; pat.forEach((n,i) => { if(midiOf(n[0], n[1])%12 === kr) roots.push(i); });
+  const rnd = a => a[Math.floor(Math.random()*a.length)], inR = i => i >= 0 && i < pat.length, out = [];
+  let guard = 0, lastKey = "";
+  while(out.length < 8 && guard++ < 400){
+    let idx = [rnd(roots)];
+    if(lvl === 1){ const j = idx[0] + rnd([-4,-3,-2,-1,1,2,3,4]); if(!inR(j)) continue; idx.push(j); }
+    else if(lvl === 2){ const d = rnd([1,-1]), a = idx[0]+d, b = a + rnd([d, -d]); if(!inR(a) || !inR(b)) continue; idx.push(a, b); }
+    else if(lvl === 3){ const a = idx[0] + rnd([-3,-2,-1,1,2,3]), b = a + rnd([-3,-2,-1,1,2,3]); if(!inR(a) || !inR(b) || a === b || (Math.abs(a-idx[0]) < 2 && Math.abs(b-a) < 2)) continue; idx.push(a, b); }
+    else{ idx = [Math.floor(Math.random()*pat.length)]; let ok = true; for(let k=0;k<3;k++){ const j = idx[idx.length-1] + rnd([-3,-2,-1,1,2,3]); if(!inR(j)){ ok = false; break; } idx.push(j); } if(!ok) continue; }
+    const kk = idx.join(","); if(kk === lastKey) continue; lastKey = kk;
+    out.push({steps:idx.map(i => pat[i]), ear:true, exact:true, guided:false, rootFirst:lvl < 4, rootMidi:midiOf(pat[roots[0]][0], pat[roots[0]][1]), pattern:pic ? pat : null, lo:lo, hi:hi});
+  }
+  return out;
+}
+function runHear(pos){
+  const key = curKey(), rec = hearRec(pos), title = "Hören · Position "+pos+" · "+KEYS[key].name;
+  const intro = (rec.lvl < 4 ? "Die App spielt eine kurze Phrase, die auf dem Grundton beginnt. Der Grundton wird dir gezeigt, den Rest hörst du." : "Die App spielt erst den Grundton zur Orientierung, dann vier Töne mit freiem Start.") + " Spiel die Phrase nach. Es gibt kein Zeitlimit, und Herantasten ist erlaubt. " + (rec.pic ? "Die Punkte zeigen dir, wo die Töne der Position liegen." : "Diesmal ohne Bild.");
+  quizCard(title + " · " + HEAR[rec.lvl], intro, () => startQuiz({title:title, rootPc:KEYS[key].root, prompts:hearPhrases(pos, key, rec.lvl, rec.pic), onDone:res => {
+    const rc = hearRec(pos, true), clean = res.helps <= 1; rc.runs++; let more = "Wiederhole die Runde, bis höchstens eine Phrase Hilfe braucht.";
+    if(clean){
+      if(!rc.days.includes(dstr())) rc.days.push(dstr());
+      if(rc.pic){ rc.pic = false; more = "Als Nächstes dieselbe Stufe ohne Bild."; }
+      else if(rc.lvl < 4){ rc.lvl++; rc.pic = true; more = "Neue Stufe: " + HEAR[rc.lvl] + "."; }
+      else more = "Das ist die höchste Stufe. Jede Runde bringt neue Phrasen.";
+    }
+    save();
+    $("qEndTitle").textContent = clean ? "Sauber" : "Noch einmal"; $("qEndText").textContent = res.clean + " von " + res.total + " Phrasen ohne Hilfe. " + more; $("qEnd").hidden = false;
+  }}));
+}
 function runPos(pos, key){
   const K = KEYS[key], r = posRange(pos, key), rec = vpPeek(pos, key), title = "Position "+pos+" · "+K.name;
   const intro = key !== "Am" ? "Dieselbe Form an einem neuen Ort: Bund "+r[0]+" bis "+r[1]+". Der Grundton ist jetzt "+NOTE[K.root]+"."
@@ -1854,7 +1931,9 @@ function renderVocab(){
     if(open){
       const btn = k => { const dk = vpPeek(pos, k).days.length, ok = k === "Am" || posDone(pos), l2 = dk >= 3 ? 2 : dk ? 1 : 0;
         return '<button type="button" class="keyb'+(l2 ? " lvp" : "")+'" style="--lv:var(--lv'+Math.max(1, l2)+')" data-pos="'+pos+'" data-key="'+k+'"'+(ok ? "" : " disabled")+'>'+KEYS[k].name+'</button>'; };
-      h += '<div class="rdetail"><p>'+nl+' Licks in dieser Lage'+(posDone(pos) ? "" : ". E-Moll und B-Moll öffnen sich, sobald A-Moll sitzt")+'.</p><div class="line">'+["Am","Em","Bm"].map(btn).join("")+'</div></div>';
+      const hr = hearRec(pos);
+      h += '<div class="rdetail"><p>'+nl+' Licks in dieser Lage'+(posDone(pos) ? "" : ". E-Moll und B-Moll öffnen sich, sobald A-Moll sitzt")+'.</p><div class="line">'+["Am","Em","Bm"].map(btn).join("")+'</div>'+
+        '<div class="line"><button type="button" class="keyb'+(hr.days.length ? " lvp" : "")+'" style="--lv:var(--lv'+(hr.lvl >= 4 && !hr.pic ? 2 : 1)+')" data-hear="'+pos+'"'+(posDone(pos) ? "" : " disabled")+'>Hören und nachspielen</button><span style="color:var(--muted);font-size:14px">'+(posDone(pos) ? "Stufe "+hr.lvl+" von 4: "+HEAR[hr.lvl]+(hr.pic ? "" : ", ohne Bild") : "öffnet sich mit der Position")+'</span></div></div>';
     }
     li.innerHTML = h; ul.append(li);
   });
@@ -2001,6 +2080,7 @@ $("qGo").addEventListener("click", () => { $("qCard").hidden = true; ensureAudio
 $("qDone").addEventListener("click", () => { closeQuiz(); renderHome(); });
 $("qQuit").addEventListener("click", () => { if(sess) leave(); else { closeQuiz(); renderHome(); } });
 $("qShow").addEventListener("click", qReveal);
+$("qAgain").addEventListener("click", playPhrase);
 $("qManual").addEventListener("click", () => { if(Q && Q.mode === "quiz" && !Q.pending) qHit(); });
 $("startBtn").addEventListener("click", () => startSession(buildSession(state.settings.minutes)));
 $("testBtn").addEventListener("click", () => startSession(buildTest()));
@@ -2009,6 +2089,7 @@ $("harmSeg").addEventListener("click", e => { const b = e.target.closest("button
 $("emSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.emOpen = b.dataset.em === "open"; save(); renderHome(); });
 $("keySeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.key = b.dataset.key; save(); renderHome(); });
 $("posList").addEventListener("click", e => {
+  const hb = e.target.closest("button[data-hear]"); if(hb){ if(!hb.disabled) runHear(+hb.dataset.hear); return; }
   const b = e.target.closest("button[data-pos]"); if(b){ if(!b.disabled) runPos(+b.dataset.pos, b.dataset.key); return; }
   const v = e.target.closest("button[data-vopen]"); if(v){ VOPEN = VOPEN === +v.dataset.vopen ? null : +v.dataset.vopen; renderVocab(); }
 });
