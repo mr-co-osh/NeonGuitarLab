@@ -243,6 +243,25 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .rows .row.slim.sub{padding-left:34px}
 .rows .row.slim .rcount{font-family:var(--font-num);font-size:13px;color:var(--muted)}
 .subfoot{padding:10px 2px 14px 34px}
+/* ---------- statistics ---------- */
+#statBox{display:flex;flex-direction:column;gap:26px;padding-top:16px}
+.stat h3{margin:0 0 4px;font-size:15px;font-weight:700}
+.stat .cap{margin:0 0 10px;color:var(--muted);font-size:13px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;max-width:330px}
+.cal span{font-family:var(--font-num);font-size:11px;color:var(--muted);text-align:center}
+.cal i{aspect-ratio:1;border-radius:6px;border:1px solid var(--line);display:block}
+.cal i.on{background:var(--lv1);border-color:var(--lv1);box-shadow:0 0 8px color-mix(in srgb,var(--lv1) 60%,transparent)}
+.cal i.today{border-color:var(--text)}
+.cal i.off{visibility:hidden}
+:root[data-app-theme="light"] .cal i.on{box-shadow:none}
+.bars{display:block;width:100%;max-width:420px;height:150px}
+.tline{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.tline:first-of-type{border-top:1px solid var(--line)}
+.tline .spark{display:block}
+.nums{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px;max-width:420px}
+.nums div{display:flex;align-items:baseline;gap:8px}
+.nums b{font-family:var(--font-num);font-size:20px;font-weight:600}
+.nums span{color:var(--muted);font-size:13px}
 /* ---------- own licks ---------- */
 .rows li.own{display:flex;align-items:center;gap:10px}
 .rows li.own .row{flex:1 1 auto;min-width:0}
@@ -330,6 +349,11 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
       <div><b id="fMin">0</b><span>Minuten geübt</span></div>
       <div><b id="fSolid">0</b><span>Licks im Repertoire</span></div>
     </div>
+    <p class="quiet" id="backupLine" hidden><span id="backupTxt"></span> <button class="ghost" id="backupBtn" type="button" style="margin-left:6px">Jetzt sichern</button></p>
+    <details class="fold" id="statFold" style="margin-top:6px">
+      <summary>Statistik</summary>
+      <div id="statBox"></div>
+    </details>
   </section>
 
   <section class="view" data-view="licks">
@@ -599,7 +623,7 @@ const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
   return {v:1, updatedAt:0, settings:{theme:"dark", key:"auto", emOpen:true, tuning:"std", fbLimit:5, limV:2, beat:"click", harmony:"chord", warmup:true, earEnd:true, lickSound:false, fretboard:false, minutes:10},
-          introduced:3, prog:{}, days:[], seconds:0, fb:{l:{}, skip:{}}, vp:{}, custom:[]};
+          introduced:3, prog:{}, days:[], seconds:0, log:{}, backupAt:0, fb:{l:{}, skip:{}}, vp:{}, custom:[]};
 }
 let state = fresh(), OWN = null;
 /* licks the player wrote. ev holds notes {s,f,t,tech} and rests {r,t}; t counts twelfths of a beat, so triplets stay exact. */
@@ -642,9 +666,10 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 /* older saves had a plain on/off switch for chords */
 function adopt(s){ const st = Object.assign(fresh().settings, s.settings||{}); if(st.chords === false) st.harmony = "off"; delete st.chords;
   /* the time limit used to default to 8 s with 5, 8, 12 to choose from; now 5 s with 3, 5, 8 */
-  if(!(s.settings && s.settings.limV === 2)){ st.fbLimit = st.fbLimit === 12 ? 8 : 5; st.limV = 2; } const o = Object.assign(fresh(), s, {settings:st}); o.introduced = Math.max(3, o.introduced || 0); if(!Array.isArray(o.custom)) o.custom = []; if(!o.vp) o.vp = {}; OWN = null; return o; }
+  if(!(s.settings && s.settings.limV === 2)){ st.fbLimit = st.fbLimit === 12 ? 8 : 5; st.limV = 2; } const o = Object.assign(fresh(), s, {settings:st}); o.introduced = Math.max(3, o.introduced || 0); if(!Array.isArray(o.custom)) o.custom = []; if(!o.vp) o.vp = {}; if(!o.log) o.log = {}; OWN = null; return o; }
 try{ const raw = localStorage.getItem(KEY); if(raw){ const s = JSON.parse(raw); if(s && s.v===1) state = adopt(s); } }catch(e){}
 
+function addTime(sec){ sec = Math.round(sec); if(sec <= 0) return; state.seconds += sec; if(!state.log) state.log = {}; const d = dstr(); state.log[d] = (state.log[d] || 0) + sec; }
 function P(id){ return state.prog[id] || (state.prog[id] = {bpm:60, at:[], days:[], hist:[], last:null}); }
 function peek(id){ return state.prog[id] || {bpm:60, at:[], days:[], hist:[], last:null}; }
 function dstr(d){ d = d || new Date(); const p = n => String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
@@ -742,7 +767,7 @@ async function initSync(){
     const uid = await user.id(); if(!uid) return;
     const ref = db.doc("data/users/"+uid+"/progress");
     const snap = await ref.get();
-    syncRef = ref; setSyncMsg(true);
+    syncRef = ref; setSyncMsg(true); renderBackup();
     if(snap.exists){
       const d = snap.data(); const remote = d && d.json ? JSON.parse(d.json) : null;
       if(remote && remote.v === 1 && remote.updatedAt > state.updatedAt){
@@ -912,7 +937,10 @@ function buildSession(minutes){
   if(plan.main2) blocks.push(lickBlock(third, "Zweites Lick", plan.main2, true));
   const day = Math.floor((Date.now() - new Date().getTimezoneOffset()*60000)/86400000), familiar = activeLicks().filter(l => !l.own && peek(l.id).days.length)[0];
   if(plan.rep && familiar && day % 3 === 2) blocks.push(guestBlock(familiar, ["trip","34","68"][Math.floor(day/3) % 3], 90));
-  if(plan.rep && fbLearned().length) blocks.push({kind:"fret", title:"Griffbrett", sec:100, rated:false});
+  if(plan.rep){
+    const rev = []; if(fbLearned().length) rev.push({kind:"fret", title:"Griffbrett", sec:100, rated:false}); if(POS_ORDER.some(posDone)) rev.push({kind:"pos", title:"Position", sec:90, rated:false});
+    if(rev.length) blocks.push(rev[dayNo() % rev.length]);
+  }
   blocks.push(vocabBlock(plan.vocab));
   if(state.settings.earEnd !== false && POS_ORDER.some(posDone)) blocks.push({kind:"hear", title:"Hör-Moment", sec:40, rated:false});
   return {kind:"daily", blocks:blocks};
@@ -996,11 +1024,23 @@ function startSession(s){
 }
 function startBlock(){
   const b = sess.blocks[sess.i];
+  if(b.kind === "pos"){
+    $("skipBtn").hidden = true; run = null; clearInterval(timer); cancelAnimationFrame(raf);
+    /* the position that has waited longest, in the key of the week: once up and once down */
+    const key = curKey(), lastDay = q => { const d = vpPeek(q, key).days; return d.length ? d[d.length-1] : ""; };
+    const pos = POS_ORDER.filter(posDone).sort((a,c) => lastDay(a) < lastDay(c) ? -1 : lastDay(a) > lastDay(c) ? 1 : 0)[0];
+    startQuiz({title:"Position "+pos+" · "+KEYS[key].name, rootPc:KEYS[key].root, prompts:posPrompts(pos, key).filter(x => !x.guided && x.group), onDone:r => {
+      const rc = vpRec(pos, key); if(r.helps <= 2 && !rc.days.includes(dstr())) rc.days.push(dstr());
+      sess.done += b.sec; addTime(b.sec); sess.results.push({name:"Position "+pos+" in "+KEYS[key].name, msg:resTxt(r)});
+      closeQuiz(); nextBlock();
+    }});
+    return;
+  }
   if(b.kind === "hear"){
     $("skipBtn").hidden = true; run = null; clearInterval(timer); cancelAnimationFrame(raf);
     const done = POS_ORDER.filter(posDone), pos = done[dayNo() % done.length], key = curKey(), rec = hearRec(pos);
     startQuiz({title:"Hör-Moment · Position "+pos, rootPc:KEYS[key].root, prompts:hearPhrases(pos, key, rec.lvl, rec.pic, 2), onDone:r => {
-      sess.done += b.sec; state.seconds += b.sec; sess.results.push({name:"Hör-Moment", msg:r.clean+" von "+r.total+" Phrasen direkt gehört. Serie: "+hearStreak().cur+"."});
+      sess.done += b.sec; addTime(b.sec); sess.results.push({name:"Hör-Moment", msg:r.clean+" von "+r.total+" Phrasen direkt gehört. Serie: "+hearStreak().cur+"."});
       closeQuiz(); nextBlock();
     }});
     return;
@@ -1008,7 +1048,7 @@ function startBlock(){
   if(b.kind === "fret"){
     $("skipBtn").hidden = true; run = null; clearInterval(timer); cancelAnimationFrame(raf);
     startQuiz({title:"Griffbrett · Wiederholung", prompts:reviewPrompts(8), onDone:r => {
-      sess.done += b.sec; state.seconds += b.sec; sess.results.push({name:"Griffbrett", msg:resTxt(r)});
+      sess.done += b.sec; addTime(b.sec); sess.results.push({name:"Griffbrett", msg:resTxt(r)});
       closeQuiz(); nextBlock();
     }});
     return;
@@ -1193,7 +1233,7 @@ function setFret(on){ $("fret").hidden = !on; $("fbBtn").setAttribute("aria-pres
 
 function endBlock(){
   const b = run.block; clearInterval(timer); cancelAnimationFrame(raf);
-  sess.done += blockSec(b); if(sess.kind !== "test") state.seconds += Math.round(blockSec(b));
+  sess.done += blockSec(b); if(sess.kind !== "test") addTime(blockSec(b));
   run = null;
   if(b.kind === "guest" && sess.kind === "daily") sess.results.push({name:b.title, msg:"Gespielt, ohne Bewertung."});
   if(b.rated){ $("rateSub").textContent = b.rateName + (b.kind === "test" ? "" : " bei "+b.bpm+" BPM"); $("ratePanel").hidden = false; }
@@ -1237,13 +1277,13 @@ function skipWarm(){
   if(paused) togglePause();
   const b = run.block, played = playedSec(), rest = Math.max(0, blockSec(b) - played);
   clearInterval(timer); cancelAnimationFrame(raf); run = null;
-  state.seconds += Math.round(played); sess.done += played;
+  addTime(played); sess.done += played;
   const nx = sess.blocks[sess.i+1]; if(nx && nx.remake) sess.blocks[sess.i+1] = nx.remake(rest);
   sess.total = sess.done + sess.blocks.slice(sess.i+1).reduce((a,x) => a + blockSec(x), 0);
   nextBlock();
 }
 function leave(){
-  if(run && sess && sess.kind !== "test"){ state.seconds += Math.round(playedSec()); save(); }
+  if(run && sess && sess.kind !== "test"){ addTime(playedSec()); save(); }
   closeQuiz();
   clearInterval(timer); cancelAnimationFrame(raf); run = null; sess = null; paused = false;
   if(A.ctx && A.ctx.state === "suspended") A.ctx.resume().catch(()=>{});
@@ -1411,7 +1451,7 @@ function promptText(){
     if(!done && Q.revealed) t += ": " + nameOf(midiOf(st[0], st[1])) + " auf der " + STR[st[0]] + ", " + fretTxt(st[1]);
     $("qSub").textContent = t; return;
   }
-  $("qNote").textContent = lab.note || nameOf(midiOf(p.steps[0][0], p.steps[0][1]));
+  $("qNote").textContent = lab.note || nameOf(midiOf(p.steps[0][0], p.steps[0][1])); if(lab.word && !Q.pending) $("qNote").className = "word";
   let sub = lab.sub || (p.steps.length > 1 && Q.step > 0 ? "jetzt die Oktave auf der " : "auf der ") + STR[st[0]];
   if(Q.revealed) sub += ", " + fretTxt(st[1]);
   $("qSub").textContent = sub;
@@ -1429,7 +1469,7 @@ function qHit(){
   }
   if(Q.step < p.steps.length){ Q.wrongThis = 0; Q.t0 = performance.now(); Q.timedOut = false; if(!p.guided) Q.revealed = false; $("qMsg").textContent = "Richtig."; promptText(); return; }
   if(p.group) (Q.grp[p.group] = Q.grp[p.group] || []).push(p.steps[0]); else if(p.guided) p.steps.forEach(s => Q.found.push(s));
-  $("qNote").className = "ok"; $("qMsg").textContent = "Richtig."; Q.pending = true; Q.lock = performance.now() + 650;
+  $("qNote").className = p.label && p.label.word ? "word ok" : "ok"; $("qMsg").textContent = "Richtig."; Q.pending = true; Q.lock = performance.now() + 650;
 }
 function qMiss(m, target){
   if(Q.prompts[Q.i].ear){
@@ -1496,7 +1536,7 @@ function quizStep(det, cand, stable, ts){
   }
 }
 function boardNow(){
-  const p = Q.prompts[Q.i], dots = [], rp = Q.cfg.rootPc, mk = (n, kind) => ({s:n[0], f:n[1], kind:kind, root:rp !== undefined && midiOf(n[0], n[1])%12 === rp});
+  const p = Q.prompts[Q.i], dots = [], rp = p.rootPc !== undefined ? p.rootPc : Q.cfg.rootPc, mk = (n, kind) => ({s:n[0], f:n[1], kind:kind, root:rp !== undefined && midiOf(n[0], n[1])%12 === rp});
   if(p.pattern){ p.pattern.forEach(n => dots.push(mk(n, "dim"))); (Q.grp[p.group] || []).forEach(n => dots.push(mk(n, "found"))); }
   else if(p.guided) Q.found.forEach(n => dots.push(mk(n, "dim")));
   for(let k=0;k<Math.min(Q.step, p.steps.length);k++) dots.push(mk(p.steps[k], "found"));
@@ -1845,6 +1885,34 @@ function posPrompts(pos, key){
   shuffled(roots.concat(rest)).forEach(n => out.push({steps:[n], guided:false, exact:true, lo:lo, hi:hi}));
   return out;
 }
+/* Arpeggio per position: the chord tones of the key, played one after the other inside the shape that is already known.
+   First the tonic triad up and down, then the major chord on the third degree, then single chord tones by their function. */
+function arpRec(pos, create){ const k = "a"+pos; if(!state.vp) state.vp = {}; if(create) return state.vp[k] || (state.vp[k] = {days:[], runs:0}); return state.vp[k] || {days:[], runs:0}; }
+function arpDone(pos){ return arpRec(pos).days.length > 0; }
+function arpPrompts(pos, key){
+  const K = KEYS[key], pat = posPattern(pos, key), r = posRange(pos, key), lo = Math.max(0, r[0]-1), hi = r[1]+1, rec = arpRec(pos);
+  const pc = n => midiOf(n[0], n[1])%12, tonic = K.tr.Am, third = K.tr.C, r3 = (K.root+3)%12;
+  const t1 = pat.filter(n => [K.root, r3, (K.root+7)%12].includes(pc(n))), t3 = pat.filter(n => [r3, (r3+4)%12, (r3+7)%12].includes(pc(n)));
+  const first = !rec.days.length, shown = rec.days.length < 2, out = [];
+  const mk = (n, grp, chord, set, rootPc, up, guided) => ({steps:[n], guided:guided, exact:true, pattern:guided || shown ? set : [], group:grp, rootPc:rootPc, lo:lo, hi:hi, label:{sub:chord+"-Arpeggio "+(up ? "aufwärts" : "abwärts")+" auf der "+STR[n[0]]}});
+  if(first) t1.forEach(n => out.push(mk(n, "g", tonic, t1, K.root, true, true)));
+  t1.forEach(n => out.push(mk(n, "a", tonic, t1, K.root, true, false)));
+  t1.slice(0, -1).reverse().forEach(n => out.push(mk(n, "d", tonic, t1, K.root, false, false)));
+  t3.forEach(n => out.push(mk(n, "m", third, t3, r3, true, false)));
+  const fn = n => ({0:"Grundton", 3:"Terz", 7:"Quinte"})[(pc(n) - K.root + 12) % 12];
+  shuffled(t1).slice(0, 6).forEach(n => out.push({steps:[n], guided:false, exact:true, rootPc:K.root, lo:lo, hi:hi, label:{note:fn(n), word:true, sub:"von "+tonic+" auf der "+STR[n[0]]}}));
+  return out;
+}
+function runArp(pos){
+  const key = curKey(), K = KEYS[key], rec = arpRec(pos), title = "Arpeggio · Position "+pos+" · "+K.name;
+  const intro = (!rec.days.length ? "Ein Arpeggio sind die Töne eines Akkords nacheinander gespielt: Grundton, Terz, Quinte. Sie liegen alle in der Position, die du schon kennst. " : "") +
+    "Erst "+K.tr.Am+" auf und ab, dann "+K.tr.C+" aufwärts, zum Schluss findest du einzelne Akkordtöne nach ihrer Aufgabe. Mit Plektrum oder Fingern, wie du magst.";
+  quizCard(title, intro, () => startQuiz({title:title, rootPc:K.root, prompts:arpPrompts(pos, key), onDone:res => {
+    const rc = arpRec(pos, true), clean = res.helps <= 2; rc.runs++; if(clean && !rc.days.includes(dstr())) rc.days.push(dstr()); save();
+    $("qEndTitle").textContent = clean ? "Sauber" : "Noch einmal";
+    $("qEndText").textContent = resTxt(res) + " " + (clean ? "Nach drei sauberen Tagen gilt das Arpeggio als gefestigt." : "Wiederhole es, bis höchstens zwei Töne einen Fehler haben."); $("qEnd").hidden = false;
+  }}));
+}
 /* Listening levels per position. Each level is played first with the shape on screen, then without it. */
 const HEAR = ["", "Zwei Töne", "Drei Töne in Schritten", "Drei Töne mit Sprüngen", "Vier Töne, freier Start"];
 function hearRec(pos, create){ const k = "h"+pos; if(!state.vp) state.vp = {}; const d = {lvl:1, pic:true, days:[], runs:0}; if(create) return state.vp[k] || (state.vp[k] = d); return state.vp[k] || d; }
@@ -1900,6 +1968,34 @@ function runPos(pos, key){
     $("qEndTitle").textContent = clean ? "Sauber" : "Noch einmal"; $("qEndText").textContent = resTxt(res) + " " + more; $("qEnd").hidden = false;
   }}));
 }
+/* Statistics on the start page: practice days, minutes per week, tempo of each lick, and a few totals. */
+function renderStats(){
+  const box = $("statBox"); if(!box) return; const log = state.log || {}, days = new Set((state.days || []).concat(Object.keys(log).filter(d => log[d] >= 60)));
+  const today = new Date(); today.setHours(12,0,0,0); const dow = (today.getDay()+6)%7, start = new Date(today); start.setDate(start.getDate() - dow - 28);
+  let cal = ["Mo","Di","Mi","Do","Fr","Sa","So"].map(d => "<span>"+d+"</span>").join("");
+  for(let k=0;k<35;k++){ const d = new Date(start); d.setDate(start.getDate()+k); const ds = dstr(d), fut = d > today; cal += '<i class="'+(fut ? "off" : (days.has(ds) ? "on" : "")+(ds === dstr(today) ? " today" : ""))+'" title="'+d.getDate()+"."+(d.getMonth()+1)+"."+(days.has(ds) ? ": geübt" : "")+'"></i>'; }
+  const weeks = []; for(let wk=5;wk>=0;wk--){ let sec = 0; const ws = new Date(today); ws.setDate(today.getDate() - dow - wk*7); for(let k=0;k<7;k++){ const d = new Date(ws); d.setDate(ws.getDate()+k); sec += log[dstr(d)] || 0; } weeks.push({lab:ws.getDate()+"."+(ws.getMonth()+1)+".", min:Math.round(sec/60)}); }
+  const mx = Math.max(10, Math.max.apply(null, weeks.map(x => x.min))), W = 420, H = 150, bw = 26, gapX = (W-40)/6, base = H-26;
+  let bars = '<svg class="bars" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Übezeit pro Woche in Minuten"><line x1="20" x2="'+(W-20)+'" y1="'+base+'" y2="'+base+'" stroke="var(--line)"/>';
+  weeks.forEach((x,i) => { const cx = 20 + gapX*(i+.5), hgt = x.min ? Math.max(3, x.min/mx*(base-26)) : 0;
+    bars += '<g><title>Woche ab '+x.lab+' '+x.min+' Minuten</title>'+(hgt ? '<path d="M'+(cx-bw/2)+' '+base+'v'+(-(hgt-4))+'a4 4 0 0 1 4 -4h'+(bw-8)+'a4 4 0 0 1 4 4v'+(hgt-4)+'z" fill="var(--slow)"/>' : '')+
+      '<text x="'+cx+'" y="'+(base-hgt-6)+'" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--text)">'+(x.min || "")+'</text>'+
+      '<text x="'+cx+'" y="'+(H-8)+'" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--muted)">'+x.lab+'</text></g>'; });
+  bars += "</svg>";
+  const licks = working().concat(repertoire()).filter(l => peek(l.id).hist.length);
+  const tl = licks.length ? licks.map(l => '<div class="tline"><span>'+esc(l.name)+'</span>'+(spark(peek(l.id).hist) || "<span></span>")+'<span class="num">'+peek(l.id).bpm+' BPM</span></div>').join("") : '<p class="cap">Nach den ersten bewerteten Runden steht hier das Tempo jedes Licks.</p>';
+  const fbN = FB.filter(fbDone).length, posN = POS_ORDER.filter(posDone).length, arpN = POS_ORDER.filter(arpDone).length;
+  box.innerHTML = '<div class="stat"><h3>Übetage</h3><p class="cap">Die letzten fünf Wochen. Ein leuchtendes Feld ist ein Tag mit Übung.</p><div class="cal">'+cal+'</div></div>'+
+    '<div class="stat"><h3>Übezeit pro Woche</h3><p class="cap">In Minuten, die letzten sechs Wochen. Gezählt wird seit dem 15. November.</p>'+bars+'</div>'+
+    '<div class="stat"><h3>Tempo der Licks</h3>'+tl+'</div>'+
+    '<div class="stat"><h3>Stand</h3><div class="nums"><div><b>'+days.size+'</b><span>Übetage insgesamt</span></div><div><b>'+Math.round(state.seconds/60)+'</b><span>Minuten insgesamt</span></div><div><b>'+posN+'/5</b><span>Positionen gelernt</span></div><div><b>'+arpN+'/5</b><span>Arpeggios gelernt</span></div><div><b>'+fbN+'/'+FB.length+'</b><span>Griffbrett-Lektionen</span></div><div><b>'+hearStreak().best+'</b><span>beste Hör-Serie</span></div></div></div>';
+}
+/* A quiet reminder: the progress lives only in this browser. Shown after a few practice days, and again every two weeks. */
+function renderBackup(){
+  const n = (state.days || []).length, age = state.backupAt ? (Date.now() - state.backupAt)/86400000 : Infinity, show = !syncRef && n >= 3 && age > 14;
+  $("backupLine").hidden = !show;
+  if(show) $("backupTxt").textContent = "Dein Fortschritt liegt nur auf diesem Gerät. " + (state.backupAt ? "Die letzte Sicherung ist " + Math.floor(age) + " Tage her." : "Du hast ihn noch nie gesichert.");
+}
 /* The licks view: what is in work, what is in the repertoire, and one quiet line for everything still to come. */
 let ROWOPEN = null;
 function lickRow(l, tag){
@@ -1928,16 +2024,18 @@ function renderLicks(){
 let VOPEN;
 /* the next sensible step in the vocabulary: a new position first, then the same position in the other keys, then firming up */
 function nextPos(){
-  for(const pos of POS_ORDER) if(posOpen(pos) && !posDone(pos)) return [pos, "Am"];
+  for(const pos of POS_ORDER){ if(posOpen(pos) && !posDone(pos)) return [pos, "Am"]; if(posDone(pos) && !arpDone(pos)) return [pos, "arp"]; }
   for(const pos of POS_ORDER) if(posDone(pos)) for(const k of ["Em","Bm"]) if(!vpPeek(pos, k).days.length) return [pos, k];
   for(const pos of POS_ORDER) if(posDone(pos)) for(const k of ["Am","Em","Bm"]) if(vpPeek(pos, k).days.length < 3) return [pos, k];
+  for(const pos of POS_ORDER) if(posDone(pos) && arpRec(pos).days.length < 3) return [pos, "arp"];
   return null;
 }
 function renderVocab(){
   const key = curKey(), fixed = !!KEYS[state.settings.key], box = $("posList"), nx = nextPos(); box.textContent = "";
   $("keyLine").textContent = fixed ? "Tonart " + KEYS[key].name + ", fest eingestellt." : openKeys().length > 1 ? "Tonart dieser Woche: " + KEYS[key].name + "." : "Tonart A-Moll. Weitere öffnen sich, sobald Position 1 sitzt.";
   if(VOPEN === undefined) VOPEN = nx ? nx[0] : null;
-  if(nx){ const nb = document.createElement("button"); nb.type = "button"; nb.className = "nextb"; nb.dataset.pos = nx[0]; nb.dataset.key = nx[1]; nb.innerHTML = "<small>Weiter mit</small><b>Position "+nx[0]+" in "+KEYS[nx[1]].name+"</b>"; box.append(nb); }
+  if(nx){ const nb = document.createElement("button"); nb.type = "button"; nb.className = "nextb"; if(nx[1] === "arp") nb.dataset.arp = nx[0]; else { nb.dataset.pos = nx[0]; nb.dataset.key = nx[1]; }
+    nb.innerHTML = "<small>Weiter mit</small><b>"+(nx[1] === "arp" ? "Arpeggio in Position "+nx[0] : "Position "+nx[0]+" in "+KEYS[nx[1]].name)+"</b>"; box.append(nb); }
   const ul = document.createElement("ul"); ul.className = "rows"; box.append(ul);
   POS_ORDER.filter(posOpen).forEach(pos => {
     const d = vpPeek(pos, "Am").days.length, lv = d >= 3 ? 2 : d ? 1 : 0, r = posRange(pos, "Am"), li = document.createElement("li"), nl = LICKS.filter(l => l.pos === pos).length, open = VOPEN === pos;
@@ -1948,6 +2046,7 @@ function renderVocab(){
         return '<button type="button" class="keyb'+(l2 ? " lvp" : "")+'" style="--lv:var(--lv'+Math.max(1, l2)+')" data-pos="'+pos+'" data-key="'+k+'"'+(ok ? "" : " disabled")+'>'+KEYS[k].name+'</button>'; };
       const hr = hearRec(pos);
       h += '<div class="rdetail"><p>'+nl+' Licks in dieser Lage'+(posDone(pos) ? "" : ". E-Moll und B-Moll öffnen sich, sobald A-Moll sitzt")+'.</p><div class="line">'+["Am","Em","Bm"].map(btn).join("")+'</div>'+
+        (() => { const ad = arpRec(pos).days.length, al = ad >= 3 ? 2 : ad ? 1 : 0; return '<div class="line"><button type="button" class="keyb'+(al ? " lvp" : "")+'" style="--lv:var(--lv'+Math.max(1, al)+')" data-arp="'+pos+'"'+(posDone(pos) ? "" : " disabled")+'>Arpeggio</button><span style="color:var(--muted);font-size:14px">'+(!posDone(pos) ? "öffnet sich mit der Position" : ad >= 3 ? "gefestigt" : ad ? ad+" von 3 sauberen Tagen" : "die Akkordtöne in dieser Lage")+'</span></div>'; })()+
         '<div class="line"><button type="button" class="keyb'+(hr.days.length ? " lvp" : "")+'" style="--lv:var(--lv'+(hr.lvl >= 4 && !hr.pic ? 2 : 1)+')" data-hear="'+pos+'"'+(posDone(pos) ? "" : " disabled")+'>Hören und nachspielen</button><span style="color:var(--muted);font-size:14px">'+(posDone(pos) ? "Stufe "+hr.lvl+" von 4: "+HEAR[hr.lvl]+(hr.pic ? "" : ", ohne Bild")+(hearStreak().best ? " · beste Serie "+hearStreak().best : "") : "öffnet sich mit der Position")+'</span></div></div>';
     }
     li.innerHTML = h; ul.append(li);
@@ -2080,7 +2179,7 @@ function renderHome(){
   ];
   const ml = $("mapList"); ml.textContent = "";
   map.forEach(m => { const li = document.createElement("li"); li.innerHTML = '<div class="row'+(m[3]==="gesperrt" ? " locked" : "")+'"><span class="rname">'+m[0]+'</span><span class="rmeta">'+m[1]+'</span><span class="rside"><span class="pill '+m[2]+'">'+m[3]+'</span></span></div>'; ml.append(li); });
-  renderVocab(); drawChord();
+  renderVocab(); drawChord(); renderStats(); renderBackup();
   renderFb();
   drawPreview();
 }
@@ -2104,6 +2203,7 @@ $("harmSeg").addEventListener("click", e => { const b = e.target.closest("button
 $("emSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.emOpen = b.dataset.em === "open"; save(); renderHome(); });
 $("keySeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.key = b.dataset.key; save(); renderHome(); });
 $("posList").addEventListener("click", e => {
+  const ab = e.target.closest("button[data-arp]"); if(ab){ if(!ab.disabled) runArp(+ab.dataset.arp); return; }
   const hb = e.target.closest("button[data-hear]"); if(hb){ if(!hb.disabled) runHear(+hb.dataset.hear); return; }
   const b = e.target.closest("button[data-pos]"); if(b){ if(!b.disabled) runPos(+b.dataset.pos, b.dataset.key); return; }
   const v = e.target.closest("button[data-vopen]"); if(v){ VOPEN = VOPEN === +v.dataset.vopen ? null : +v.dataset.vopen; renderVocab(); }
@@ -2125,6 +2225,7 @@ function showView(v, quiet){
 }
 $("nav").addEventListener("click", e => { const b = e.target.closest("button[data-go]"); if(b) showView(b.dataset.go); });
 $("gearBtn").addEventListener("click", () => showView("optionen"));
+$("backupBtn").addEventListener("click", () => { showView("optionen"); $("exportBtn").click(); $("ioBox").scrollIntoView({block:"center"}); });
 $("tuneSel").addEventListener("click", e => { const b = e.target.closest("button[data-tune]"); if(!b) return; state.settings.tuning = b.dataset.tune; save(); renderTuner(); });
 $("tMic").addEventListener("click", () => { if(T.on) tunerStop(); else tunerStart(); });
 window.addEventListener("hashchange", () => showView(location.hash.slice(1), true));
@@ -2160,8 +2261,9 @@ document.addEventListener("visibilitychange", () => { if(document.hidden && run 
 window.addEventListener("resize", () => { if($("practice").hidden && document.querySelector('.view.on[data-view="heute"]')) drawPreview(); });
 
 $("exportBtn").addEventListener("click", () => {
+  state.backupAt = Date.now(); save(); renderBackup();
   const txt = JSON.stringify(state), box = $("ioBox"); box.hidden = false; $("ioText").value = txt; $("ioText").select();
-  const ok = () => $("ioMsg").textContent = "Kopiert. Füge den Text auf dem anderen Gerät unter Einfügen ein.", no = () => $("ioMsg").textContent = "Markiere den Text und kopiere ihn von Hand.";
+  const ok = () => $("ioMsg").textContent = "Kopiert. Füge den Text an einem sicheren Ort ein, zum Beispiel in eine Notiz oder eine E-Mail an dich. Auf einem anderen Gerät übernimmst du ihn unter Einfügen.", no = () => $("ioMsg").textContent = "Markiere den Text und kopiere ihn von Hand.";
   try{ navigator.clipboard.writeText(txt).then(ok, no); }catch(e){ no(); }
 });
 $("importBtn").addEventListener("click", () => { $("ioBox").hidden = false; $("ioText").value = ""; $("ioMsg").textContent = "Füge den kopierten Fortschritt ein und tippe auf Übernehmen."; $("ioText").focus(); });
