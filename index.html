@@ -235,6 +235,14 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 .fold summary::after{content:"+";font-family:var(--font-num);color:var(--muted);font-size:20px}
 .fold[open] summary::after{content:"\2013"}
 .fold .note{margin-top:8px}
+/* ---------- next step and stage groups ---------- */
+.nextb{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:2px solid var(--accent);border-radius:18px;padding:12px 18px;box-shadow:var(--btn-shadow);margin:4px 0 8px}
+.nextb small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.nextb b{font-family:var(--font-neon);font-weight:400;font-size:20px;line-height:1.2;color:var(--tube-warm);text-shadow:var(--glow-soft)}
+.nextb:hover{filter:brightness(1.12)}
+.rows .row.slim.sub{padding-left:34px}
+.rows .row.slim .rcount{font-family:var(--font-num);font-size:13px;color:var(--muted)}
+.subfoot{padding:10px 2px 14px 34px}
 /* ---------- own licks ---------- */
 .rows li.own{display:flex;align-items:center;gap:10px}
 .rows li.own .row{flex:1 1 auto;min-width:0}
@@ -343,8 +351,12 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
   <section class="view" data-view="griffbrett">
     <h2><span class="neon">Griffbrett</span></h2>
     <div class="legend"><span style="--lv:var(--lv1)"><i></i>begonnen</span><span style="--lv:var(--lv2)"><i></i>gefestigt</span><span style="--lv:var(--lv5)"><i></i>Stufe abgeschlossen</span></div>
-    <p class="note">Schritt für Schritt lernen, wo welcher Ton liegt. Das Mikrofon hört zu, und es geht erst weiter, wenn der Ton stimmt. Für jeden Ton läuft ein Zeitlimit. Falsche Töne und abgelaufene Zeit zählen als Fehler. Eine Lektion gilt als sauber, wenn höchstens ein Ton einen Fehler hatte. Grün ab dem ersten sauberen Tag, Türkis ab drei Tagen, Gold für eine ganze Stufe. Die Zwischentöne in Stufe 4 öffnen sich schon nach Stufe 1.</p>
+    <p class="note">Lerne Schritt für Schritt, wo welcher Ton liegt. Tippe eine Stufe an, um ihre Lektionen zu sehen.</p>
     <div id="fbList"></div>
+    <details class="fold">
+      <summary>So funktioniert es</summary>
+      <p class="note">Das Mikrofon hört zu, und es geht erst weiter, wenn der Ton stimmt. Für jeden Ton läuft ein Zeitlimit. Falsche Töne und abgelaufene Zeit zählen als Fehler. Eine Lektion gilt als sauber, wenn höchstens ein Ton einen Fehler hatte. Nach drei sauberen Tagen ist sie gefestigt. Die Zwischentöne in Stufe 4 öffnen sich schon nach Stufe 1.</p>
+    </details>
   </section>
 
   <section class="view" data-view="tuner">
@@ -360,11 +372,16 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
   <section class="view" data-view="vokabular">
     <h2><span class="neon">Vokabular</span> · Moll-Pentatonik</h2>
     <div class="legend"><span style="--lv:var(--lv1)"><i></i>begonnen</span><span style="--lv:var(--lv2)"><i></i>gefestigt</span></div>
-    <p class="note">Die Moll-Pentatonik hat fünf Positionen, die sich über das ganze Griffbrett verbinden. Du lernst jede zuerst in A-Moll. Sitzt sie, öffnet sie sich in E-Moll und B-Moll, und im Bereich Licks kommen Licks in dieser Lage dazu. Eine Position gilt als sauber, wenn höchstens zwei Töne einen Fehler hatten.</p>
     <p class="note" id="keyLine"></p>
-    <ul class="rows" id="posList"></ul>
-    <h2 style="margin-top:34px"><span class="neon">Danach</span></h2>
-    <ul class="rows" id="mapList"></ul>
+    <div id="posList"></div>
+    <details class="fold">
+      <summary>So funktioniert es</summary>
+      <p class="note">Die Moll-Pentatonik hat fünf Positionen, die sich über das ganze Griffbrett verbinden. Du lernst jede zuerst in A-Moll. Sitzt sie, öffnet sie sich in E-Moll und B-Moll, und im Bereich Licks kommen Licks in dieser Lage dazu. Eine Position gilt als sauber, wenn höchstens zwei Töne einen Fehler hatten. Nach drei sauberen Tagen ist sie gefestigt.</p>
+    </details>
+    <details class="fold" style="margin-top:14px">
+      <summary>Was danach kommt</summary>
+      <ul class="rows" id="mapList" style="margin-top:10px"></ul>
+    </details>
   </section>
 
   <section class="view" data-view="optionen">
@@ -1802,19 +1819,33 @@ function renderLicks(){
   if(locked) parts.push(locked + " weitere kommen mit den Positionen im Vokabular.");
   if(parts.length){ const q = document.createElement("p"); q.className = "quiet"; q.textContent = parts.join(" "); box.append(q); }
 }
+let VOPEN;
+/* the next sensible step in the vocabulary: a new position first, then the same position in the other keys, then firming up */
+function nextPos(){
+  for(const pos of POS_ORDER) if(posOpen(pos) && !posDone(pos)) return [pos, "Am"];
+  for(const pos of POS_ORDER) if(posDone(pos)) for(const k of ["Em","Bm"]) if(!vpPeek(pos, k).days.length) return [pos, k];
+  for(const pos of POS_ORDER) if(posDone(pos)) for(const k of ["Am","Em","Bm"]) if(vpPeek(pos, k).days.length < 3) return [pos, k];
+  return null;
+}
 function renderVocab(){
-  const key = curKey(), fixed = !!KEYS[state.settings.key], ul = $("posList"); ul.textContent = "";
-  $("keyLine").textContent = fixed ? "Tonart: " + KEYS[key].name + ", fest eingestellt." : openKeys().length > 1 ? "Tonart dieser Woche: " + KEYS[key].name + ". Sie wechselt wöchentlich zwischen " + openKeys().map(k => KEYS[k].name).join(", ") + "." : "Tonart: A-Moll. Weitere Tonarten öffnen sich, sobald Position 1 sitzt.";
-  POS_ORDER.forEach(pos => {
-    const open = posOpen(pos), d = vpPeek(pos, "Am").days.length, lv = d >= 3 ? 2 : d ? 1 : 0, r = posRange(pos, "Am"), li = document.createElement("li"), nl = LICKS.filter(l => l.pos === pos).length;
-    if(open){ li.className = "lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")"); }
-    const btn = k => { const dk = vpPeek(pos, k).days.length, ok = open && (k === "Am" || posDone(pos)), l2 = dk >= 3 ? 2 : dk ? 1 : 0;
-      return '<button type="button" class="keyb'+(l2 ? " lvp" : "")+'" style="--lv:var(--lv'+Math.max(1, l2)+')" data-pos="'+pos+'" data-key="'+k+'"'+(ok ? "" : " disabled")+'>'+KEYS[k].name+'</button>'; };
-    li.innerHTML = '<div class="row posrow'+(open ? "" : " locked")+'"><span class="rname">Position '+pos+'<span class="chip">Bund '+r[0]+' bis '+r[1]+'</span></span>'+
-      '<span class="rmeta">'+(!open ? "Öffnet sich nach Position "+POS_ORDER[POS_ORDER.indexOf(pos)-1] : d >= 3 ? "gefestigt · "+nl+" Licks" : d ? d+" von 3 sauberen Tagen · "+nl+" Licks" : "neu · "+nl+" Licks in dieser Lage")+'</span>'+
-      '<span class="rside keys">'+["Am","Em","Bm"].map(btn).join("")+'</span></div>';
-    ul.append(li);
+  const key = curKey(), fixed = !!KEYS[state.settings.key], box = $("posList"), nx = nextPos(); box.textContent = "";
+  $("keyLine").textContent = fixed ? "Tonart " + KEYS[key].name + ", fest eingestellt." : openKeys().length > 1 ? "Tonart dieser Woche: " + KEYS[key].name + "." : "Tonart A-Moll. Weitere öffnen sich, sobald Position 1 sitzt.";
+  if(VOPEN === undefined) VOPEN = nx ? nx[0] : null;
+  if(nx){ const nb = document.createElement("button"); nb.type = "button"; nb.className = "nextb"; nb.dataset.pos = nx[0]; nb.dataset.key = nx[1]; nb.innerHTML = "<small>Weiter mit</small><b>Position "+nx[0]+" in "+KEYS[nx[1]].name+"</b>"; box.append(nb); }
+  const ul = document.createElement("ul"); ul.className = "rows"; box.append(ul);
+  POS_ORDER.filter(posOpen).forEach(pos => {
+    const d = vpPeek(pos, "Am").days.length, lv = d >= 3 ? 2 : d ? 1 : 0, r = posRange(pos, "Am"), li = document.createElement("li"), nl = LICKS.filter(l => l.pos === pos).length, open = VOPEN === pos;
+    li.className = "lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")");
+    let h = '<button class="row slim" type="button" data-vopen="'+pos+'" aria-expanded="'+open+'"><span class="rname">Position '+pos+'</span><span class="rside"><span class="rcount">Bund '+r[0]+' bis '+r[1]+'</span><span class="pill '+(lv ? "lvp" : "active")+'">'+(d >= 3 ? "gefestigt" : d ? d+" von 3" : "neu")+'</span></span></button>';
+    if(open){
+      const btn = k => { const dk = vpPeek(pos, k).days.length, ok = k === "Am" || posDone(pos), l2 = dk >= 3 ? 2 : dk ? 1 : 0;
+        return '<button type="button" class="keyb'+(l2 ? " lvp" : "")+'" style="--lv:var(--lv'+Math.max(1, l2)+')" data-pos="'+pos+'" data-key="'+k+'"'+(ok ? "" : " disabled")+'>'+KEYS[k].name+'</button>'; };
+      h += '<div class="rdetail"><p>'+nl+' Licks in dieser Lage'+(posDone(pos) ? "" : ". E-Moll und B-Moll öffnen sich, sobald A-Moll sitzt")+'.</p><div class="line">'+["Am","Em","Bm"].map(btn).join("")+'</div></div>';
+    }
+    li.innerHTML = h; ul.append(li);
   });
+  const rest = POS_ORDER.filter(pos => !posOpen(pos));
+  if(rest.length){ const q = document.createElement("p"); q.className = "quiet"; q.textContent = (rest.length === 1 ? "Position " + rest[0] + " folgt" : "Die Positionen " + rest.slice(0, -1).join(", ") + " und " + rest[rest.length-1] + " folgen der Reihe nach") + "."; box.append(q); }
 }
 function drawChord(){
   const cv = $("chordBox"), lick = lickOrder()[0], sh = SHAPES[lick.chord]; if(!cv) return;
@@ -1854,21 +1885,33 @@ function runSkip(stage){
     $("qEnd").hidden = false;
   }}));
 }
+let FBOPEN;
+function nextLesson(){
+  for(let i=0;i<FB.length;i++) if(fbOpen(i) && !fbDone(FB[i])) return FB[i];
+  for(let i=0;i<FB.length;i++) if(fbOpen(i) && !state.fb.skip[FB[i].stage] && fbPeek(FB[i].id).days.length < 3) return FB[i];
+  return null;
+}
 function renderFb(){
-  const box = $("fbList"); box.textContent = ""; let ul = null, stage = 0;
-  FB.forEach((l, i) => {
-    if(l.stage !== stage){
-      stage = l.stage; const firstIdx = i, open = fbOpen(firstIdx), head = document.createElement("div"); head.className = "stagehead" + (open ? "" : " locked");
-      const mine = FB.filter(x => x.stage === stage), done = mine.every(fbDone), firm = mine.every(x => fbLv(x) === 2);
-      head.innerHTML = "<b>Stufe "+stage+" · "+STAGES[stage]+"</b>" + (open && !done ? '<button class="ghost" type="button" data-skip="'+stage+'">Kann ich schon</button>' : done ? '<span class="pill lvp" style="--lv:var(--lv'+(firm ? 5 : 1)+')">'+(firm ? "abgeschlossen" : "durchlaufen")+'</span>' : '<span class="pill">gesperrt</span>');
-      box.append(head); ul = document.createElement("ul"); ul.className = "rows"; box.append(ul);
-    }
-    const rec = fbPeek(l.id), open = fbOpen(i), li = document.createElement("li"), el = document.createElement(open ? "button" : "div");
-    el.className = "row" + (open ? "" : " locked"); if(open){ el.type = "button"; el.dataset.fb = l.id; }
-    const n = rec.days.length, lv = fbLv(l), st = !open ? ["", "gesperrt"] : n >= 3 ? ["lvp", "gefestigt"] : state.fb.skip[l.stage] ? ["lvp", "gekonnt"] : n ? ["lvp", n+" von 3 Tagen"] : ["active", "neu"];
+  const box = $("fbList"), nx = nextLesson(); box.textContent = "";
+  if(FBOPEN === undefined) FBOPEN = nx ? nx.stage : null;
+  if(nx){ const nb = document.createElement("button"); nb.type = "button"; nb.className = "nextb"; nb.dataset.fb = nx.id; nb.innerHTML = "<small>Weiter mit</small><b>"+nx.title+"</b>"; box.append(nb); }
+  const ul = document.createElement("ul"); ul.className = "rows"; box.append(ul);
+  [1,2,3,4].forEach(stage => {
+    const mine = FB.filter(x => x.stage === stage), firstIdx = FB.indexOf(mine[0]), open = fbOpen(firstIdx), done = mine.filter(fbDone).length, all = done === mine.length, firm = mine.every(x => fbLv(x) === 2);
+    const li = document.createElement("li"), exp = FBOPEN === stage && open, lv = firm ? 5 : all ? 1 : 0;
     if(open){ li.className = "lv lv"+lv; li.style.setProperty("--lv", "var(--lv"+Math.max(1, lv)+")"); }
-    el.innerHTML = '<span class="rname">'+l.title+'</span><span class="rside"><span class="pill '+st[0]+'">'+st[1]+'</span></span>';
-    li.append(el); ul.append(li);
+    let h = (open ? '<button class="row slim" type="button" data-stage="'+stage+'" aria-expanded="'+exp+'">' : '<div class="row slim locked">')+'<span class="rname">Stufe '+stage+' · '+STAGES[stage]+'</span><span class="rside">'+
+      (open ? '<span class="rcount">'+done+'/'+mine.length+'</span>' : '')+'<span class="pill '+(lv ? "lvp" : open ? "active" : "")+'">'+(firm ? "abgeschlossen" : all ? "durchlaufen" : open ? "offen" : "gesperrt")+'</span></span>'+(open ? '</button>' : '</div>');
+    li.innerHTML = h; ul.append(li);
+    if(!exp) return;
+    mine.forEach(l => {
+      const i = FB.indexOf(l), rec = fbPeek(l.id), lo = fbOpen(i), n = rec.days.length, l2 = fbLv(l), row = document.createElement("li");
+      const st = !lo ? ["", "gesperrt"] : n >= 3 ? ["lvp", "gefestigt"] : state.fb.skip[l.stage] ? ["lvp", "gekonnt"] : n ? ["lvp", n+" von 3"] : ["active", "neu"];
+      if(lo){ row.className = "lv lv"+l2; row.style.setProperty("--lv", "var(--lv"+Math.max(1, l2)+")"); }
+      row.innerHTML = (lo ? '<button class="row slim sub" type="button" data-fb="'+l.id+'">' : '<div class="row slim sub locked">')+'<span class="rname" style="font-size:16px;font-weight:600">'+l.title+'</span><span class="rside"><span class="pill '+st[0]+'">'+st[1]+'</span></span>'+(lo ? '</button>' : '</div>');
+      ul.append(row);
+    });
+    if(!all){ const f = document.createElement("li"); f.innerHTML = '<div class="subfoot"><button class="ghost" type="button" data-skip="'+stage+'">Kann ich schon</button></div>'; ul.append(f); }
   });
 }
 
@@ -1937,6 +1980,7 @@ function renderHome(){
 /* ================= wiring ================= */
 $("fbList").addEventListener("click", e => {
   const s = e.target.closest("button[data-skip]"); if(s){ runSkip(+s.dataset.skip); return; }
+  const g = e.target.closest("button[data-stage]"); if(g){ FBOPEN = FBOPEN === +g.dataset.stage ? null : +g.dataset.stage; renderFb(); return; }
   const b = e.target.closest("button[data-fb]"); if(b) runLesson(FB.find(l => l.id === b.dataset.fb));
 });
 $("qGo").addEventListener("click", () => { $("qCard").hidden = true; ensureAudio(); if(quizCard.go) quizCard.go(); });
@@ -1950,7 +1994,10 @@ $("durSeg").addEventListener("click", e => { const b = e.target.closest("button"
 $("harmSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.harmony = b.dataset.harm; save(); renderHome(); });
 $("emSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.emOpen = b.dataset.em === "open"; save(); renderHome(); });
 $("keySeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.key = b.dataset.key; save(); renderHome(); });
-$("posList").addEventListener("click", e => { const b = e.target.closest("button[data-pos]"); if(b && !b.disabled) runPos(+b.dataset.pos, b.dataset.key); });
+$("posList").addEventListener("click", e => {
+  const b = e.target.closest("button[data-pos]"); if(b){ if(!b.disabled) runPos(+b.dataset.pos, b.dataset.key); return; }
+  const v = e.target.closest("button[data-vopen]"); if(v){ VOPEN = VOPEN === +v.dataset.vopen ? null : +v.dataset.vopen; renderVocab(); }
+});
 $("limSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.fbLimit = +b.dataset.lim; save(); renderHome(); });
 $("beatSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.beat = b.dataset.beat; save(); renderHome(); });
 [["swWarm","warmup"],["swLick","lickSound"],["swFret","fretboard"]].forEach(p => $(p[0]).addEventListener("click", () => { state.settings[p[1]] = !state.settings[p[1]]; save(); renderHome(); }));
