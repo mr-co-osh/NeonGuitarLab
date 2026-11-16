@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="de" data-app-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>NeonGuitarRhythm</title>
+<style>
+/* fonts are served from this site itself, nothing is loaded from other servers */
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:400 800;font-display:swap;src:url(fonts/bricolage-grotesque-latin-opsz-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-mono-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-mono-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Tilt Neon";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/tilt-neon-latin-400-normal.woff2) format("woff2")}
+</style>
+<style>
+/* Layout idea: a night wall with two neon signs. Everything is quiet and dark except the
+   words that tell you what to do now: warm tube for Burst, cool tube for Slow down.
+   The practice screen is one fixed stage where only the tab band moves past a fixed marker. */
+:root{
+  --bg:#0a0b10; --surface:#13151c; --line:#262a35; --text:#eeedf2; --muted:#878c9b;
+  --accent:#ff5f3a; --slow:#52c4ff;
+  --ok:#5fc08b; --warn:#e5b454; --bad:#e36a6a;
+  --tube-warm:#fff1ea; --tube-cool:#ecfaff;
+  --glow-warm:0 0 2px #fff,0 0 9px var(--accent),0 0 24px var(--accent),0 0 60px color-mix(in srgb,var(--accent) 65%,transparent);
+  --glow-cool:0 0 2px #fff,0 0 9px var(--slow),0 0 24px var(--slow),0 0 60px color-mix(in srgb,var(--slow) 65%,transparent);
+  --glow-soft:0 0 6px color-mix(in srgb,var(--accent) 80%,transparent),0 0 30px color-mix(in srgb,var(--accent) 55%,transparent);
+  --glow-plain:0 0 18px rgba(255,255,255,.28);
+  --tube-violet:#f5eeff;
+  --glow-violet:0 0 2px #fff,0 0 9px var(--lv3),0 0 24px var(--lv3),0 0 60px color-mix(in srgb,var(--lv3) 65%,transparent);
+  --tube-green:#eafff2;
+  --glow-green:0 0 2px #fff,0 0 9px var(--lv1),0 0 24px var(--lv1),0 0 56px color-mix(in srgb,var(--lv1) 60%,transparent);
+  --box-green:0 0 14px color-mix(in srgb,var(--lv1) 60%,transparent),inset 0 0 14px color-mix(in srgb,var(--lv1) 35%,transparent);
+  --gear-glow:drop-shadow(0 0 3px var(--slow)) drop-shadow(0 0 8px color-mix(in srgb,var(--slow) 70%,transparent));
+  --sign-shadow:0 0 8px color-mix(in srgb,var(--slow) 75%,transparent),0 0 22px color-mix(in srgb,var(--slow) 45%,transparent),inset 0 0 8px color-mix(in srgb,var(--slow) 55%,transparent);
+  --glow-cool-soft:0 0 6px color-mix(in srgb,var(--slow) 80%,transparent),0 0 22px color-mix(in srgb,var(--slow) 55%,transparent);
+  --root:#ff3348;
+  --lv1:#3dff8f; --lv2:#2ee6d6; --lv3:#b07cff; --lv4:#ff5ad2; --lv5:#ffd447;
+  --btn-bg:transparent; --btn-fg:var(--tube-warm);
+  --btn-shadow:0 0 14px color-mix(in srgb,var(--accent) 60%,transparent),inset 0 0 14px color-mix(in srgb,var(--accent) 38%,transparent);
+  --font-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --font-neon:"Tilt Neon","Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  color-scheme:dark;
+}
+:root[data-app-theme="light"]{
+  --bg:#f2f1ed; --surface:#fbfaf7; --line:#d6d4cc; --text:#17191d; --muted:#666b75;
+  --accent:#d4451a; --slow:#1a6f9f;
+  --ok:#2c8a57; --warn:#a06f0c; --bad:#c04444;
+  --tube-warm:var(--accent); --tube-cool:var(--slow);
+  --glow-warm:none; --glow-cool:none; --glow-soft:none; --glow-plain:none; --glow-cool-soft:none; --sign-shadow:none;
+  --tube-violet:var(--lv3); --glow-violet:none;
+  --tube-green:var(--lv1); --glow-green:none; --box-green:none; --gear-glow:none;
+  --root:#c8102e;
+  --lv1:#16904a; --lv2:#0c8a82; --lv3:#6b3fd1; --lv4:#c2259a; --lv5:#967000;
+  --btn-bg:var(--accent); --btn-fg:#fff; --btn-shadow:none;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-display);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none !important}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+
+/* ---------- start screen ---------- */
+#home{max-width:880px;margin:0 auto;padding:20px 20px 64px;display:flex;flex-direction:column;gap:40px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap}
+.nav{display:flex;gap:2px;overflow-x:auto;max-width:100%;scrollbar-width:none}
+.nav button{position:relative;padding:9px 8px 11px;color:var(--muted);font-size:14.5px;white-space:nowrap}
+.nav button:hover{color:var(--text)}
+.nav button[aria-current="page"]{color:var(--tube-cool);text-shadow:var(--glow-cool-soft)}
+.nav button[aria-current="page"]::after{content:"";position:absolute;left:8px;right:8px;bottom:4px;height:2px;border-radius:1px;background:var(--slow);box-shadow:var(--sign-shadow)}
+.nav{flex:1 0 100%}
+.gear{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;color:var(--muted)}
+.gear svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+.gear:hover,.gear[aria-current="page"]{color:var(--tube-cool)}
+.gear{color:var(--tube-cool)}
+.gear svg{filter:var(--gear-glow)}
+/* tuner */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.chips button{border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--muted)}
+.chips button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:600}
+.tstrings{display:flex;gap:8px;justify-content:space-between;max-width:460px}
+.tstr{flex:1 1 0;min-width:0;height:58px;display:grid;place-items:center;border:2px solid var(--line);border-radius:14px;font-family:var(--font-neon);font-size:26px;color:var(--muted)}
+.tstr.on{border-color:var(--accent);color:var(--tube-warm);text-shadow:var(--glow-soft);box-shadow:var(--btn-shadow)}
+.tstr.ok{border-color:var(--lv1);color:var(--tube-green);text-shadow:var(--glow-green);box-shadow:var(--box-green)}
+.tread{display:flex;flex-direction:column;gap:8px;margin:22px 0 0}
+#tState{min-height:1.5em}
+#tNote{font-family:var(--font-neon);font-size:96px;line-height:1;color:var(--tube-warm);text-shadow:var(--glow-warm);min-width:1.2em}
+#tNote.ok{color:var(--tube-green);text-shadow:var(--glow-green)}
+#tNote.off{color:transparent;text-shadow:none;-webkit-text-stroke:1.5px var(--muted)}
+#tState{font-size:22px;font-weight:650}
+#tMeter{width:100%;max-width:560px;height:120px;display:block}
+.view:not(.on){display:none}
+@media (max-width:560px){
+  .rows .spark{display:none}
+  .rows .row{grid-template-columns:minmax(0,1fr)}
+  .rows .rside{grid-row:auto;grid-column:1;flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;margin-top:4px}
+}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:4px;border-radius:2px;background:var(--lv);box-shadow:0 0 6px var(--lv),0 0 14px var(--lv)}
+.rows li.lv{position:relative}
+.rows li.lv .row{padding-left:18px}
+.rows li.lv::before{content:"";position:absolute;left:1px;top:12px;bottom:12px;width:4px;border-radius:2px;background:var(--lv);box-shadow:0 0 6px var(--lv),0 0 16px var(--lv)}
+.rows li.lv0::before{background:none;box-shadow:none;border:1px solid var(--muted);opacity:.6}
+.pill.lvp{color:var(--lv);border-color:var(--lv)}
+:root[data-app-theme="light"] .rows li.lv::before,:root[data-app-theme="light"] .legend i{box-shadow:none}
+.brand{display:flex;align-items:baseline;flex-wrap:wrap}
+.brand{align-items:center}
+.sign{font-family:var(--font-neon);font-weight:400;font-size:24px;line-height:1;white-space:nowrap}
+.sign i{font-style:normal;color:var(--tube-warm);text-shadow:var(--glow-soft)}
+.sign em{font-style:normal;color:var(--tube-cool);text-shadow:var(--glow-cool-soft)}
+.brand span{color:var(--muted);font-weight:400;margin-left:8px}
+.ghost{border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px;color:var(--muted)}
+.ghost:hover{color:var(--text);border-color:var(--muted)}
+
+.today{display:flex;flex-direction:column;gap:20px}
+.eyebrow{margin:0;color:var(--muted);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+.today h1{margin:6px 0 0;font-family:var(--font-neon);font-size:clamp(44px,10vw,84px);line-height:1;font-weight:400;color:var(--tube-warm);text-shadow:var(--glow-soft);text-wrap:balance}
+.today .sub{margin:8px 0 0;color:var(--muted)}
+#preview{width:100%;height:150px;display:block;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.start-row{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg button{padding:8px 14px;white-space:nowrap;border-radius:999px;color:var(--muted);font-size:15px}
+.seg button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
+.primary{background:var(--btn-bg);color:var(--btn-fg);border:2px solid var(--accent);box-shadow:var(--btn-shadow);text-shadow:var(--glow-soft);font-family:var(--font-neon);font-size:22px;padding:11px 28px;border-radius:999px;flex:1 1 200px}
+.primary:hover{filter:brightness(1.12)}
+.facts{display:flex;flex-wrap:wrap;gap:8px 36px}
+.facts div{display:flex;align-items:baseline;gap:8px}
+.facts b{font-family:var(--font-num);font-size:26px;font-weight:600}
+.facts span{color:var(--muted);font-size:14px}
+
+section h2{margin:0 0 4px;font-size:22px;font-weight:700;letter-spacing:-.01em}
+section h2 .neon{font-family:var(--font-neon);font-weight:400;letter-spacing:0;color:var(--tube-warm);text-shadow:var(--glow-soft)}
+section .note{margin:0 0 14px;color:var(--muted);font-size:14px;max-width:62ch}
+.rows{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.rows li{border-bottom:1px solid var(--line)}
+.row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;align-items:center;text-align:left;padding:14px 2px}
+button.row:hover .rname{color:var(--accent)}
+.rname{font-weight:700;font-size:18px}
+.rname .chip{font-family:var(--font-num);font-size:13px;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-left:8px;vertical-align:2px}
+.rmeta{color:var(--muted);font-size:14px;grid-column:1}
+.rside{grid-row:1 / span 2;grid-column:2;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.rtempo{font-family:var(--font-num);font-weight:600}
+.dots{display:flex;gap:4px}
+.dots i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--muted)}
+.dots i.on{background:var(--ok);border-color:var(--ok)}
+.pill{font-size:12px;border-radius:999px;padding:2px 9px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.solid{color:var(--ok);border-color:var(--ok)}
+.pill.active{color:var(--text);border-color:var(--muted)}
+.row.locked{opacity:.45;cursor:default}
+.spark{display:block}
+
+.set{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.set > div{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 16px;padding:12px 2px;border-bottom:1px solid var(--line)}
+.set .lbl{display:flex;flex-direction:column;min-width:0;flex:1 1 220px}
+.set .lbl small{color:var(--muted);font-size:13px}
+.switch{width:46px;height:26px;border-radius:999px;border:1px solid var(--line);position:relative;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform .15s}
+.switch[aria-checked="true"]{background:var(--text);border-color:var(--text)}
+.switch[aria-checked="true"]::after{transform:translateX(20px);background:var(--bg)}
+textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:var(--font-num);font-size:12px}
+.msg{color:var(--muted);font-size:13px;margin:0}
+
+/* ---------- practice stage ---------- */
+#practice{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10}
+.pbar{height:3px;background:var(--line);flex:none}
+#pfill{height:100%;width:0;background:var(--text)}
+.phead{flex:none;display:flex;align-items:center;gap:12px;padding:6px 14px;min-height:44px}
+.pinfo{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 16px;min-width:0;font-size:15px;color:var(--muted)}
+.pnum{flex:none;display:flex;align-items:baseline;gap:16px;font-family:var(--font-num);font-weight:600;font-size:clamp(18px,6.4vh,26px);color:var(--text);font-variant-numeric:tabular-nums}
+.pnum small{font-size:.5em;color:var(--muted);margin-left:4px;font-weight:500}
+#pTime{color:var(--tube-cool);text-shadow:var(--glow-cool)}
+#pBlock{color:var(--text);font-weight:700}
+#pChord{font-family:var(--font-num);color:var(--text);font-weight:600}
+.pctl{display:flex;gap:8px;flex:none}
+.pctl button,.xbtn{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--muted)}
+.pctl button[aria-pressed="true"]{color:var(--text);border-color:var(--muted)}
+.xbtn{padding:5px 10px}
+.pword{flex:none;min-height:clamp(64px,25vh,140px);display:flex;flex-wrap:wrap;align-items:center;align-content:center;gap:4px 28px;padding:4px 22px}
+#word{font-family:var(--font-neon);font-weight:400;font-size:clamp(36px,16vh,96px);line-height:1.05;white-space:nowrap;text-shadow:var(--glow-plain)}
+#word.burst{color:var(--tube-warm);text-shadow:var(--glow-warm)}
+#word.slow{color:var(--tube-cool);text-shadow:var(--glow-cool)}
+/* announced one bar ahead: the tube is still switched off */
+#word.soon{color:transparent;text-shadow:none;-webkit-text-stroke:1.5px var(--muted)}
+#word.burst.soon{-webkit-text-stroke-color:color-mix(in srgb,var(--accent) 55%,var(--bg))}
+#word.slow.soon{-webkit-text-stroke-color:color-mix(in srgb,var(--slow) 55%,var(--bg))}
+#word.rootw{color:var(--root);text-shadow:0 0 14px color-mix(in srgb,var(--root) 75%,transparent),0 0 40px color-mix(in srgb,var(--root) 40%,transparent)}
+#hint.rootc #hintLbl{color:var(--root)}
+#word.groove{color:var(--tube-violet);text-shadow:var(--glow-violet)}
+#word.groove.soon{color:transparent;text-shadow:none;-webkit-text-stroke-color:color-mix(in srgb,var(--lv3) 55%,var(--bg))}
+#word.burst:not(.soon),#word.slow:not(.soon),#word.groove:not(.soon){animation:lit .38s linear}
+@keyframes lit{0%{opacity:.35}10%{opacity:1}18%{opacity:.5}30%{opacity:1}40%{opacity:.8}55%{opacity:1}}
+#hint{display:flex;flex-direction:column;min-width:0;color:var(--muted);font-size:clamp(14px,4.4vh,20px);line-height:1.15}
+#hintLbl{font-size:clamp(11px,3.2vh,14px);letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+#hintLbl.cd{font-family:var(--font-num);font-size:1.25em;font-weight:600;letter-spacing:.04em}
+#hint.warm #hintLbl{color:var(--accent)} #hint.cool #hintLbl{color:var(--slow)} #hint.violet #hintLbl{color:var(--lv3)}
+#hint.task #hintTxt{color:var(--text);font-weight:650;font-size:clamp(20px,7.6vh,38px);letter-spacing:-.01em;text-wrap:balance}
+#hint.dim #hintTxt{font-size:clamp(16px,5.4vh,26px)}
+#practice.withfret .pword{min-height:clamp(38px,11vh,64px);padding-top:0;padding-bottom:0}
+#practice.withfret #word{font-size:clamp(24px,9vh,46px)}
+#practice.withfret #hint.task #hintTxt{font-size:clamp(15px,4.6vh,22px)}
+#practice.withfret #hint.dim #hintTxt{font-size:clamp(13px,3.8vh,18px)}
+#lane{flex:1 1 auto;min-height:0;width:100%;display:block}
+#fret{flex:none;height:clamp(78px,25vh,140px);width:100%;display:block;border-top:1px solid var(--line)}
+.rotate{display:none;flex:none;margin:0;padding:6px 20px 10px;color:var(--muted);font-size:13px}
+@media (orientation:portrait) and (max-width:620px){.rotate{display:block}}
+
+.panel{position:absolute;inset:47px 0 0 0;background:var(--bg);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;padding:20px;overflow:auto;text-align:center}
+.panel h2{margin:0;font-size:clamp(26px,7vh,44px);font-weight:800;letter-spacing:-.02em}
+.panel p{margin:0;color:var(--muted);max-width:52ch}
+.rate-row{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%;max-width:760px}
+.rate-row button{flex:1 1 180px;border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;align-items:center;background:var(--surface)}
+.rate-row button b{font-size:20px;display:flex;align-items:center;gap:8px}
+.rate-row button b::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c)}
+.rate-row button small{color:var(--muted);font-size:13px}
+.rate-row button:hover{border-color:var(--c)}
+.sumlist{list-style:none;margin:0;padding:0;width:100%;max-width:560px;text-align:left;border-top:1px solid var(--line)}
+.sumlist li{padding:10px 2px;border-bottom:1px solid var(--line);display:flex;flex-direction:column}
+.sumlist li span{color:var(--muted);font-size:14px}
+.panel .primary{flex:none;font-size:18px}
+/* ---------- positions, keys, chord diagram ---------- */
+.posrow{cursor:default}
+.rside.keys{flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.keyb{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--text);white-space:nowrap}
+.keyb:hover:not(:disabled){border-color:var(--text)}
+.keyb.lvp{color:var(--lv);border-color:var(--lv)}
+.keyb:disabled{opacity:.35;cursor:default}
+.chordrow{display:flex;align-items:center;gap:18px}
+#chordBox{width:96px;height:118px;flex:none;display:block}
+.chordtxt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.chordtxt b{font-size:20px}
+.chordtxt span{color:var(--muted);font-size:14px}
+.seg{flex-wrap:wrap;border-radius:22px}
+/* ---------- compact lick rows ---------- */
+.grp{margin:22px 0 6px;color:var(--muted);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+.rows .row.slim{grid-template-columns:minmax(0,1fr) auto;padding:13px 2px 13px 18px;gap:0 14px}
+.row.slim .rside{grid-row:auto;grid-column:2;flex-direction:row;align-items:center;gap:10px;margin:0}
+.rdetail{padding:0 2px 16px 18px;display:flex;flex-direction:column;gap:10px}
+.rdetail p{margin:0;color:var(--muted);font-size:14px}
+.rdetail .line{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.rdetail .chip{font-family:var(--font-num);font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.rows .rdetail .spark{display:block}
+.quiet{margin:14px 0 0;color:var(--muted);font-size:14px}
+.fold{margin-top:30px;border-top:1px solid var(--line);padding-top:14px}
+.fold summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.fold summary::-webkit-details-marker{display:none}
+.fold summary::after{content:"+";font-family:var(--font-num);color:var(--muted);font-size:20px}
+.fold[open] summary::after{content:"\2013"}
+.fold .note{margin-top:8px}
+/* ---------- next step and stage groups ---------- */
+.nextb{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:2px solid var(--accent);border-radius:18px;padding:12px 18px;box-shadow:var(--btn-shadow);margin:4px 0 8px}
+.nextb small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.nextb b{font-family:var(--font-neon);font-weight:400;font-size:20px;line-height:1.2;color:var(--tube-warm);text-shadow:var(--glow-soft)}
+.nextb:hover{filter:brightness(1.12)}
+.rows .row.slim.sub{padding-left:34px}
+.rows .row.slim .rcount{font-family:var(--font-num);font-size:13px;color:var(--muted)}
+.subfoot{padding:10px 2px 14px 34px}
+.legal{padding-top:12px;max-width:62ch}
+.legal p{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.5}
+.legal b{color:var(--text)}
+/* ---------- statistics ---------- */
+#statBox{display:flex;flex-direction:column;gap:26px;padding-top:16px}
+.stat h3{margin:0 0 4px;font-size:15px;font-weight:700}
+.stat .cap{margin:0 0 10px;color:var(--muted);font-size:13px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;max-width:330px}
+.cal span{font-family:var(--font-num);font-size:11px;color:var(--muted);text-align:center}
+.cal i{aspect-ratio:1;border-radius:6px;border:1px solid var(--line);display:block}
+.cal i.on{background:var(--lv1);border-color:var(--lv1);box-shadow:0 0 8px color-mix(in srgb,var(--lv1) 60%,transparent)}
+.cal i.today{border-color:var(--text)}
+.cal i.off{visibility:hidden}
+:root[data-app-theme="light"] .cal i.on{box-shadow:none}
+.bars{display:block;width:100%;max-width:420px;height:150px}
+.tline{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.tline:first-of-type{border-top:1px solid var(--line)}
+.tline .spark{display:block}
+.nums{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px;max-width:420px}
+.nums div{display:flex;align-items:baseline;gap:8px}
+.nums b{font-family:var(--font-num);font-size:20px;font-weight:600}
+.nums span{color:var(--muted);font-size:13px}
+/* ---------- own licks ---------- */
+.rows li.own{display:flex;align-items:center;gap:10px}
+.rows li.own .row{flex:1 1 auto;min-width:0}
+#editor{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:20}
+.edbody{flex:1 1 auto;overflow:auto;padding:6px 20px 30px;display:flex;flex-direction:column;gap:16px;width:100%;max-width:920px;margin:0 auto}
+.edbody > *{flex:none}
+.edbody .chips{margin:0}
+.edrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+#edName{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;min-width:0;flex:1 1 180px}
+.edtabwrap{overflow-x:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2;background:var(--bg)}
+#edTab{height:160px;display:block}
+.edlbl{display:block;color:var(--muted);font-size:13px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.edgrid{display:grid;grid-template-columns:22px repeat(6,minmax(0,1fr));gap:5px;align-items:center;margin-bottom:12px;max-width:560px}
+.edgrid button.cur{background:var(--accent);border-color:var(--accent);color:#14100e;font-weight:600}
+.edgrid span.open{color:var(--slow)}
+#edMic[aria-pressed="true"]{color:var(--tube-green);border-color:var(--lv1);box-shadow:var(--box-green)}
+.edgrid span{font-family:var(--font-num);font-size:13px;color:var(--muted);text-align:center}
+.edgrid span.mk{color:var(--text)}
+.edgrid button{height:46px;border:1px solid var(--line);border-radius:9px;font-family:var(--font-num);font-size:14px;color:var(--muted)}
+.edgrid button:hover,.edgrid button:active{border-color:var(--accent);color:var(--text)}
+.edgrid button.rt{color:var(--root);border-color:color-mix(in srgb,var(--root) 50%,var(--line))}
+.chips button[aria-disabled="true"]{opacity:.35}
+/* ---------- fretboard trainer ---------- */
+.stagehead{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;padding:18px 2px 8px;flex-wrap:wrap}
+.stagehead b{font-size:16px}
+.stagehead.locked{opacity:.45}
+.toolrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+#quiz{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:20}
+#qfill{height:100%;width:0;background:var(--text)}
+.qmain{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(200px,36%) 1fr;gap:8px 18px;padding:4px 20px 6px;align-items:center}
+@media (orientation:portrait){.qmain{grid-template-columns:1fr;grid-template-rows:auto 1fr;align-items:start}}
+.qprompt{display:flex;flex-direction:column;gap:6px;min-width:0}
+#qNote{font-family:var(--font-neon);font-size:clamp(60px,30vh,150px);line-height:1;color:var(--tube-warm);text-shadow:var(--glow-warm);white-space:nowrap;height:clamp(60px,30vh,150px);display:flex;align-items:center}
+#qNote.ok{color:var(--tube-cool);text-shadow:var(--glow-cool)}
+#qNote.word{font-size:clamp(38px,15vh,68px)}
+#qNote.word.listen{color:var(--tube-cool);text-shadow:var(--glow-cool)}
+#qSub{font-size:clamp(18px,6.2vh,30px);font-weight:650;line-height:1.15;min-height:3.45em}
+#qMsg{min-height:1.5em;color:var(--muted);font-size:clamp(14px,4.4vh,19px)}
+.qtime{height:4px;border-radius:2px;background:var(--line);max-width:280px}
+#qTime{display:block;height:100%;width:100%;border-radius:2px;background:var(--slow);box-shadow:var(--sign-shadow)}
+#qTime.low{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+:root[data-app-theme="light"] #qTime.low{box-shadow:none}
+#qBoard{width:100%;height:100%;min-height:150px;display:block}
+.qfoot{flex:none;display:flex;gap:10px;justify-content:space-between;align-items:center;padding:0 20px 12px;flex-wrap:wrap}
+#qHeard{color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+/* ---------- NeonGuitarRhythm: violet is the lead colour ---------- */
+:root{--accent:#a66bff;--tube-warm:#f5eeff}
+:root[data-app-theme="light"]{--accent:#6b3fd1}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 18px}
+.chips button{font-family:var(--font-num);font-size:18px;font-weight:600;min-width:64px;padding:12px 16px;border:1px solid var(--line);border-radius:14px;color:var(--text)}
+.chips button[aria-pressed="true"]{border-color:var(--lv1);color:var(--tube-green);text-shadow:var(--glow-green);box-shadow:var(--box-green)}
+.pair{display:flex;align-items:center;gap:14px;margin:18px 0 6px}
+.pairtxt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pairtxt b{font-size:20px}.pairtxt span{color:var(--muted);font-size:14px}
+.dg{width:92px;height:112px;flex:none;display:block}
+.dg.nxt{opacity:.55}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px;margin:0 0 26px}
+.grid button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px 8px;border:1px solid var(--line);border-radius:16px;color:var(--text)}
+.grid button b{font-family:var(--font-num);font-size:17px}
+.grid button small{font-size:12px;color:var(--muted)}
+.grid button.done{border-color:color-mix(in srgb,var(--lv1) 70%,var(--line))}
+.grid button.next{border-color:var(--accent);box-shadow:var(--btn-shadow)}
+.grid button:disabled{opacity:.42}
+.h3{font-size:17px;margin:0 0 8px}
+.plain{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:15px;max-width:62ch}
+.plain li{margin:0 0 8px}.plain b{color:var(--text)}
+.xrow{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:13px 2px 13px 18px;text-align:left;color:var(--text)}
+.xrow b{font-size:17px}.xrow span{font-family:var(--font-num);font-size:13px;color:var(--muted);white-space:nowrap}
+.xrow:disabled{opacity:.42}
+.patline{font-family:var(--font-num);letter-spacing:.14em;color:var(--muted);font-size:14px;display:block;margin-top:2px}
+.iobtns{display:flex;gap:8px}
+#ioBox textarea{width:100%;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;font-family:var(--font-num);font-size:12px}
+.primary.small{font-size:18px;padding:10px 26px}
+.overlay{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+.overlay[hidden]{display:none}
+.ohead{flex:none;display:flex;align-items:center;gap:12px;min-height:40px}
+.ohead b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ohead #sPhase{color:var(--muted);font-size:14px;flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ohead .num{font-family:var(--font-num);color:var(--muted);margin-left:auto}
+.word{font-family:var(--font-neon);font-size:clamp(40px,13vh,84px);line-height:1;color:var(--tube-warm);text-shadow:var(--glow-warm)}
+.hint{color:var(--muted);font-size:clamp(14px,4.4vh,20px);margin-top:4px}
+.lbody{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:wrap;min-height:0}
+.dgbig{width:min(52vw,230px);height:min(64vw,280px);display:block}
+.ltxt{max-width:330px}.ltxt p{color:var(--muted);min-height:3em;margin:10px 0 16px}
+.snow{flex:none;display:flex;align-items:center;gap:16px;padding:6px 0;min-height:clamp(84px,26vh,124px)}
+.snow > div{flex:1 1 auto;min-width:0}
+#lane{flex:1 1 auto;min-height:0;width:100%;display:block}
+@media (orientation:portrait){ .snow .dg.nxt{display:none} #stage .ohead{flex-wrap:wrap;row-gap:4px} #stage .ohead b{order:5;flex:1 0 100%} #sPhase{display:none} #stage .ohead .pnum{margin-left:auto} #stage .panel{inset:84px 0 0 0} }
+.startrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:14px 0 0}
+#stage{position:fixed}
+#stage .panel{inset:52px 0 0 0}
+#sumList{list-style:none;margin:0;padding:0;color:var(--muted);font-size:15px;display:flex;flex-direction:column;gap:6px}
+#sumList b{color:var(--text)}
+</style>
+</head>
+<body>
+<div id="home">
+  <header class="top">
+    <div class="brand"><b class="sign" aria-label="NeonGuitarRhythm"><i>Neon</i> <em>Guitar Rhythm</em></b></div>
+    <button class="gear" id="gearBtn" type="button" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.4"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2.4v3.2M12 18.4v3.2M2.4 12h3.2M18.4 12h3.2M5.2 5.2l2.3 2.3M16.5 16.5l2.3 2.3M5.2 18.8l2.3-2.3M16.5 7.5l2.3-2.3"/></svg>
+    </button>
+    <nav class="nav" id="nav" aria-label="Bereiche">
+      <button type="button" data-go="ueben">Üben</button>
+      <button type="button" data-go="akkorde">Akkorde</button>
+      <button type="button" data-go="rhythmus">Rhythmus</button>
+      <button type="button" data-go="schreiben">Schreiben</button>
+    </nav>
+  </header>
+
+  <section class="today view" data-view="ueben">
+    <p class="eyebrow">Heute</p>
+    <h1 class="neon" id="uTitle">Akkordwechsel</h1>
+    <p class="sub" id="uSub"></p>
+    <div id="placeBox" hidden>
+      <p class="note">Welche dieser Akkorde greifst du schon sicher? Tippe sie an. Sie gelten dann als gelernt, und du startest dort, wo es für dich neu wird.</p>
+      <div class="chips" id="placeChips"></div>
+      <div class="startrow"><button class="primary" id="placeOk" type="button">Übernehmen</button><button class="ghost" id="placeNone" type="button">Ich fange bei null an</button></div>
+    </div>
+    <div id="todayBox">
+      <button class="nextb" id="nextBtn" type="button" hidden></button>
+      <div class="pair" id="pairBox"><canvas id="dgA" class="dg"></canvas><canvas id="dgB" class="dg"></canvas><div class="pairtxt"><b id="pairName"></b><span id="pairInfo"></span></div></div>
+      <div class="startrow">
+        <div class="seg" id="durSeg" role="group" aria-label="Dauer der Runde">
+          <button type="button" data-min="2">2 min</button><button type="button" data-min="4">4 min</button><button type="button" data-min="6">6 min</button><button type="button" data-min="8">8 min</button>
+        </div>
+      </div>
+      <div class="startrow"><button class="primary" id="startBtn" type="button">Heute üben</button></div>
+      <div class="facts">
+        <div><b id="fStreak">0</b><span>Tage in Folge</span></div>
+        <div><b id="fMin">0</b><span>Minuten geübt</span></div>
+        <div><b id="fCh">0</b><span>Akkorde gelernt</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" data-view="akkorde">
+    <h2><span class="neon">Akkorde</span></h2>
+    <p class="note">Jeder Akkord kommt einzeln dazu: Griffbild ansehen, dann Saite für Saite anschlagen. Ein neuer Akkord öffnet sich, wenn der vorige sitzt.</p>
+    <div class="grid" id="chGrid"></div>
+    <h3 class="h3">Wechsel</h3>
+    <ul class="rows" id="xList"></ul>
+    <details class="fold">
+      <summary>Was noch kommt</summary>
+      <ul class="plain">
+        <li><b>Stufe 3, Akkorde als Arpeggio:</b> die Töne eines Griffs einzeln, mit dem Einwurf „Arpeggio!“.</li>
+        <li><b>Stufe 4, Farben:</b> sus2, sus4, add9 und 7.</li>
+        <li><b>Stufe 5, Powerchords:</b> verschiebbar, mit Abdämpfen.</li>
+        <li><b>Stufe 6, Barré:</b> F und Bm, dann die verschiebbaren Formen.</li>
+        <li><b>Stufe 7:</b> Dreiklänge auf drei Saiten und Shell Voicings.</li>
+      </ul>
+    </details>
+  </section>
+
+  <section class="view" data-view="rhythmus">
+    <h2><span class="neon">Rhythmus</span></h2>
+    <p class="note">Schlagmuster für die rechte Hand. Jedes Muster läuft in drei Schritten: erst auf abgedämpften Saiten, dann mit einem Akkord, dann mit Akkordwechsel. Die Hand schwingt immer durch, auch wo kein Schlag steht.</p>
+    <ul class="rows" id="pList"></ul>
+    <details class="fold">
+      <summary>Was noch kommt</summary>
+      <ul class="plain">
+        <li>Betonungen, Synkopen und Sechzehntel</li>
+        <li>Gedämpfte Schläge und Stopps</li>
+        <li>3/4 und 6/8</li>
+        <li>Rückmeldung zum Timing über das Mikrofon, als Versuch</li>
+      </ul>
+    </details>
+  </section>
+
+  <section class="view" data-view="schreiben">
+    <h2><span class="neon">Schreiben</span></h2>
+    <p class="note">Hier entsteht das Werkzeug zum Songschreiben. Noch ist nichts davon gebaut.</p>
+    <ul class="plain">
+      <li><b>Akkordfolgen-Baukasten:</b> Tonart wählen, passende Akkorde sehen, die Folge als Schleife laufen lassen.</li>
+      <li><b>Ideenbuch:</b> Akkordfolgen mit Textnotiz festhalten.</li>
+      <li><b>Akkorde verstehen, Voicings, Tonarten:</b> Aufbau, Lagen und die Akkorde einer Tonart.</li>
+    </ul>
+  </section>
+
+  <section class="view" data-view="optionen">
+    <h2><span class="neon">Optionen</span></h2>
+    <div class="set">
+      <div><div class="lbl">Aussehen</div><div class="seg" id="themeSeg" role="group" aria-label="Aussehen"><button type="button" data-theme="dark">Dunkel</button><button type="button" data-theme="light">Hell</button></div></div>
+      <div><div class="lbl">Takt<small>Klick oder ein einfaches Schlagzeug.</small></div><div class="seg" id="beatSeg" role="group" aria-label="Takt"><button type="button" data-beat="click">Klick</button><button type="button" data-beat="drums">Schlagzeug</button></div></div>
+      <div><div class="lbl">Einstufung<small>Noch einmal auswählen, welche Akkorde du schon kannst.</small></div><button class="ghost" id="placeAgain" type="button">Öffnen</button></div>
+      <div><div class="lbl">Fortschritt sichern<small id="ioMsg">Der Fortschritt liegt nur auf diesem Gerät.</small></div><div class="iobtns"><button class="ghost" id="exportBtn" type="button">Kopieren</button><button class="ghost" id="importBtn" type="button">Einfügen</button></div></div>
+      <div id="ioBox" hidden><textarea id="ioText" rows="4" aria-label="Fortschritt als Text"></textarea><button class="ghost" id="ioApply" type="button" hidden>Übernehmen</button></div>
+      <div><div class="lbl">Fortschritt löschen<small>Setzt alles auf den Anfang zurück.</small></div><button class="ghost" id="resetBtn" type="button">Löschen</button></div>
+    </div>
+  </section>
+</div>
+
+<!-- learning one chord, string by string -->
+<div id="lesson" class="overlay" hidden>
+  <div class="ohead"><button class="ghost" id="lQuit" type="button">Schließen</button><b id="lTitle"></b><span class="num" id="lCount"></span></div>
+  <div class="lbody">
+    <canvas id="lDg" class="dgbig"></canvas>
+    <div class="ltxt">
+      <div class="word" id="lWord"></div>
+      <p id="lMsg"></p>
+      <div class="startrow"><button class="primary small" id="lNext" type="button">Gespielt</button><button class="ghost" id="lMic" type="button">Mikrofon an</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- the conveyor -->
+<div id="stage" class="overlay" hidden>
+  <div class="ohead">
+    <button class="ghost" id="sQuit" type="button">Beenden</button>
+    <b id="sBlock"></b><span id="sPhase"></span>
+    <div class="pnum"><span id="sTime">0:00</span><span id="sBpm"></span></div>
+    <button class="ghost" id="sPause" type="button">Pause</button>
+  </div>
+  <div class="snow"><canvas id="sDg" class="dg"></canvas><div><div class="word" id="sWord"></div><div class="hint" id="sHint"></div></div><canvas id="sDg2" class="dg nxt"></canvas></div>
+  <canvas id="lane"></canvas>
+  <div class="panel" id="ratePanel" hidden>
+    <h2>Wie war es?</h2><p id="rateSub">Sei ehrlich. Nur sauberes Spiel bringt das Tempo voran.</p>
+    <div class="rate-row"><button type="button" data-rate="clean" style="--c:var(--ok)"><b>Sauber</b><small>Jeder Akkord klingt, im Takt</small></button><button type="button" data-rate="ok" style="--c:var(--warn)"><b>Ging so</b><small>Kleine Hänger beim Wechsel</small></button><button type="button" data-rate="bad" style="--c:var(--bad)"><b>Unsauber</b><small>Oft zu spät oder verkrampft</small></button></div>
+  </div>
+  <div class="panel" id="sumPanel" hidden>
+    <h2 id="sumTitle">Geschafft</h2><p id="sumSub"></p><ul id="sumList"></ul>
+    <button class="primary small" id="sumDone" type="button">Fertig</button>
+  </div>
+</div>
+
+<script>
+/* ================= content ================= */
+/* Chord shapes, low E string first. -1 = string is not played. */
+const CH = {
+  Em:{sh:[0,2,2,0,0,0], root:4}, Am:{sh:[-1,0,2,2,1,0], root:9}, E:{sh:[0,2,2,1,0,0], root:4}, A:{sh:[-1,0,2,2,2,0], root:9},
+  D:{sh:[-1,-1,0,2,3,2], root:2}, G:{sh:[3,2,0,0,0,3], root:7}, C:{sh:[-1,3,2,0,1,0], root:0}, Dm:{sh:[-1,-1,0,2,3,1], root:2}
+};
+const ORDER = ["Em","Am","E","A","D","G","C","Dm"];
+/* Changes come in this order; each opens when both chords are learned. Longer rows follow the pairs. */
+const CHANGES = [
+  ["Em","Am"],["Am","E"],["E","A"],["A","D"],["D","G"],["Em","G"],["G","C"],["Am","C"],["C","D"],["Am","Dm"],["Dm","G"],
+  ["Em","C","G","D"],["Am","C","G","Em"],["G","D","Em","C"],["C","G","Am","Dm"]
+];
+/* Strumming patterns: eight eighth-note slots. D = down, U = up, - = the hand swings through without touching. */
+const PATS = [
+  {id:"p1", name:"Viertel", pat:"D-D-D-D-", tip:"Nur Abschläge, einer pro Zählzeit."},
+  {id:"p2", name:"Achtel", pat:"DUDUDUDU", tip:"Ab und auf, gleichmäßig wie ein Pendel."},
+  {id:"p3", name:"Zwei Achtel am Ende", pat:"D-D-D-DU", tip:"Wie Viertel, mit einem Aufschlag vor der nächsten Eins."},
+  {id:"p4", name:"Der Klassiker", pat:"D-DU-UDU", tip:"Auf der Drei schwingt die Hand durch, ohne die Saiten zu berühren."}
+];
+const STRN = {6:"tiefe E-Saite",5:"A-Saite",4:"D-Saite",3:"G-Saite",2:"B-Saite",1:"hohe e-Saite"};
+const xid = c => "x:"+c.join("-"), xname = c => c.join(" → ");
+
+const OPEN = {6:40,5:45,4:50,3:55,2:59,1:64};           // MIDI of open strings
+function dstr(d){ d = d || new Date(); const p = n => String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+function midiOf(s, f){ return OPEN[s] + f; }
+const A = {ctx:null, out:null, noise:null};
+function ensureAudio(){
+  if(!A.ctx){
+    const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false;
+    A.ctx = new AC();
+    const comp = A.ctx.createDynamicsCompressor(); A.out = A.ctx.createGain(); A.out.gain.value = .9;
+    A.out.connect(comp); comp.connect(A.ctx.destination);
+    const len = A.ctx.sampleRate*.5, buf = A.ctx.createBuffer(1, len, A.ctx.sampleRate), d = buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = Math.random()*2-1;
+    A.noise = buf;
+  }
+  if(A.ctx.state === "suspended") A.ctx.resume().catch(()=>{});
+  return true;
+}
+function env(g, t, peak, len, att){ g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(peak, t+(att||.004)); g.gain.exponentialRampToValueAtTime(.0001, t+len); }
+function tone(t, type, f0, f1, peak, len, att){
+  const o = A.ctx.createOscillator(), g = A.ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t);
+  if(f1) o.frequency.exponentialRampToValueAtTime(f1, t+len*.6);
+  env(g, t, peak, len, att); o.connect(g); g.connect(A.out); o.start(t); o.stop(t+len+.05);
+}
+function noise(t, ftype, freq, peak, len){
+  const s = A.ctx.createBufferSource(), f = A.ctx.createBiquadFilter(), g = A.ctx.createGain();
+  s.buffer = A.noise; f.type = ftype; f.frequency.value = freq; env(g, t, peak, len, .002);
+  s.connect(f); f.connect(g); g.connect(A.out); s.start(t); s.stop(t+len+.05);
+}
+const hz = m => 440*Math.pow(2, (m-69)/12);
+const snd = {
+  click:(t, acc) => tone(t, "sine", acc ? 1568 : 1046, 0, acc ? .5 : .3, .06),
+  cue:(t, k) => tone(t, "square", 620 + k*120, 0, .12, .05),
+  kick:t => tone(t, "sine", 150, 46, .9, .24),
+  snare:t => { noise(t, "bandpass", 1900, .45, .16); tone(t, "triangle", 196, 150, .25, .1); },
+  hat:t => noise(t, "highpass", 7500, .12, .045),
+  pad:(t, midis, len) => {
+    const f = A.ctx.createBiquadFilter(), g = A.ctx.createGain(); f.type = "lowpass"; f.frequency.value = 950; f.Q.value = .3;
+    const lvl = midis.length > 2 ? .07 : .11, rise = Math.min(.6, len*.3), tail = Math.min(1.6, len*.6);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(lvl, t+rise); g.gain.setValueAtTime(lvl, t+len); g.gain.linearRampToValueAtTime(.0001, t+len+tail);
+    f.connect(g); g.connect(A.out);
+    midis.forEach((m,i) => { ["triangle","sawtooth"].forEach((ty,k) => { const o = A.ctx.createOscillator(), og = A.ctx.createGain(); o.type = ty; o.frequency.value = hz(m); o.detune.value = k ? 6 : -4; og.gain.value = k ? .22 : .7; o.connect(og); og.connect(f); o.start(t+i*.012); o.stop(t+len+1.7); }); });
+  },
+  pluck:(t, m, len) => tone(t, "triangle", hz(m), 0, .22, Math.max(.12, Math.min(.7, len*1.1)), .005)
+};
+
+/* ================= pitch detection ================= */
+/* McLeod pitch method: normalised square difference, first strong peak. Works on single notes. */
+const NSDF = new Float32Array(1200);
+function mpm(buf, sr){
+  const N = Math.min(2048, buf.length), off = buf.length - N;
+  let e = 0; for(let i=0;i<N;i++){ const v = buf[off+i]; e += v*v; }
+  const rms = Math.sqrt(e/N); if(rms < .006) return {rms:rms, freq:0, clarity:0};
+  const maxLag = Math.min(1199, N>>1, Math.floor(sr/70)), minLag = Math.max(2, Math.floor(sr/1400));
+  for(let t=0;t<=maxLag;t++){
+    let acf = 0, m = 0;
+    for(let i=0, n=N-t;i<n;i++){ const a = buf[off+i], b = buf[off+i+t]; acf += a*b; m += a*a + b*b; }
+    NSDF[t] = m > 0 ? 2*acf/m : 0;
+  }
+  let pos = 0; while(pos < maxLag && NSDF[pos] > 0) pos++;
+  const peaks = []; let top = 0;
+  while(pos < maxLag){
+    if(NSDF[pos] > 0){
+      let pk = pos; while(pos < maxLag && NSDF[pos] > 0){ if(NSDF[pos] > NSDF[pk]) pk = pos; pos++; }
+      if(pk >= minLag && pk < maxLag && NSDF[pk] >= NSDF[pk-1] && NSDF[pk] >= NSDF[pk+1]){ peaks.push(pk); if(NSDF[pk] > top) top = NSDF[pk]; }
+    }else pos++;
+  }
+  if(!peaks.length || top < .5) return {rms:rms, freq:0, clarity:top};
+  let pk = peaks[0]; for(let i=0;i<peaks.length;i++){ if(NSDF[peaks[i]] >= top*.9){ pk = peaks[i]; break; } }
+  const a = NSDF[pk-1], b = NSDF[pk], c = NSDF[pk+1], d = a - 2*b + c, shift = d ? .5*(a-c)/d : 0;
+  return {rms:rms, freq:sr/(pk+shift), clarity:b};
+}
+const M = {stream:null, an:null, buf:null};
+async function micStart(){
+  if(M.stream) return true;
+  try{
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+    const st = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
+    if(!ensureAudio()){ st.getTracks().forEach(t => t.stop()); return false; }
+    const src = A.ctx.createMediaStreamSource(st), an = A.ctx.createAnalyser(); an.fftSize = 4096; an.smoothingTimeConstant = 0; src.connect(an);
+    M.stream = st; M.an = an; M.src = src; M.buf = new Float32Array(4096); return true;
+  }catch(e){ return false; }
+}
+function micStop(){ try{ if(M.stream) M.stream.getTracks().forEach(t => t.stop()); if(M.src) M.src.disconnect(); }catch(e){} M.stream = null; M.an = null; M.src = null; }
+
+/* ================= state ================= */
+const KEY = "neon-guitar-rhythm.v1";
+function fresh(){ return {v:1, updatedAt:0, settings:{theme:"dark", minutes:4, beat:"click"}, placed:false, ch:{}, prog:{}, days:[], seconds:0, log:{}}; }
+let state = fresh();
+function load(){ try{ const t = localStorage.getItem(KEY); if(t){ const o = JSON.parse(t); if(o && o.v === 1) state = Object.assign(fresh(), o, {settings:Object.assign(fresh().settings, o.settings || {})}); } }catch(e){} }
+function save(){ state.updatedAt = Date.now(); try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function peek(id){ return state.prog[id] || {bpm:60, at:[], days:[], hist:[], last:""}; }
+function P(id){ return state.prog[id] || (state.prog[id] = {bpm:60, at:[], days:[], hist:[], last:""}); }
+function addTime(sec){ sec = Math.round(sec); if(sec <= 0) return; state.seconds += sec; const d = dstr(); state.log[d] = (state.log[d] || 0) + sec; }
+const learned = n => !!state.ch[n];
+const nextChord = () => ORDER.filter(n => !learned(n))[0] || null;
+const openChanges = () => CHANGES.filter(c => c.every(learned));
+function streak(){ let n = 0; const d = new Date(); if(!state.days.includes(dstr(d))) d.setDate(d.getDate()-1); while(state.days.includes(dstr(d))){ n++; d.setDate(d.getDate()-1); } return n; }
+/* Same rule as in NeonGuitarLead: 2 BPM up per clean day, one step a day, above 100 BPM every second clean day. */
+function applyRating(id, rating){
+  const p = P(id), day = dstr(); let msg = "Das Tempo bleibt bei "+p.bpm+" BPM.";
+  p.hist.push([day, p.bpm, rating]); if(p.hist.length > 60) p.hist.shift(); p.last = day;
+  if(rating === "clean"){
+    if(!p.days.includes(day)) p.days.push(day);
+    if(p.up === day) msg = "Sauber. Das Tempo ist heute schon gestiegen und bleibt bei "+p.bpm+" BPM.";
+    else{ if(!p.at.includes(day)) p.at.push(day);
+      if(p.at.length >= (p.bpm >= 100 ? 2 : 1)){ p.at = []; if(p.bpm < 120){ p.bpm += 2; p.up = day; msg = "Das Tempo steigt auf "+p.bpm+" BPM."; } else msg = "Das Zieltempo von 120 BPM ist erreicht."; }
+      else msg = "Sauber bei "+p.bpm+" BPM. Nach dem nächsten sauberen Tag steigt das Tempo."; }
+  }else if(rating === "bad"){ p.bpm = Math.max(44, p.bpm - 4); p.at = []; msg = "Das Tempo geht zurück auf "+p.bpm+" BPM."; }
+  return msg;
+}
+
+/* ================= drawing ================= */
+const $ = id => document.getElementById(id);
+let C = {};
+function readColors(){ const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
+  C = {bg:g("--bg"), line:g("--line"), text:g("--text"), muted:g("--muted"), accent:g("--accent"), slow:g("--slow"), ok:g("--lv1"), root:g("--root"), glow:state.settings.theme === "dark"}; }
+function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return "rgba("+(n>>16)+","+((n>>8)&255)+","+(n&255)+","+a+")"; }
+function fit(cv){ const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1, w = Math.max(1, Math.round(r.width*d)), h = Math.max(1, Math.round(r.height*d));
+  if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; } const ctx = cv.getContext("2d"); ctx.setTransform(d,0,0,d,0,0); return {ctx:ctx, w:r.width, h:r.height}; }
+function glow(g, col, blur){ if(C.glow){ g.shadowColor = col; g.shadowBlur = blur; } }
+const FONT_N = '"IBM Plex Mono",ui-monospace,Menlo,monospace', FONT_D = '"Bricolage Grotesque","Segoe UI",system-ui,sans-serif';
+/* A chord box: six strings, four frets. Roots are red, all other fingers green; o.ok marks strings that already rang, o.hl the string to play now. */
+function drawDiagram(cv, name, o){
+  o = o || {}; const f = fit(cv), g = f.ctx, w = f.w, h = f.h; g.clearRect(0,0,w,h); if(w < 30 || !CH[name]) return;
+  const sh = CH[name].sh, padX = w*.16, top = h*.2, bot = h*.94, gx = (w - 2*padX)/5, gy = (bot-top)/4, r = Math.min(gx, gy)*.36;
+  const sx = i => padX + i*gx;
+  if(o.hl){ const i = 6 - o.hl; g.fillStyle = rgba(C.slow, .18); g.fillRect(sx(i)-gx*.42, top-gy*.75, gx*.84, bot-top+gy*.8); }
+  g.strokeStyle = C.muted; g.globalAlpha = .7; g.lineWidth = 1; g.beginPath();
+  for(let i=0;i<6;i++){ g.moveTo(Math.round(sx(i))+.5, top); g.lineTo(Math.round(sx(i))+.5, bot); }
+  for(let k=1;k<=4;k++){ g.moveTo(padX, Math.round(top+k*gy)+.5); g.lineTo(w-padX, Math.round(top+k*gy)+.5); } g.stroke(); g.globalAlpha = 1;
+  g.fillStyle = C.text; g.fillRect(padX-1, top-3, w-2*padX+2, 3);
+  g.textAlign = "center"; g.textBaseline = "middle";
+  for(let i=0;i<6;i++){
+    const s = 6 - i, fr = sh[i], root = fr >= 0 && (OPEN[s] + fr) % 12 === CH[name].root, done = o.ok && o.ok.has(s), col = root ? C.root : C.ok;
+    if(fr < 0){ g.fillStyle = C.muted; g.font = "500 "+Math.round(r*1.7)+"px "+FONT_N; g.fillText("×", sx(i), top - gy*.42); continue; }
+    g.save(); if(done || !o.ok) glow(g, col, done ? 12 : 6);
+    if(fr === 0){ g.strokeStyle = col; g.lineWidth = 2; g.globalAlpha = o.ok && !done ? .45 : 1; g.beginPath(); g.arc(sx(i), top - gy*.42, r*.72, 0, 6.3); g.stroke(); }
+    else{ g.fillStyle = col; g.globalAlpha = o.ok && !done ? .4 : 1; g.beginPath(); g.arc(sx(i), top + (fr-.5)*gy, r, 0, 6.3); g.fill(); }
+    g.restore();
+  }
+}
+
+/* ================= views ================= */
+const VIEWS = ["ueben","akkorde","rhythmus","schreiben","optionen"];
+function showView(v){ if(VIEWS.indexOf(v) < 0) v = "ueben";
+  document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.dataset.view === v));
+  document.querySelectorAll("#nav button").forEach(b => { if(b.dataset.go === v) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  if(location.hash !== "#"+v) history.replaceState(null, "", "#"+v); render(); window.scrollTo(0,0); }
+function applyTheme(){ document.documentElement.setAttribute("data-app-theme", state.settings.theme); readColors(); }
+function mainChange(){ const o = openChanges(); if(!o.length) return null;
+  const started = o.filter(c => peek(xid(c)).hist.length && peek(xid(c)).days.length < 5), fresh = o.filter(c => !peek(xid(c)).hist.length);
+  const byLast = (a,b) => (peek(xid(a)).last || "") < (peek(xid(b)).last || "") ? -1 : 1;
+  return started.sort(byLast)[0] || fresh[0] || o.slice().sort(byLast)[0]; }
+function mainPattern(){ return PATS.filter(p => peek("s:"+p.id).days.length < 5)[0] || PATS[PATS.length-1]; }
+let placeSel = new Set();
+function render(){
+  const st = state.settings, nc = nextChord(), mc = mainChange(), n = ORDER.filter(learned).length;
+  document.querySelectorAll("#durSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.min === st.minutes)));
+  document.querySelectorAll("#themeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.theme === st.theme)));
+  document.querySelectorAll("#beatSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.beat === st.beat)));
+  /* today */
+  $("placeBox").hidden = state.placed; $("todayBox").hidden = !state.placed;
+  if(!state.placed){ $("uTitle").textContent = "Willkommen"; $("uSub").textContent = "Kurze Einstufung, dann geht es los.";
+    $("placeChips").innerHTML = ORDER.map(c => '<button type="button" data-ch="'+c+'" aria-pressed="'+placeSel.has(c)+'">'+c+'</button>').join(""); }
+  else{
+    $("uTitle").textContent = mc ? xname(mc) : nc ? "Akkord "+nc : "Alles gelernt";
+    $("uSub").textContent = mc ? peek(xid(mc)).bpm+" BPM · Akkordwechsel" + (mainPattern() ? " · danach Schlagmuster „"+mainPattern().name+"“" : "") : "Lerne zuerst zwei Akkorde, dann beginnt das Üben der Wechsel.";
+    const nb = $("nextBtn"); nb.hidden = !nc; if(nc){ nb.dataset.ch = nc; nb.innerHTML = "<small>Neu lernen</small><b>Akkord "+nc+"</b>"; }
+    $("pairBox").hidden = !mc; $("startBtn").disabled = !mc; $("startBtn").style.opacity = mc ? "" : ".4";
+    if(mc){ drawDiagram($("dgA"), mc[0]); drawDiagram($("dgB"), mc[1]); $("pairName").textContent = mc.length > 2 ? "Akkordfolge" : "Zwei Akkorde im Wechsel"; $("pairInfo").textContent = mc.length > 2 ? mc.join(", ")+". Jeder Akkord einen Takt." : "Erst ein Wechsel pro Takt. Grundtöne sind rot."; }
+    $("fStreak").textContent = streak(); $("fMin").textContent = Math.round(state.seconds/60); $("fCh").textContent = n+"/"+ORDER.length;
+  }
+  /* chords */
+  $("chGrid").innerHTML = ORDER.map(c => { const ok = learned(c), nx = c === nc; return '<button type="button" data-ch="'+c+'" class="'+(ok ? "done" : nx ? "next" : "")+'"'+(ok || nx ? "" : " disabled")+'><canvas class="dg" data-dg="'+c+'"></canvas><b>'+c+'</b><small>'+(ok ? "gelernt" : nx ? "als Nächstes" : "später")+'</small></button>'; }).join("");
+  document.querySelectorAll("#chGrid canvas").forEach(cv => drawDiagram(cv, cv.dataset.dg));
+  $("xList").innerHTML = CHANGES.map(c => { const open = c.every(learned), p = peek(xid(c)); return '<li><button type="button" class="xrow" data-x="'+c.join("-")+'"'+(open ? "" : " disabled")+'><b>'+xname(c)+'</b><span>'+(!open ? "öffnet sich mit den Akkorden" : p.hist.length ? p.bpm+" BPM · "+p.days.length+" saubere Tage" : "neu")+'</span></button></li>'; }).join("");
+  /* rhythm */
+  $("pList").innerHTML = PATS.map(p => { const r = peek("s:"+p.id); return '<li><button type="button" class="xrow" data-p="'+p.id+'"><span style="display:block;font-family:inherit;color:inherit;white-space:normal"><b>'+p.name+'</b><span class="patline">'+p.pat.split("").map(ch => ch === "D" ? "↓" : ch === "U" ? "↑" : "·").join(" ")+'</span></span><span>'+(r.hist.length ? r.bpm+" BPM · "+r.days.length+" saubere Tage" : "neu")+'</span></button></li>'; }).join("");
+}
+
+/* ================= learning a chord ================= */
+let L = null, lraf = 0;
+function openLesson(name){
+  const strings = []; CH[name].sh.forEach((f,i) => { if(f >= 0) strings.push(6 - i); });
+  L = {name:name, strings:strings, i:0, ok:new Set(), cand:null, n:0, whole:false};
+  $("lTitle").textContent = "Akkord "+name; $("lesson").hidden = false; $("lMic").hidden = !!M.stream; lessonShow(); lessonTick();
+}
+function lessonShow(){
+  if(L.whole){ $("lWord").textContent = L.name; $("lCount").textContent = ""; $("lMsg").textContent = "Jetzt alle Saiten in einem Zug anschlagen. Klingt jeder Ton, ohne Schnarren?"; $("lNext").textContent = "Klingt sauber"; drawDiagram($("lDg"), L.name, {ok:L.ok}); return; }
+  const s = L.strings[L.i], f = CH[L.name].sh[6 - s];
+  $("lWord").textContent = L.name; $("lCount").textContent = (L.i+1)+" / "+L.strings.length;
+  $("lMsg").textContent = "Greife den Akkord und schlage nur die "+STRN[s]+" an"+(f ? " (Bund "+f+")." : " (leer).")+(M.stream ? " Das Mikrofon hört zu." : "");
+  $("lNext").textContent = "Gespielt"; drawDiagram($("lDg"), L.name, {ok:L.ok, hl:s});
+}
+function lessonStep(){
+  if(!L) return;
+  if(L.whole){ state.ch[L.name] = dstr(); save(); closeLesson(); return; }
+  L.ok.add(L.strings[L.i]); L.i++; L.cand = null; L.n = 0; if(L.i >= L.strings.length) L.whole = true; lessonShow();
+}
+function lessonTick(){
+  cancelAnimationFrame(lraf); if(!L) return; lraf = requestAnimationFrame(lessonTick);
+  if(!M.an || L.whole) return;
+  M.an.getFloatTimeDomainData(M.buf); const d = mpm(M.buf, A.ctx.sampleRate); if(!d.freq || d.clarity < .8){ L.n = 0; return; }
+  const m = Math.round(69 + 12*Math.log2(d.freq/440)), s = L.strings[L.i], want = OPEN[s] + CH[L.name].sh[6 - s];
+  if(m === want || m === want + 12){ if(++L.n >= 6) lessonStep(); } else L.n = 0;
+}
+function closeLesson(){ cancelAnimationFrame(lraf); L = null; $("lesson").hidden = true; micStop(); render(); }
+
+/* ================= the conveyor ================= */
+let sess = null, run = null, raf = 0, paused = false;
+const SLOTS = 8;
+/* A block is a row of bars. Each bar has a chord (or none while the strings are muted) and a strumming pattern. */
+function changeBlock(c, sec){
+  const id = xid(c), bpm = peek(id).bpm, n = Math.max(4, Math.round(sec*bpm/240)), bars = [];
+  for(let k=0;k<n;k++) bars.push({chord:c[k % c.length], pat:"D-------", plain:true, label:"Ein Schlag auf die Eins, klingen lassen"});
+  return {kind:"change", id:id, title:xname(c), rateName:"Wechsel "+xname(c), bpm:bpm, bars:bars, sec:sec};
+}
+function patBlock(p, sec){
+  const id = "s:"+p.id, bpm = peek(id).bpm, n = Math.max(6, Math.round(sec*bpm/240)), pair = mainChange() || [ORDER.filter(learned)[0] || "Em"], bars = [];
+  const a = Math.round(n/3), b = Math.round(2*n/3);
+  for(let k=0;k<n;k++){
+    if(k < a) bars.push({chord:null, pat:p.pat, label:"Saiten abdämpfen"});
+    else if(k < b) bars.push({chord:pair[0], pat:p.pat, label:"Ein Akkord"});
+    else bars.push({chord:pair[Math.floor((k-b)/2) % pair.length], pat:p.pat, label:pair.length > 1 ? "Mit Wechsel" : "Ein Akkord"});
+  }
+  return {kind:"pat", id:id, title:"Schlagmuster · "+p.name, rateName:"Schlagmuster "+p.name, bpm:bpm, bars:bars, sec:sec, tip:p.tip};
+}
+function buildSession(minutes){
+  const mc = mainChange(), o = openChanges(), second = o.filter(c => c !== mc && peek(xid(c)).hist.length).sort((a,b) => (peek(xid(a)).last || "") < (peek(xid(b)).last || "") ? -1 : 1)[0] || o.filter(c => c !== mc)[0];
+  const pm = mainPattern(), p2 = PATS.filter(p => p !== pm && peek("s:"+p.id).hist.length)[0], blocks = [changeBlock(mc, 120)];
+  if(minutes >= 4) blocks.push(patBlock(pm, 120));
+  if(minutes >= 6) blocks.push(second ? changeBlock(second, 120) : changeBlock(mc, 120));
+  if(minutes >= 8) blocks.push(patBlock(p2 || pm, 120));
+  return {blocks:blocks};
+}
+const blockSec = b => (b.bars.length + 1) * 4 * 60 / b.bpm;
+function startSession(s){
+  if(!ensureAudio()) return; sess = s; sess.i = 0; sess.done = 0; sess.total = s.blocks.reduce((a,b) => a + blockSec(b), 0); sess.results = [];
+  $("stage").hidden = false; $("sumPanel").hidden = true; $("ratePanel").hidden = true; paused = false; $("sPause").textContent = "Pause"; startBlock();
+}
+function startBlock(){
+  const b = sess.blocks[sess.i]; $("ratePanel").hidden = true;
+  run = {block:b, spb:60/b.bpm, t0:A.ctx.currentTime + .25 + 4*60/b.bpm, ev:-4*2, key:""};   // one bar of counting in
+  $("sBlock").textContent = b.title; $("sBpm").innerHTML = b.bpm+"<small>BPM</small>";
+  cancelAnimationFrame(raf); frame();
+}
+function schedule(now){
+  /* ev counts eighth notes; negative values are the count-in */
+  const total = run.block.bars.length * SLOTS;
+  while(run.ev < total){
+    const t = run.t0 + run.ev * run.spb / 2; if(t > now + .14) break;
+    if(run.ev % 2 === 0 && t >= now - .05){
+      const beat = ((run.ev/2) % 4 + 4) % 4, drums = state.settings.beat === "drums" && run.ev >= 0;
+      if(drums){ if(beat === 0 || beat === 2) snd.kick(t); else snd.snare(t); snd.hat(t); } else snd.click(t, beat === 0);
+    }else if(state.settings.beat === "drums" && run.ev >= 0 && t >= now - .05) snd.hat(t);
+    run.ev++;
+  }
+}
+function frame(){
+  raf = requestAnimationFrame(frame); if(paused || !run) return;
+  const now = A.ctx.currentTime, pos = (now - run.t0) / run.spb, b = run.block, nb = b.bars.length;   // pos in beats
+  schedule(now);
+  if(pos >= nb*4 + .3){ endBlock(); return; }
+  const bi = Math.max(0, Math.min(nb-1, Math.floor(pos/4))), cur = b.bars[bi], nxt = b.bars[bi+1];
+  const word = pos < 0 ? String(Math.max(1, Math.ceil(-pos))) : cur.chord || "×", hint = pos < 0 ? "Einzählen" : cur.label + (b.kind === "pat" && bi === 0 ? " · " + b.tip : "");
+  const key = word+"|"+hint+"|"+(nxt ? nxt.chord : "");
+  if(key !== run.key){ run.key = key; $("sWord").textContent = word; $("sHint").textContent = hint; $("sPhase").textContent = pos < 0 ? "" : cur.label;
+    drawDiagram($("sDg"), pos < 0 ? b.bars[0].chord : cur.chord); const nc = nxt && nxt.chord !== cur.chord ? nxt.chord : null; $("sDg2").style.visibility = nc ? "visible" : "hidden"; if(nc) drawDiagram($("sDg2"), nc); }
+  const frac = (sess.done + Math.max(0, (pos + 4) * run.spb)) / sess.total, left = Math.max(0, Math.ceil(sess.total * (1 - Math.min(1, frac)))), tt = Math.floor(left/60)+":"+String(left%60).padStart(2,"0");
+  if(tt !== run.tt){ run.tt = tt; $("sTime").textContent = tt; }
+  drawLane(pos);
+}
+function drawLane(pos){
+  const f = fit($("lane")), g = f.ctx, w = f.w, h = f.h, b = run.block; g.clearRect(0,0,w,h);
+  const mx = Math.max(64, w*.2), ppb = Math.max(46, Math.min(120, w/6.5)), mid = h*.52, big = Math.min(h*.26, ppb*.62);
+  const xOf = beat => mx + (beat - pos) * ppb;
+  /* track */
+  g.strokeStyle = C.muted; g.globalAlpha = .5; g.lineWidth = 1; g.beginPath(); g.moveTo(0, Math.round(mid + big*.9)+.5); g.lineTo(w, Math.round(mid + big*.9)+.5); g.stroke(); g.globalAlpha = 1;
+  g.textAlign = "center"; g.textBaseline = "middle";
+  const first = Math.max(0, Math.floor((pos - mx/ppb)/4)), last = Math.min(b.bars.length-1, Math.floor((pos + (w-mx)/ppb)/4));
+  for(let bi=first; bi<=last; bi++){
+    const bar = b.bars[bi], x0 = xOf(bi*4);
+    g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); g.moveTo(Math.round(x0 - ppb*.25)+.5, mid - big*1.5); g.lineTo(Math.round(x0 - ppb*.25)+.5, mid + big*.9); g.stroke();
+    const change = bi === 0 || b.bars[bi-1].chord !== bar.chord;
+    if(change){ const root = !!bar.chord; g.save(); g.font = "600 "+Math.round(big*.62)+"px "+FONT_N; g.fillStyle = root ? C.accent : C.muted; if(root) glow(g, C.accent, 12); g.textAlign = "left"; g.fillText(bar.chord || "gedämpft", x0 - ppb*.12, mid - big*1.2); g.restore(); }
+    for(let k=0;k<SLOTS;k++){
+      const ch = bar.pat[k], x = xOf(bi*4 + k/2); if(x < -40 || x > w + 40) continue;
+      const past = bi*4 + k/2 < pos - .08, hit = ch === "D" || ch === "U"; if(bar.plain && !hit && k % 2 === 1) continue;
+      const ghost = !(bar.plain && !hit), up = ch === "U" || (ch === "-" && k % 2 === 1), s = big * (k % 2 === 0 ? .5 : .4);
+      g.save(); g.globalAlpha = past ? .25 : hit ? 1 : .22; g.strokeStyle = hit ? (up ? C.slow : C.text) : C.muted; g.lineWidth = hit ? 3 : 2; g.lineCap = "round"; g.lineJoin = "round";
+      if(hit && !past) glow(g, up ? C.slow : C.text, 8);
+      const y1 = up ? mid + s : mid - s, y2 = up ? mid - s : mid + s, a = s*.45;
+      if(ghost){ g.beginPath(); g.moveTo(x, y1); g.lineTo(x, y2); g.moveTo(x - a, y2 + (up ? a : -a)); g.lineTo(x, y2); g.lineTo(x + a, y2 + (up ? a : -a)); g.stroke(); } g.restore();
+      g.fillStyle = C.muted; g.globalAlpha = past ? .3 : k % 2 === 0 ? .9 : .5; g.font = "500 "+Math.round(big*.3)+"px "+FONT_N; g.fillText(k % 2 === 0 ? String(k/2 + 1) : "+", x, mid + big*1.25); g.globalAlpha = 1;
+    }
+  }
+  /* marker */
+  g.save(); g.strokeStyle = C.text; g.lineWidth = 4; g.lineCap = "round"; glow(g, C.text, 14); g.beginPath(); g.moveTo(mx, mid - big*1.5); g.lineTo(mx, mid + big*.9); g.stroke(); g.restore();
+}
+function endBlock(){ cancelAnimationFrame(raf); const b = run.block; sess.done += blockSec(b); addTime(blockSec(b)); run = null; $("ratePanel").hidden = false; }
+function rate(r){
+  const b = sess.blocks[sess.i], msg = applyRating(b.id, r), today = dstr(); if(!state.days.includes(today)) state.days.push(today);
+  sess.results.push({name:b.rateName, msg:msg}); save(); sess.i++;
+  if(sess.i < sess.blocks.length) startBlock(); else finish();
+}
+function finish(){
+  $("ratePanel").hidden = true; const n = streak();
+  $("sumSub").textContent = n > 1 ? n+" Tage in Folge." : "Morgen wieder ein paar Minuten, dann wächst es.";
+  $("sumList").innerHTML = sess.results.map(r => "<li><b>"+r.name+"</b> "+r.msg+"</li>").join(""); $("sumPanel").hidden = false;
+}
+function leave(){ cancelAnimationFrame(raf); if(run && sess){ const played = Math.max(0, (A.ctx.currentTime - run.t0)); addTime(played); save(); } run = null; sess = null; $("stage").hidden = true; render(); }
+function togglePause(){ if(!run) return; paused = !paused; $("sPause").textContent = paused ? "Weiter" : "Pause";
+  if(paused){ run.pAt = A.ctx.currentTime; } else { run.t0 += A.ctx.currentTime - run.pAt; } }
+
+/* ================= wiring ================= */
+load(); applyTheme();
+document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => showView(b.dataset.go)));
+$("gearBtn").addEventListener("click", () => showView("optionen"));
+$("placeChips").addEventListener("click", e => { const b = e.target.closest("button[data-ch]"); if(!b) return; const c = b.dataset.ch; if(placeSel.has(c)) placeSel.delete(c); else placeSel.add(c); render(); });
+$("placeOk").addEventListener("click", () => { placeSel.forEach(c => { if(!state.ch[c]) state.ch[c] = dstr(); }); state.placed = true; save(); render(); });
+$("placeNone").addEventListener("click", () => { state.placed = true; save(); render(); });
+$("placeAgain").addEventListener("click", () => { placeSel = new Set(ORDER.filter(learned)); state.placed = false; save(); showView("ueben"); });
+$("nextBtn").addEventListener("click", () => openLesson($("nextBtn").dataset.ch));
+$("chGrid").addEventListener("click", e => { const b = e.target.closest("button[data-ch]"); if(b && !b.disabled) openLesson(b.dataset.ch); });
+$("xList").addEventListener("click", e => { const b = e.target.closest("button[data-x]"); if(b && !b.disabled) startSession({blocks:[changeBlock(b.dataset.x.split("-"), 120)]}); });
+$("pList").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(b) startSession({blocks:[patBlock(PATS.filter(p => p.id === b.dataset.p)[0], 120)]}); });
+$("durSeg").addEventListener("click", e => { const b = e.target.closest("button[data-min]"); if(b){ state.settings.minutes = +b.dataset.min; save(); render(); } });
+$("themeSeg").addEventListener("click", e => { const b = e.target.closest("button[data-theme]"); if(b){ state.settings.theme = b.dataset.theme; save(); applyTheme(); render(); } });
+$("beatSeg").addEventListener("click", e => { const b = e.target.closest("button[data-beat]"); if(b){ state.settings.beat = b.dataset.beat; save(); render(); } });
+$("startBtn").addEventListener("click", () => { if(mainChange()) startSession(buildSession(state.settings.minutes)); });
+$("lQuit").addEventListener("click", closeLesson); $("lNext").addEventListener("click", lessonStep);
+$("lMic").addEventListener("click", async () => { const ok = await micStart(); $("lMic").hidden = ok; if(!ok) $("lMsg").textContent = "Das Mikrofon ist hier nicht verfügbar. Bestätige jede Saite mit „Gespielt“."; else if(L) lessonShow(); });
+$("sQuit").addEventListener("click", leave); $("sPause").addEventListener("click", togglePause); $("sumDone").addEventListener("click", leave);
+$("ratePanel").addEventListener("click", e => { const b = e.target.closest("button[data-rate]"); if(b) rate(b.dataset.rate === "wobbly" ? "ok" : b.dataset.rate); });
+$("exportBtn").addEventListener("click", () => { const t = JSON.stringify(state); $("ioBox").hidden = false; $("ioApply").hidden = true; $("ioText").value = t; $("ioText").select();
+  const done = () => $("ioMsg").textContent = "Kopiert. Füge den Text an einem sicheren Ort ein."; if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { $("ioMsg").textContent = "Markiere den Text und kopiere ihn."; }); else $("ioMsg").textContent = "Markiere den Text und kopiere ihn."; });
+$("importBtn").addEventListener("click", () => { $("ioBox").hidden = false; $("ioApply").hidden = false; $("ioText").value = ""; $("ioText").focus(); $("ioMsg").textContent = "Füge den gesicherten Text ein und tippe auf Übernehmen."; });
+$("ioApply").addEventListener("click", () => { try{ const o = JSON.parse($("ioText").value); if(!o || o.v !== 1 || !o.ch) throw 0; state = Object.assign(fresh(), o, {settings:Object.assign(fresh().settings, o.settings || {})}); save(); applyTheme(); $("ioBox").hidden = true; $("ioMsg").textContent = "Übernommen."; render(); }catch(e){ $("ioMsg").textContent = "Das ist kein gültiger Stand dieser App."; } });
+let resetArmed = 0;
+$("resetBtn").addEventListener("click", () => { if(Date.now() - resetArmed < 4000){ state = fresh(); save(); applyTheme(); placeSel = new Set(); $("resetBtn").textContent = "Löschen"; showView("ueben"); } else { resetArmed = Date.now(); $("resetBtn").textContent = "Wirklich löschen?"; setTimeout(() => { $("resetBtn").textContent = "Löschen"; }, 4000); } });
+window.addEventListener("resize", () => { render(); if(L) lessonShow(); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+showView((location.hash || "").slice(1) || "ueben");
+
+</script>
+</body>
+</html>
