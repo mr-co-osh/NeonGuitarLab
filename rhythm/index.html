@@ -374,6 +374,18 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 #stage .panel{inset:52px 0 0 0}
 #sumList{list-style:none;margin:0;padding:0;color:var(--muted);font-size:15px;display:flex;flex-direction:column;gap:6px}
 #sumList b{color:var(--text)}
+.dgs{display:flex;gap:6px;flex:none}
+.dgs .dg{width:74px;height:92px}
+.pair{flex-wrap:wrap}
+.lvh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:18px 0 8px}
+.lvh b{font-size:16px}.lvh span{color:var(--muted);font-size:13px}
+.grid{margin-bottom:6px}
+.evsign{flex:none;font-family:var(--font-neon);font-size:clamp(20px,7vh,40px);line-height:1.05;text-align:right;color:var(--tube-cool);text-shadow:var(--glow-cool);min-width:0}
+.evsign.soon{color:transparent;-webkit-text-stroke:1px var(--slow);text-shadow:none}
+.evsign small{display:block;font-family:var(--font-num);font-size:.5em;color:var(--muted);-webkit-text-stroke:0;letter-spacing:.06em;margin-top:2px}
+.chips .grp{flex:1 0 100%;color:var(--muted);font-size:13px;margin-top:6px}
+.chips button.wide{font-family:var(--font-display);font-size:15px;font-weight:600}
+@media (orientation:portrait){ .snow{flex-wrap:wrap} .evsign{flex:1 0 100%;text-align:left;min-height:2.3em;order:9;font-size:30px} .evsign small{display:inline;margin-left:10px} }
 </style>
 </head>
 <body>
@@ -396,19 +408,20 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <h1 class="neon" id="uTitle">Akkordwechsel</h1>
     <p class="sub" id="uSub"></p>
     <div id="placeBox" hidden>
-      <p class="note">Welche dieser Akkorde greifst du schon sicher? Tippe sie an. Sie gelten dann als gelernt, und du startest dort, wo es für dich neu wird.</p>
+      <p class="note">Was greifst du schon sicher? Tippe an, was du kannst. Du startest dann dort, wo es für dich neu wird.</p>
       <div class="chips" id="placeChips"></div>
       <div class="startrow"><button class="primary" id="placeOk" type="button">Übernehmen</button><button class="ghost" id="placeNone" type="button">Ich fange bei null an</button></div>
     </div>
     <div id="todayBox">
       <button class="nextb" id="nextBtn" type="button" hidden></button>
-      <div class="pair" id="pairBox"><canvas id="dgA" class="dg"></canvas><canvas id="dgB" class="dg"></canvas><div class="pairtxt"><b id="pairName"></b><span id="pairInfo"></span></div></div>
+      <div class="pair" id="pairBox"><div class="dgs" id="dgRow"></div><div class="pairtxt"><b id="pairName"></b><span id="pairInfo"></span></div></div>
       <div class="startrow">
         <div class="seg" id="durSeg" role="group" aria-label="Dauer der Runde">
           <button type="button" data-min="2">2 min</button><button type="button" data-min="4">4 min</button><button type="button" data-min="6">6 min</button><button type="button" data-min="8">8 min</button>
         </div>
       </div>
       <div class="startrow"><button class="primary" id="startBtn" type="button">Heute üben</button></div>
+      <p class="quiet" id="testLine" hidden>Zu langsam oder zu schnell? Der Tempotest findet in zwei Minuten dein Starttempo. <button class="ghost" id="testNow" type="button" style="margin-left:6px">Tempo testen</button></p>
       <div class="facts">
         <div><b id="fStreak">0</b><span>Tage in Folge</span></div>
         <div><b id="fMin">0</b><span>Minuten geübt</span></div>
@@ -419,32 +432,21 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 
   <section class="view" data-view="akkorde">
     <h2><span class="neon">Akkorde</span></h2>
-    <p class="note">Jeder Akkord kommt einzeln dazu: Griffbild ansehen, dann Saite für Saite anschlagen. Ein neuer Akkord öffnet sich, wenn der vorige sitzt.</p>
-    <div class="grid" id="chGrid"></div>
-    <h3 class="h3">Wechsel</h3>
-    <ul class="rows" id="xList"></ul>
-    <details class="fold">
-      <summary>Was noch kommt</summary>
-      <ul class="plain">
-        <li><b>Stufe 3, Akkorde als Arpeggio:</b> die Töne eines Griffs einzeln, mit dem Einwurf „Arpeggio!“.</li>
-        <li><b>Stufe 4, Farben:</b> sus2, sus4, add9 und 7.</li>
-        <li><b>Stufe 5, Powerchords:</b> verschiebbar, mit Abdämpfen.</li>
-        <li><b>Stufe 6, Barré:</b> F und Bm, dann die verschiebbaren Formen.</li>
-        <li><b>Stufe 7:</b> Dreiklänge auf drei Saiten und Shell Voicings.</li>
-      </ul>
-    </details>
+    <p class="note">Vier Gruppen, von den offenen Grundakkorden bis in die hohen Lagen. Ein neuer Akkord wird Saite für Saite angespielt. Grundtöne sind rot.</p>
+    <div id="chLevels"></div>
+    <h3 class="h3">Akkordfolgen</h3>
+    <p class="note">Eine Folge öffnet sich, sobald du alle ihre Akkorde gelernt hast.</p>
+    <ul class="rows" id="fList"></ul>
   </section>
 
   <section class="view" data-view="rhythmus">
     <h2><span class="neon">Rhythmus</span></h2>
-    <p class="note">Schlagmuster für die rechte Hand. Jedes Muster läuft in drei Schritten: erst auf abgedämpften Saiten, dann mit einem Akkord, dann mit Akkordwechsel. Die Hand schwingt immer durch, auch wo kein Schlag steht.</p>
+    <p class="note">Schlagmuster für die rechte Hand. Einzeln geübt läuft jedes Muster erst auf abgedämpften Saiten, dann mit einem Akkord, dann über die Akkordfolge des Tages. Die Hand schwingt immer durch, auch wo kein Schlag steht.</p>
     <ul class="rows" id="pList"></ul>
     <details class="fold">
       <summary>Was noch kommt</summary>
       <ul class="plain">
-        <li>Betonungen, Synkopen und Sechzehntel</li>
-        <li>Gedämpfte Schläge und Stopps</li>
-        <li>3/4 und 6/8</li>
+        <li>Sechzehntel-Muster, 3/4 und 6/8</li>
         <li>Rückmeldung zum Timing über das Mikrofon, als Versuch</li>
       </ul>
     </details>
@@ -464,8 +466,10 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <h2><span class="neon">Optionen</span></h2>
     <div class="set">
       <div><div class="lbl">Aussehen</div><div class="seg" id="themeSeg" role="group" aria-label="Aussehen"><button type="button" data-theme="dark">Dunkel</button><button type="button" data-theme="light">Hell</button></div></div>
-      <div><div class="lbl">Takt<small>Klick oder ein einfaches Schlagzeug.</small></div><div class="seg" id="beatSeg" role="group" aria-label="Takt"><button type="button" data-beat="click">Klick</button><button type="button" data-beat="drums">Schlagzeug</button></div></div>
-      <div><div class="lbl">Einstufung<small>Noch einmal auswählen, welche Akkorde du schon kannst.</small></div><button class="ghost" id="placeAgain" type="button">Öffnen</button></div>
+      <div><div class="lbl">Begleitung<small>Klick, Schlagzeug oder Schlagzeug mit Bass.</small></div><div class="seg" id="beatSeg" role="group" aria-label="Begleitung"><button type="button" data-beat="click">Klick</button><button type="button" data-beat="drums">Schlagzeug</button><button type="button" data-beat="band">Mit Bass</button></div></div>
+      <div><div class="lbl">Einwürfe<small>Stopp, Rhythmuswechsel, Leise und Laut, Dämpfen und Arpeggio tauchen mitten in der Folge auf und werden einen Takt vorher angekündigt.</small></div><button class="switch" role="switch" id="swEv" type="button" aria-label="Einwürfe"></button></div>
+      <div><div class="lbl">Tempotest<small>Steigt in 10er-Schritten, bis es nicht mehr sauber ist. Legt das Tempo aller Folgen neu fest.</small></div><button class="ghost" id="testBtn" type="button">Starten</button></div>
+      <div><div class="lbl">Einstufung<small>Noch einmal auswählen, was du schon kannst.</small></div><button class="ghost" id="placeAgain" type="button">Öffnen</button></div>
       <div><div class="lbl">Fortschritt sichern<small id="ioMsg">Der Fortschritt liegt nur auf diesem Gerät.</small></div><div class="iobtns"><button class="ghost" id="exportBtn" type="button">Kopieren</button><button class="ghost" id="importBtn" type="button">Einfügen</button></div></div>
       <div id="ioBox" hidden><textarea id="ioText" rows="4" aria-label="Fortschritt als Text"></textarea><button class="ghost" id="ioApply" type="button" hidden>Übernehmen</button></div>
       <div><div class="lbl">Fortschritt löschen<small>Setzt alles auf den Anfang zurück.</small></div><button class="ghost" id="resetBtn" type="button">Löschen</button></div>
@@ -494,7 +498,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <div class="pnum"><span id="sTime">0:00</span><span id="sBpm"></span></div>
     <button class="ghost" id="sPause" type="button">Pause</button>
   </div>
-  <div class="snow"><canvas id="sDg" class="dg"></canvas><div><div class="word" id="sWord"></div><div class="hint" id="sHint"></div></div><canvas id="sDg2" class="dg nxt"></canvas></div>
+  <div class="snow"><canvas id="sDg" class="dg"></canvas><div><div class="word" id="sWord"></div><div class="hint" id="sHint"></div></div><div class="evsign" id="sEvent"></div><canvas id="sDg2" class="dg nxt"></canvas></div>
   <canvas id="lane"></canvas>
   <div class="panel" id="ratePanel" hidden>
     <h2>Wie war es?</h2><p id="rateSub">Sei ehrlich. Nur sauberes Spiel bringt das Tempo voran.</p>
@@ -508,26 +512,42 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 
 <script>
 /* ================= content ================= */
-/* Chord shapes, low E string first. -1 = string is not played. */
+/* Chord shapes, low E string first. -1 = string is not played. Four groups: open chords, colours, power chords, high positions with open strings. */
 const CH = {
-  Em:{sh:[0,2,2,0,0,0], root:4}, Am:{sh:[-1,0,2,2,1,0], root:9}, E:{sh:[0,2,2,1,0,0], root:4}, A:{sh:[-1,0,2,2,2,0], root:9},
-  D:{sh:[-1,-1,0,2,3,2], root:2}, G:{sh:[3,2,0,0,0,3], root:7}, C:{sh:[-1,3,2,0,1,0], root:0}, Dm:{sh:[-1,-1,0,2,3,1], root:2}
+  Em:{sh:[0,2,2,0,0,0], root:4, lv:1}, Am:{sh:[-1,0,2,2,1,0], root:9, lv:1}, E:{sh:[0,2,2,1,0,0], root:4, lv:1}, A:{sh:[-1,0,2,2,2,0], root:9, lv:1},
+  D:{sh:[-1,-1,0,2,3,2], root:2, lv:1}, G:{sh:[3,2,0,0,0,3], root:7, lv:1}, C:{sh:[-1,3,2,0,1,0], root:0, lv:1}, Dm:{sh:[-1,-1,0,2,3,1], root:2, lv:1},
+  Em7:{sh:[0,2,2,0,3,3], root:4, lv:2}, Cadd9:{sh:[-1,3,2,0,3,3], root:0, lv:2}, Dsus4:{sh:[-1,-1,0,2,3,3], root:2, lv:2}, Asus2:{sh:[-1,0,2,2,0,0], root:9, lv:2},
+  Dsus2:{sh:[-1,-1,0,2,3,0], root:2, lv:2}, Am7:{sh:[-1,0,2,0,1,0], root:9, lv:2}, Fmaj7:{sh:[-1,-1,3,2,1,0], root:5, lv:2},
+  E5:{sh:[0,2,2,-1,-1,-1], root:4, lv:3}, A5:{sh:[-1,0,2,2,-1,-1], root:9, lv:3}, G5:{sh:[3,5,5,-1,-1,-1], root:7, lv:3}, C5:{sh:[-1,3,5,5,-1,-1], root:0, lv:3}, D5:{sh:[-1,5,7,7,-1,-1], root:2, lv:3},
+  "D/A":{sh:[-1,0,7,7,7,0], root:2, lv:4}, "E/A":{sh:[-1,0,9,9,9,0], root:4, lv:4}, "G/D":{sh:[-1,-1,0,7,8,7], root:7, lv:4}, "A/D":{sh:[-1,-1,0,9,10,9], root:9, lv:4},
+  "E5 hoch":{sh:[0,7,9,9,0,0], root:4, lv:4}, "Asus2 hoch":{sh:[-1,0,9,9,0,0], root:9, lv:4}
 };
-const ORDER = ["Em","Am","E","A","D","G","C","Dm"];
-/* Changes come in this order; each opens when both chords are learned. Longer rows follow the pairs. */
-const CHANGES = [
-  ["Em","Am"],["Am","E"],["E","A"],["A","D"],["D","G"],["Em","G"],["G","C"],["Am","C"],["C","D"],["Am","Dm"],["Dm","G"],
-  ["Em","C","G","D"],["Am","C","G","Em"],["G","D","Em","C"],["C","G","Am","Dm"]
+const LEVELS = [null,
+  {name:"Offene Grundakkorde", tip:"Das Fundament für alles Weitere."},
+  {name:"Farben", tip:"Leicht zu greifen und sofort Indie: liegende Finger, offene Saiten."},
+  {name:"Powerchords", tip:"Nur Grundton und Quinte, verschiebbar. Die übrigen Saiten dämpfst du ab."},
+  {name:"Hohe Lagen mit offenen Saiten", tip:"Bekannte Griffe weit oben, die Leersaiten klingen mit."}];
+const NAMES = Object.keys(CH), ofLevel = lv => NAMES.filter(n => CH[n].lv === lv);
+/* Chord progressions, one chord per bar. Pairs are the gentle start and are skipped by anyone who starts faster. */
+const FOLGEN = [
+  {id:"f1", ch:["Em","Em","Am","Am"], easy:true}, {id:"f2", ch:["Am","Am","E","E"], easy:true}, {id:"f3", ch:["A","A","D","D"], easy:true}, {id:"f4", ch:["G","G","C","C"], easy:true},
+  {id:"f5", ch:["Em","C","G","D"]}, {id:"f6", ch:["Am","C","G","Em"]}, {id:"f7", ch:["G","D","Em","C"]}, {id:"f8", ch:["D","A","G","A"]}, {id:"f9", ch:["E","A","D","A"]}, {id:"f10", ch:["C","G","Am","Dm"]},
+  {id:"g1", ch:["Em7","Cadd9","G","Dsus4"]}, {id:"g2", ch:["Am7","Fmaj7","C","G"]}, {id:"g3", ch:["Dsus2","D","Dsus4","D"]}, {id:"g4", ch:["Asus2","Dsus2","Em7","Cadd9"]},
+  {id:"h1", ch:["E5","G5","A5","G5"]}, {id:"h2", ch:["A5","C5","D5","C5"]}, {id:"h3", ch:["E5","A5","D5","A5"]},
+  {id:"k1", ch:["A","D/A","E/A","D/A"]}, {id:"k2", ch:["D","G/D","A/D","G/D"]}, {id:"k3", ch:["Em","E5 hoch","Asus2 hoch","E5 hoch"]}
 ];
+const fname = f => f.ch.filter((c,i) => i === 0 || c !== f.ch[i-1]).join(" · ");
 /* Strumming patterns: eight eighth-note slots. D = down, U = up, - = the hand swings through without touching. */
 const PATS = [
   {id:"p1", name:"Viertel", pat:"D-D-D-D-", tip:"Nur Abschläge, einer pro Zählzeit."},
   {id:"p2", name:"Achtel", pat:"DUDUDUDU", tip:"Ab und auf, gleichmäßig wie ein Pendel."},
   {id:"p3", name:"Zwei Achtel am Ende", pat:"D-D-D-DU", tip:"Wie Viertel, mit einem Aufschlag vor der nächsten Eins."},
-  {id:"p4", name:"Der Klassiker", pat:"D-DU-UDU", tip:"Auf der Drei schwingt die Hand durch, ohne die Saiten zu berühren."}
+  {id:"p4", name:"Der Klassiker", pat:"D-DU-UDU", tip:"Auf der Drei schwingt die Hand durch, ohne die Saiten zu berühren."},
+  {id:"p5", name:"Synkope", pat:"D--U-UDU", tip:"Nach der Eins eine lange Lücke, dann zieht der Aufschlag nach vorn."},
+  {id:"p6", name:"Off-Beat", pat:"-U-U-U-U", tip:"Nur Aufschläge. Die Zählzeiten spürst du, spielst sie aber nicht."},
+  {id:"arp", name:"Arpeggio", arp:true, tip:"Die Töne des Akkords einzeln: erst die tiefste Saite, dann die drei hohen auf und ab."}
 ];
 const STRN = {6:"tiefe E-Saite",5:"A-Saite",4:"D-Saite",3:"G-Saite",2:"B-Saite",1:"hohe e-Saite"};
-const xid = c => "x:"+c.join("-"), xname = c => c.join(" → ");
 
 const OPEN = {6:40,5:45,4:50,3:55,2:59,1:64};           // MIDI of open strings
 function dstr(d){ d = d || new Date(); const p = n => String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
@@ -615,16 +635,20 @@ function micStop(){ try{ if(M.stream) M.stream.getTracks().forEach(t => t.stop()
 
 /* ================= state ================= */
 const KEY = "neon-guitar-rhythm.v1";
-function fresh(){ return {v:1, updatedAt:0, settings:{theme:"dark", minutes:4, beat:"click"}, placed:false, ch:{}, prog:{}, days:[], seconds:0, log:{}}; }
+function fresh(){ return {v:1, updatedAt:0, settings:{theme:"dark", minutes:4, beat:"band", events:true}, placed:false, tested:false, base:72, ch:{}, prog:{}, days:[], seconds:0, log:{}}; }
 let state = fresh();
-function load(){ try{ const t = localStorage.getItem(KEY); if(t){ const o = JSON.parse(t); if(o && o.v === 1) state = Object.assign(fresh(), o, {settings:Object.assign(fresh().settings, o.settings || {})}); } }catch(e){} }
+function adopt(o){ const s = Object.assign(fresh(), o, {settings:Object.assign(fresh().settings, o.settings || {})}); Object.keys(s.prog).forEach(k => { if(k.indexOf("x:") === 0) delete s.prog[k]; }); return s; }
+function load(){ try{ const t = localStorage.getItem(KEY); if(t){ const o = JSON.parse(t); if(o && o.v === 1) state = adopt(o); } }catch(e){} }
 function save(){ state.updatedAt = Date.now(); try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
-function peek(id){ return state.prog[id] || {bpm:60, at:[], days:[], hist:[], last:""}; }
-function P(id){ return state.prog[id] || (state.prog[id] = {bpm:60, at:[], days:[], hist:[], last:""}); }
+function peek(id){ return state.prog[id] || {bpm:state.base, at:[], days:[], hist:[], last:""}; }
+function P(id){ return state.prog[id] || (state.prog[id] = {bpm:state.base, at:[], days:[], hist:[], last:""}); }
 function addTime(sec){ sec = Math.round(sec); if(sec <= 0) return; state.seconds += sec; const d = dstr(); state.log[d] = (state.log[d] || 0) + sec; }
+const dayNo = () => Math.floor((Date.now() - new Date().getTimezoneOffset()*60000)/86400000);
 const learned = n => !!state.ch[n];
-const nextChord = () => ORDER.filter(n => !learned(n))[0] || null;
-const openChanges = () => CHANGES.filter(c => c.every(learned));
+/* A group opens when the one before it is far enough along; power chords open together with the colours. */
+function levelOpen(lv){ if(lv === 1) return true; const n1 = ofLevel(1).filter(learned).length; if(lv === 2 || lv === 3) return n1 >= 4; return ofLevel(2).filter(learned).length >= 3; }
+function nextChords(){ return [1,2,3,4].filter(levelOpen).map(lv => ofLevel(lv).filter(n => !learned(n))[0]).filter(Boolean); }
+const openFolgen = () => FOLGEN.filter(f => f.ch.every(learned));
 function streak(){ let n = 0; const d = new Date(); if(!state.days.includes(dstr(d))) d.setDate(d.getDate()-1); while(state.days.includes(dstr(d))){ n++; d.setDate(d.getDate()-1); } return n; }
 /* Same rule as in NeonGuitarLead: 2 BPM up per clean day, one step a day, above 100 BPM every second clean day. */
 function applyRating(id, rating){
@@ -634,7 +658,7 @@ function applyRating(id, rating){
     if(!p.days.includes(day)) p.days.push(day);
     if(p.up === day) msg = "Sauber. Das Tempo ist heute schon gestiegen und bleibt bei "+p.bpm+" BPM.";
     else{ if(!p.at.includes(day)) p.at.push(day);
-      if(p.at.length >= (p.bpm >= 100 ? 2 : 1)){ p.at = []; if(p.bpm < 120){ p.bpm += 2; p.up = day; msg = "Das Tempo steigt auf "+p.bpm+" BPM."; } else msg = "Das Zieltempo von 120 BPM ist erreicht."; }
+      if(p.at.length >= (p.bpm >= 100 ? 2 : 1)){ p.at = []; if(p.bpm < 132){ p.bpm += 2; p.up = day; msg = "Das Tempo steigt auf "+p.bpm+" BPM."; } else msg = "Das Zieltempo von 132 BPM ist erreicht."; }
       else msg = "Sauber bei "+p.bpm+" BPM. Nach dem nächsten sauberen Tag steigt das Tempo."; }
   }else if(rating === "bad"){ p.bpm = Math.max(44, p.bpm - 4); p.at = []; msg = "Das Tempo geht zurück auf "+p.bpm+" BPM."; }
   return msg;
@@ -649,24 +673,27 @@ function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return "rgba("+(n>>
 function fit(cv){ const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1, w = Math.max(1, Math.round(r.width*d)), h = Math.max(1, Math.round(r.height*d));
   if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; } const ctx = cv.getContext("2d"); ctx.setTransform(d,0,0,d,0,0); return {ctx:ctx, w:r.width, h:r.height}; }
 function glow(g, col, blur){ if(C.glow){ g.shadowColor = col; g.shadowBlur = blur; } }
-const FONT_N = '"IBM Plex Mono",ui-monospace,Menlo,monospace', FONT_D = '"Bricolage Grotesque","Segoe UI",system-ui,sans-serif';
-/* A chord box: six strings, four frets. Roots are red, all other fingers green; o.ok marks strings that already rang, o.hl the string to play now. */
+const FONT_N = '"IBM Plex Mono",ui-monospace,Menlo,monospace';
+/* A chord box: six strings, four frets, starting higher up the neck when the shape needs it. Roots are red, all other fingers green;
+   o.ok marks strings that already rang, o.hl the string to play now. */
 function drawDiagram(cv, name, o){
   o = o || {}; const f = fit(cv), g = f.ctx, w = f.w, h = f.h; g.clearRect(0,0,w,h); if(w < 30 || !CH[name]) return;
-  const sh = CH[name].sh, padX = w*.16, top = h*.2, bot = h*.94, gx = (w - 2*padX)/5, gy = (bot-top)/4, r = Math.min(gx, gy)*.36;
-  const sx = i => padX + i*gx;
+  const sh = CH[name].sh, fretted = sh.filter(x => x > 0), hi = Math.max.apply(null, fretted.concat([0])), base = hi > 4 ? Math.min.apply(null, fretted) : 1;
+  const padL = w*(base > 1 ? .24 : .16), padR = w*.14, top = h*.2, bot = h*.94, gx = (w - padL - padR)/5, gy = (bot-top)/4, r = Math.min(gx, gy)*.36;
+  const sx = i => padL + i*gx;
   if(o.hl){ const i = 6 - o.hl; g.fillStyle = rgba(C.slow, .18); g.fillRect(sx(i)-gx*.42, top-gy*.75, gx*.84, bot-top+gy*.8); }
   g.strokeStyle = C.muted; g.globalAlpha = .7; g.lineWidth = 1; g.beginPath();
   for(let i=0;i<6;i++){ g.moveTo(Math.round(sx(i))+.5, top); g.lineTo(Math.round(sx(i))+.5, bot); }
-  for(let k=1;k<=4;k++){ g.moveTo(padX, Math.round(top+k*gy)+.5); g.lineTo(w-padX, Math.round(top+k*gy)+.5); } g.stroke(); g.globalAlpha = 1;
-  g.fillStyle = C.text; g.fillRect(padX-1, top-3, w-2*padX+2, 3);
+  for(let k=(base > 1 ? 0 : 1);k<=4;k++){ g.moveTo(padL, Math.round(top+k*gy)+.5); g.lineTo(w-padR, Math.round(top+k*gy)+.5); } g.stroke(); g.globalAlpha = 1;
   g.textAlign = "center"; g.textBaseline = "middle";
+  if(base === 1){ g.fillStyle = C.text; g.fillRect(padL-1, top-3, w-padL-padR+2, 3); }
+  else{ g.fillStyle = C.muted; g.font = "600 "+Math.round(r*1.9)+"px "+FONT_N; g.textAlign = "right"; g.fillText(String(base), padL - gx*.45, top + gy*.5); g.textAlign = "center"; }
   for(let i=0;i<6;i++){
     const s = 6 - i, fr = sh[i], root = fr >= 0 && (OPEN[s] + fr) % 12 === CH[name].root, done = o.ok && o.ok.has(s), col = root ? C.root : C.ok;
     if(fr < 0){ g.fillStyle = C.muted; g.font = "500 "+Math.round(r*1.7)+"px "+FONT_N; g.fillText("×", sx(i), top - gy*.42); continue; }
     g.save(); if(done || !o.ok) glow(g, col, done ? 12 : 6);
     if(fr === 0){ g.strokeStyle = col; g.lineWidth = 2; g.globalAlpha = o.ok && !done ? .45 : 1; g.beginPath(); g.arc(sx(i), top - gy*.42, r*.72, 0, 6.3); g.stroke(); }
-    else{ g.fillStyle = col; g.globalAlpha = o.ok && !done ? .4 : 1; g.beginPath(); g.arc(sx(i), top + (fr-.5)*gy, r, 0, 6.3); g.fill(); }
+    else{ g.fillStyle = col; g.globalAlpha = o.ok && !done ? .4 : 1; g.beginPath(); g.arc(sx(i), top + (fr - base + .5)*gy, r, 0, 6.3); g.fill(); }
     g.restore();
   }
 }
@@ -678,46 +705,59 @@ function showView(v){ if(VIEWS.indexOf(v) < 0) v = "ueben";
   document.querySelectorAll("#nav button").forEach(b => { if(b.dataset.go === v) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   if(location.hash !== "#"+v) history.replaceState(null, "", "#"+v); render(); window.scrollTo(0,0); }
 function applyTheme(){ document.documentElement.setAttribute("data-app-theme", state.settings.theme); readColors(); }
-function mainChange(){ const o = openChanges(); if(!o.length) return null;
-  const started = o.filter(c => peek(xid(c)).hist.length && peek(xid(c)).days.length < 5), fresh = o.filter(c => !peek(xid(c)).hist.length);
-  const byLast = (a,b) => (peek(xid(a)).last || "") < (peek(xid(b)).last || "") ? -1 : 1;
-  return started.sort(byLast)[0] || fresh[0] || o.slice().sort(byLast)[0]; }
-function mainPattern(){ return PATS.filter(p => peek("s:"+p.id).days.length < 5)[0] || PATS[PATS.length-1]; }
+const byLast = (a,b) => (peek(a.id).last || "") < (peek(b.id).last || "") ? -1 : (peek(a.id).last || "") > (peek(b.id).last || "") ? 1 : 0;
+/* The progression of the day: one that is in work, else the next new one, else the one that has waited longest.
+   The two-chord rows are only the start for a slow tempo. */
+function candidates(){ const o = openFolgen(), fast = state.base >= 80 || ofLevel(1).filter(learned).length >= 6, hard = o.filter(f => !f.easy); return fast && hard.length ? hard : o; }
+function mainFolge(){ const o = candidates(); if(!o.length) return null;
+  const work = o.filter(f => peek(f.id).hist.length && peek(f.id).days.length < 5).sort(byLast), neu = o.filter(f => !peek(f.id).hist.length);
+  return work[0] || neu[0] || o.slice().sort(byLast)[0]; }
+function secondFolge(m){ const o = candidates().filter(f => f !== m); return o.filter(f => peek(f.id).hist.length).sort(byLast)[0] || o[o.length-1] || null; }
+/* The strumming pattern grows with the progression: every two clean days the next pattern takes over. */
+const strumPats = PATS.filter(p => !p.arp);
+function patFor(f){ return strumPats[Math.min(strumPats.length-1, 1 + Math.floor(peek(f.id).days.length/2))]; }
+function mainPattern(){ return PATS.filter(p => peek("s:"+p.id).days.length < 3)[0] || PATS[(dayNo() % PATS.length)]; }
 let placeSel = new Set();
 function render(){
-  const st = state.settings, nc = nextChord(), mc = mainChange(), n = ORDER.filter(learned).length;
+  const st = state.settings, nc = nextChords(), mf = mainFolge(), n = NAMES.filter(learned).length;
   document.querySelectorAll("#durSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.min === st.minutes)));
   document.querySelectorAll("#themeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.theme === st.theme)));
   document.querySelectorAll("#beatSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.beat === st.beat)));
+  $("swEv").setAttribute("aria-checked", String(st.events !== false));
   /* today */
   $("placeBox").hidden = state.placed; $("todayBox").hidden = !state.placed;
   if(!state.placed){ $("uTitle").textContent = "Willkommen"; $("uSub").textContent = "Kurze Einstufung, dann geht es los.";
-    $("placeChips").innerHTML = ORDER.map(c => '<button type="button" data-ch="'+c+'" aria-pressed="'+placeSel.has(c)+'">'+c+'</button>').join(""); }
+    $("placeChips").innerHTML = '<span class="grp">Offene Grundakkorde</span>' + ofLevel(1).map(c => '<button type="button" data-ch="'+c+'" aria-pressed="'+placeSel.has(c)+'">'+c+'</button>').join("") +
+      '<span class="grp">Ganze Gruppen, die du schon sicher spielst</span>' + [1,2,3].map(lv => '<button type="button" class="wide" data-lv="'+lv+'" aria-pressed="'+ofLevel(lv).every(c => placeSel.has(c))+'">'+(lv === 1 ? "Alle Grundakkorde" : LEVELS[lv].name)+'</button>').join(""); }
   else{
-    $("uTitle").textContent = mc ? xname(mc) : nc ? "Akkord "+nc : "Alles gelernt";
-    $("uSub").textContent = mc ? peek(xid(mc)).bpm+" BPM · Akkordwechsel" + (mainPattern() ? " · danach Schlagmuster „"+mainPattern().name+"“" : "") : "Lerne zuerst zwei Akkorde, dann beginnt das Üben der Wechsel.";
-    const nb = $("nextBtn"); nb.hidden = !nc; if(nc){ nb.dataset.ch = nc; nb.innerHTML = "<small>Neu lernen</small><b>Akkord "+nc+"</b>"; }
-    $("pairBox").hidden = !mc; $("startBtn").disabled = !mc; $("startBtn").style.opacity = mc ? "" : ".4";
-    if(mc){ drawDiagram($("dgA"), mc[0]); drawDiagram($("dgB"), mc[1]); $("pairName").textContent = mc.length > 2 ? "Akkordfolge" : "Zwei Akkorde im Wechsel"; $("pairInfo").textContent = mc.length > 2 ? mc.join(", ")+". Jeder Akkord einen Takt." : "Erst ein Wechsel pro Takt. Grundtöne sind rot."; }
-    $("fStreak").textContent = streak(); $("fMin").textContent = Math.round(state.seconds/60); $("fCh").textContent = n+"/"+ORDER.length;
+    $("uTitle").textContent = mf ? fname(mf) : nc.length ? "Akkord "+nc[0] : "Alles gelernt";
+    $("uSub").textContent = mf ? peek(mf.id).bpm+" BPM · Schlagmuster „"+patFor(mf).name+"“" : "Lerne zuerst zwei Akkorde, dann beginnt das Üben der Folgen.";
+    const nb = $("nextBtn"); nb.hidden = !nc.length; if(nc.length){ nb.dataset.ch = nc[nc.length-1]; nb.innerHTML = "<small>Neu lernen · "+LEVELS[CH[nc[nc.length-1]].lv].name+"</small><b>Akkord "+nc[nc.length-1]+"</b>"; }
+    $("pairBox").hidden = !mf; $("startBtn").disabled = !mf; $("startBtn").style.opacity = mf ? "" : ".4"; $("testLine").hidden = !mf || state.tested;
+    if(mf){ const uniq = mf.ch.filter((c,i) => mf.ch.indexOf(c) === i); $("dgRow").innerHTML = uniq.map(c => '<canvas class="dg" data-dg="'+c+'"></canvas>').join("");
+      document.querySelectorAll("#dgRow canvas").forEach(cv => drawDiagram(cv, cv.dataset.dg));
+      $("pairName").textContent = "Akkordfolge des Tages"; $("pairInfo").textContent = "Jeder Akkord einen Takt, mit Schlagzeug" + (st.events !== false ? " und Einwürfen." : "."); }
+    $("fStreak").textContent = streak(); $("fMin").textContent = Math.round(state.seconds/60); $("fCh").textContent = n+"/"+NAMES.length;
   }
   /* chords */
-  $("chGrid").innerHTML = ORDER.map(c => { const ok = learned(c), nx = c === nc; return '<button type="button" data-ch="'+c+'" class="'+(ok ? "done" : nx ? "next" : "")+'"'+(ok || nx ? "" : " disabled")+'><canvas class="dg" data-dg="'+c+'"></canvas><b>'+c+'</b><small>'+(ok ? "gelernt" : nx ? "als Nächstes" : "später")+'</small></button>'; }).join("");
-  document.querySelectorAll("#chGrid canvas").forEach(cv => drawDiagram(cv, cv.dataset.dg));
-  $("xList").innerHTML = CHANGES.map(c => { const open = c.every(learned), p = peek(xid(c)); return '<li><button type="button" class="xrow" data-x="'+c.join("-")+'"'+(open ? "" : " disabled")+'><b>'+xname(c)+'</b><span>'+(!open ? "öffnet sich mit den Akkorden" : p.hist.length ? p.bpm+" BPM · "+p.days.length+" saubere Tage" : "neu")+'</span></button></li>'; }).join("");
+  $("chLevels").innerHTML = [1,2,3,4].map(lv => { const open = levelOpen(lv), list = ofLevel(lv), nx = list.filter(c => !learned(c))[0];
+    return '<div class="lvh"><b>'+LEVELS[lv].name+'</b><span>'+(open ? list.filter(learned).length+" von "+list.length : lv === 4 ? "öffnet sich mit drei Farbakkorden" : "öffnet sich mit vier Grundakkorden")+'</span></div><p class="note">'+LEVELS[lv].tip+'</p><div class="grid">'+
+      list.map(c => { const ok = learned(c), isN = open && c === nx; return '<button type="button" data-ch="'+c+'" class="'+(ok ? "done" : isN ? "next" : "")+'"'+(ok || isN ? "" : " disabled")+'><canvas class="dg" data-dg="'+c+'"></canvas><b>'+c+'</b><small>'+(ok ? "gelernt" : isN ? "als Nächstes" : "später")+'</small></button>'; }).join("")+'</div>'; }).join("");
+  document.querySelectorAll("#chLevels canvas").forEach(cv => drawDiagram(cv, cv.dataset.dg));
+  $("fList").innerHTML = FOLGEN.map(f => { const open = f.ch.every(learned), p = peek(f.id); return '<li><button type="button" class="xrow" data-f="'+f.id+'"'+(open ? "" : " disabled")+'><b>'+fname(f)+'</b><span>'+(!open ? "noch nicht offen" : p.hist.length ? p.bpm+" BPM · "+p.days.length+" saubere Tage" : "neu")+'</span></button></li>'; }).join("");
   /* rhythm */
-  $("pList").innerHTML = PATS.map(p => { const r = peek("s:"+p.id); return '<li><button type="button" class="xrow" data-p="'+p.id+'"><span style="display:block;font-family:inherit;color:inherit;white-space:normal"><b>'+p.name+'</b><span class="patline">'+p.pat.split("").map(ch => ch === "D" ? "↓" : ch === "U" ? "↑" : "·").join(" ")+'</span></span><span>'+(r.hist.length ? r.bpm+" BPM · "+r.days.length+" saubere Tage" : "neu")+'</span></button></li>'; }).join("");
+  $("pList").innerHTML = PATS.map(p => { const r = peek("s:"+p.id); return '<li><button type="button" class="xrow" data-p="'+p.id+'"><span style="display:block;font-family:inherit;color:inherit;white-space:normal"><b>'+p.name+'</b><span class="patline">'+(p.arp ? "Saite für Saite" : p.pat.split("").map(ch => ch === "D" ? "↓" : ch === "U" ? "↑" : "·").join(" "))+'</span></span><span>'+(r.hist.length ? r.bpm+" BPM · "+r.days.length+" saubere Tage" : "neu")+'</span></button></li>'; }).join("");
 }
 
 /* ================= learning a chord ================= */
 let L = null, lraf = 0;
 function openLesson(name){
   const strings = []; CH[name].sh.forEach((f,i) => { if(f >= 0) strings.push(6 - i); });
-  L = {name:name, strings:strings, i:0, ok:new Set(), cand:null, n:0, whole:false};
+  L = {name:name, strings:strings, i:0, ok:new Set(), n:0, whole:false};
   $("lTitle").textContent = "Akkord "+name; $("lesson").hidden = false; $("lMic").hidden = !!M.stream; lessonShow(); lessonTick();
 }
 function lessonShow(){
-  if(L.whole){ $("lWord").textContent = L.name; $("lCount").textContent = ""; $("lMsg").textContent = "Jetzt alle Saiten in einem Zug anschlagen. Klingt jeder Ton, ohne Schnarren?"; $("lNext").textContent = "Klingt sauber"; drawDiagram($("lDg"), L.name, {ok:L.ok}); return; }
+  if(L.whole){ $("lWord").textContent = L.name; $("lCount").textContent = ""; $("lMsg").textContent = "Jetzt alle Saiten in einem Zug anschlagen. Klingt jeder Ton, ohne Schnarren?"+(CH[L.name].sh.indexOf(-1) >= 0 ? " Die Saiten mit × klingen nicht mit." : ""); $("lNext").textContent = "Klingt sauber"; drawDiagram($("lDg"), L.name, {ok:L.ok}); return; }
   const s = L.strings[L.i], f = CH[L.name].sh[6 - s];
   $("lWord").textContent = L.name; $("lCount").textContent = (L.i+1)+" / "+L.strings.length;
   $("lMsg").textContent = "Greife den Akkord und schlage nur die "+STRN[s]+" an"+(f ? " (Bund "+f+")." : " (leer).")+(M.stream ? " Das Mikrofon hört zu." : "");
@@ -726,7 +766,7 @@ function lessonShow(){
 function lessonStep(){
   if(!L) return;
   if(L.whole){ state.ch[L.name] = dstr(); save(); closeLesson(); return; }
-  L.ok.add(L.strings[L.i]); L.i++; L.cand = null; L.n = 0; if(L.i >= L.strings.length) L.whole = true; lessonShow();
+  L.ok.add(L.strings[L.i]); L.i++; L.n = 0; if(L.i >= L.strings.length) L.whole = true; lessonShow();
 }
 function lessonTick(){
   cancelAnimationFrame(lraf); if(!L) return; lraf = requestAnimationFrame(lessonTick);
@@ -737,33 +777,61 @@ function lessonTick(){
 }
 function closeLesson(){ cancelAnimationFrame(lraf); L = null; $("lesson").hidden = true; micStop(); render(); }
 
+/* ================= building blocks ================= */
+const SLOTS = 8;
+/* Arpeggio for one bar: the lowest string, then the three highest up and down. */
+function arpOf(name){ const S = []; CH[name].sh.forEach((f,i) => { if(f >= 0) S.push(6 - i); });
+  if(S.length < 4){ const a = S[0], b = S[1], c = S[S.length-1]; return [a,b,c,b,a,b,c,b]; }
+  const t = S.slice(-3); return [S[0], t[0], t[1], t[2], t[1], t[0], t[1], t[2]]; }
+const loops = (sec, bpm) => Math.max(2, Math.round(sec*bpm/240/4));
+/* Interjections that are open for a progression. They arrive one by one with its clean days, the arpeggio once it has been practised on its own. */
+function eventsFor(f){ if(state.settings.events === false) return []; const d = peek(f.id).days.length, ev = ["stop","switch"]; if(d >= 1) ev.push("soft"); if(d >= 2) ev.push("mute"); if(peek("s:arp").hist.length) ev.push("arp"); return ev; }
+const EVNAME = {stop:"Stopp!", "switch":"Rhythmus­wechsel!", soft:"Leise!", loud:"Laut!", mute:"Dämpfen!", arp:"Arpeggio!"};
+/* A progression block: the row loops with one strumming pattern. From the third loop on every second loop carries an interjection. */
+function folgeBlock(f, sec){
+  const bpm = peek(f.id).bpm, pat = patFor(f), other = strumPats[(strumPats.indexOf(pat) + 1 + dayNo() % 2) % strumPats.length], evs = eventsFor(f), n = loops(sec, bpm), bars = [];
+  let e = dayNo() % Math.max(1, evs.length);
+  for(let l=0;l<n;l++){
+    const ev = evs.length && l >= 2 && l % 2 === 0 ? evs[e++ % evs.length] : null;
+    f.ch.forEach((c,k) => {
+      const bar = {chord:c, pat:pat.pat, label:pat.name};
+      if(ev === "switch"){ bar.pat = other.pat; bar.label = other.name; bar.ev = "switch"; bar.evStart = k === 0; }
+      if(ev === "soft"){ bar.dyn = k < 2 ? "p" : "f"; bar.ev = k < 2 ? "soft" : "loud"; bar.evStart = k === 0 || k === 2; }
+      if(ev === "stop" && k === 3){ bar.pat = "D-------"; bar.stop = true; bar.ev = "stop"; bar.evStart = true; }
+      if(ev === "mute" && k >= 2){ bar.pat = pat.pat.toLowerCase(); bar.ev = "mute"; bar.evStart = k === 2; }
+      if(ev === "arp" && k >= 2){ bar.arp = arpOf(c); bar.ev = "arp"; bar.evStart = k === 2; }
+      bars.push(bar);
+    });
+  }
+  return {kind:"folge", id:f.id, title:fname(f), rateName:fname(f), bpm:bpm, bars:bars, rated:true, tip:pat.tip};
+}
+/* A pattern on its own: first on muted strings, then on one chord, then over the progression of the day. */
+function patBlock(p, sec){
+  const id = "s:"+p.id, bpm = peek(id).bpm, f = mainFolge() || {ch:[NAMES.filter(learned)[0] || "Em"]}, n = Math.max(6, Math.round(sec*bpm/240)), bars = [];
+  const a = p.arp ? 0 : Math.round(n/4), b = p.arp ? Math.round(n/3) : Math.round(n/2);
+  for(let k=0;k<n;k++){
+    const c = k < a ? null : k < b ? f.ch[0] : f.ch[(k-b) % f.ch.length], bar = {chord:c, pat:p.arp ? "--------" : p.pat, label:k < a ? "Saiten abdämpfen" : k < b ? "Ein Akkord" : "Über die Folge"};
+    if(p.arp) bar.arp = arpOf(c); bars.push(bar);
+  }
+  return {kind:"pat", id:id, title:(p.arp ? "" : "Schlagmuster · ")+p.name, rateName:(p.arp ? "" : "Schlagmuster ")+p.name, bpm:bpm, bars:bars, rated:true, tip:p.tip};
+}
+/* The reward at the end: the progression runs with the band, you play what you like. Nothing is rated. */
+function jamBlock(f){ const bpm = peek(f.id).bpm, n = Math.max(2, Math.round(32*bpm/240/4)), bars = [];
+  for(let l=0;l<n;l++) f.ch.forEach(c => bars.push({chord:c, pat:"--------", free:true, label:"Spiel, wie du willst"}));
+  return {kind:"jam", title:"Jam · "+fname(f), bpm:bpm, bars:bars, rated:false}; }
+function buildSession(minutes){
+  const m = mainFolge(), s2 = secondFolge(m), pm = mainPattern(), p2 = PATS.filter(p => p !== pm && peek("s:"+p.id).hist.length)[0] || PATS[(PATS.indexOf(pm)+1) % PATS.length], blocks = [folgeBlock(m, 120)];
+  if(minutes >= 4) blocks.push(patBlock(pm, 120));
+  if(minutes >= 6) blocks.push(folgeBlock(s2 || m, 120));
+  if(minutes >= 8) blocks.push(patBlock(p2, 120));
+  if(minutes >= 4) blocks.push(jamBlock(m));
+  return {kind:"daily", blocks:blocks};
+}
+/* Tempo test: the same progression in steps of 10 BPM with straight eighths, until it is no longer clean. */
+function buildTest(){ const f = mainFolge(); return {kind:"test", best:0, blocks:[60,70,80,90,100,110,120].map(t => { const bars = []; for(let l=0;l<2;l++) f.ch.forEach(c => bars.push({chord:c, pat:"DUDUDUDU", label:"Achtel"})); return {kind:"test", title:"Tempotest · "+t+" BPM", bpm:t, bars:bars, rated:true}; })}; }
+
 /* ================= the conveyor ================= */
 let sess = null, run = null, raf = 0, paused = false;
-const SLOTS = 8;
-/* A block is a row of bars. Each bar has a chord (or none while the strings are muted) and a strumming pattern. */
-function changeBlock(c, sec){
-  const id = xid(c), bpm = peek(id).bpm, n = Math.max(4, Math.round(sec*bpm/240)), bars = [];
-  for(let k=0;k<n;k++) bars.push({chord:c[k % c.length], pat:"D-------", plain:true, label:"Ein Schlag auf die Eins, klingen lassen"});
-  return {kind:"change", id:id, title:xname(c), rateName:"Wechsel "+xname(c), bpm:bpm, bars:bars, sec:sec};
-}
-function patBlock(p, sec){
-  const id = "s:"+p.id, bpm = peek(id).bpm, n = Math.max(6, Math.round(sec*bpm/240)), pair = mainChange() || [ORDER.filter(learned)[0] || "Em"], bars = [];
-  const a = Math.round(n/3), b = Math.round(2*n/3);
-  for(let k=0;k<n;k++){
-    if(k < a) bars.push({chord:null, pat:p.pat, label:"Saiten abdämpfen"});
-    else if(k < b) bars.push({chord:pair[0], pat:p.pat, label:"Ein Akkord"});
-    else bars.push({chord:pair[Math.floor((k-b)/2) % pair.length], pat:p.pat, label:pair.length > 1 ? "Mit Wechsel" : "Ein Akkord"});
-  }
-  return {kind:"pat", id:id, title:"Schlagmuster · "+p.name, rateName:"Schlagmuster "+p.name, bpm:bpm, bars:bars, sec:sec, tip:p.tip};
-}
-function buildSession(minutes){
-  const mc = mainChange(), o = openChanges(), second = o.filter(c => c !== mc && peek(xid(c)).hist.length).sort((a,b) => (peek(xid(a)).last || "") < (peek(xid(b)).last || "") ? -1 : 1)[0] || o.filter(c => c !== mc)[0];
-  const pm = mainPattern(), p2 = PATS.filter(p => p !== pm && peek("s:"+p.id).hist.length)[0], blocks = [changeBlock(mc, 120)];
-  if(minutes >= 4) blocks.push(patBlock(pm, 120));
-  if(minutes >= 6) blocks.push(second ? changeBlock(second, 120) : changeBlock(mc, 120));
-  if(minutes >= 8) blocks.push(patBlock(p2 || pm, 120));
-  return {blocks:blocks};
-}
 const blockSec = b => (b.bars.length + 1) * 4 * 60 / b.bpm;
 function startSession(s){
   if(!ensureAudio()) return; sess = s; sess.i = 0; sess.done = 0; sess.total = s.blocks.reduce((a,b) => a + blockSec(b), 0); sess.results = [];
@@ -771,19 +839,30 @@ function startSession(s){
 }
 function startBlock(){
   const b = sess.blocks[sess.i]; $("ratePanel").hidden = true;
-  run = {block:b, spb:60/b.bpm, t0:A.ctx.currentTime + .25 + 4*60/b.bpm, ev:-4*2, key:""};   // one bar of counting in
+  run = {block:b, spb:60/b.bpm, t0:A.ctx.currentTime + .25 + 4*60/b.bpm, ev:-SLOTS, key:"", groove:dayNo() % 3};   // one bar of counting in
   $("sBlock").textContent = b.title; $("sBpm").innerHTML = b.bpm+"<small>BPM</small>";
   cancelAnimationFrame(raf); frame();
 }
+const bassOf = name => 40 + ((CH[name].root - 4 + 12) % 12);
 function schedule(now){
-  /* ev counts eighth notes; negative values are the count-in */
-  const total = run.block.bars.length * SLOTS;
+  /* run.ev counts eighth notes; negative values are the count-in */
+  const bars = run.block.bars, total = bars.length * SLOTS, mode = state.settings.beat;
   while(run.ev < total){
     const t = run.t0 + run.ev * run.spb / 2; if(t > now + .14) break;
-    if(run.ev % 2 === 0 && t >= now - .05){
-      const beat = ((run.ev/2) % 4 + 4) % 4, drums = state.settings.beat === "drums" && run.ev >= 0;
-      if(drums){ if(beat === 0 || beat === 2) snd.kick(t); else snd.snare(t); snd.hat(t); } else snd.click(t, beat === 0);
-    }else if(state.settings.beat === "drums" && run.ev >= 0 && t >= now - .05) snd.hat(t);
+    if(t >= now - .05){
+      const k = ((run.ev % SLOTS) + SLOTS) % SLOTS, bi = Math.floor(run.ev / SLOTS), bar = bi >= 0 ? bars[bi] : null, nx = bars[bi+1], on = k % 2 === 0, beat = k/2;
+      if(bar && nx && nx.evStart && nx.ev !== bar.ev && on && state.settings.events !== false) snd.cue(t, beat);
+      if(!bar || mode === "click"){ if(on) snd.click(t, k === 0); }
+      else if(bar.stop){ if(k === 0){ snd.kick(t); if(mode === "band" && bar.chord) snd.bass(t, bassOf(bar.chord), run.spb); } }
+      else{
+        const soft = bar.dyn === "p";
+        if(run.groove === 2){ if(on) snd.kick(t); if(beat === 1 || beat === 3) snd.snare(t); }
+        else if(run.groove === 1){ if(k === 0 || k === 3 || k === 4) snd.kick(t); if(k === 2 || k === 6) snd.snare(t); }
+        else{ if(k === 0 || k === 4) snd.kick(t); if(k === 2 || k === 6) snd.snare(t); }
+        if(!soft || on) snd.hat(t);
+        if(mode === "band" && bar.chord && (k === 0 || k === 4 || (k === 3 && run.groove === 1))) snd.bass(t, bassOf(bar.chord), run.spb * (k === 3 ? .5 : 1.6));
+      }
+    }
     run.ev++;
   }
 }
@@ -792,10 +871,14 @@ function frame(){
   const now = A.ctx.currentTime, pos = (now - run.t0) / run.spb, b = run.block, nb = b.bars.length;   // pos in beats
   schedule(now);
   if(pos >= nb*4 + .3){ endBlock(); return; }
-  const bi = Math.max(0, Math.min(nb-1, Math.floor(pos/4))), cur = b.bars[bi], nxt = b.bars[bi+1];
-  const word = pos < 0 ? String(Math.max(1, Math.ceil(-pos))) : cur.chord || "×", hint = pos < 0 ? "Einzählen" : cur.label + (b.kind === "pat" && bi === 0 ? " · " + b.tip : "");
-  const key = word+"|"+hint+"|"+(nxt ? nxt.chord : "");
-  if(key !== run.key){ run.key = key; $("sWord").textContent = word; $("sHint").textContent = hint; $("sPhase").textContent = pos < 0 ? "" : cur.label;
+  const bi = Math.max(0, Math.min(nb-1, Math.floor(pos/4))), cur = b.bars[bi], nxt = b.bars[bi+1], evOn = state.settings.events !== false;
+  const word = pos < 0 ? String(Math.max(1, Math.ceil(-pos))) : cur.chord || "×", hint = pos < 0 ? "Einzählen" : cur.label + (bi < 2 && b.tip && !cur.ev ? " · " + b.tip : "");
+  let ev = "", evCls = "";
+  if(pos >= 0 && cur.ev) ev = EVNAME[cur.ev];
+  else if(pos >= 0 && evOn && nxt && nxt.evStart){ ev = EVNAME[nxt.ev]+"<small>Noch "+Math.max(1, 4 - Math.floor(pos % 4))+"</small>"; evCls = "soon"; }
+  if(pos >= 0 && evOn && cur.ev && nxt && nxt.evStart && nxt.ev !== cur.ev){ ev = EVNAME[nxt.ev]+"<small>Noch "+Math.max(1, 4 - Math.floor(pos % 4))+"</small>"; evCls = "soon"; }
+  const key = word+"|"+hint+"|"+ev+"|"+(nxt ? nxt.chord : "");
+  if(key !== run.key){ run.key = key; $("sWord").textContent = word; $("sHint").textContent = hint; $("sPhase").textContent = pos < 0 ? "" : cur.label; $("sEvent").innerHTML = ev; $("sEvent").className = "evsign "+evCls;
     drawDiagram($("sDg"), pos < 0 ? b.bars[0].chord : cur.chord); const nc = nxt && nxt.chord !== cur.chord ? nxt.chord : null; $("sDg2").style.visibility = nc ? "visible" : "hidden"; if(nc) drawDiagram($("sDg2"), nc); }
   const frac = (sess.done + Math.max(0, (pos + 4) * run.spb)) / sess.total, left = Math.max(0, Math.ceil(sess.total * (1 - Math.min(1, frac)))), tt = Math.floor(left/60)+":"+String(left%60).padStart(2,"0");
   if(tt !== run.tt){ run.tt = tt; $("sTime").textContent = tt; }
@@ -803,62 +886,83 @@ function frame(){
 }
 function drawLane(pos){
   const f = fit($("lane")), g = f.ctx, w = f.w, h = f.h, b = run.block; g.clearRect(0,0,w,h);
-  const mx = Math.max(64, w*.2), ppb = Math.max(46, Math.min(120, w/6.5)), mid = h*.52, big = Math.min(h*.26, ppb*.62);
+  const mx = Math.max(64, w*.2), ppb = Math.max(46, Math.min(120, w/6.5)), mid = h*.56, big = Math.min(h*.24, ppb*.62), base = mid + big*.9;
   const xOf = beat => mx + (beat - pos) * ppb;
-  /* track */
-  g.strokeStyle = C.muted; g.globalAlpha = .5; g.lineWidth = 1; g.beginPath(); g.moveTo(0, Math.round(mid + big*.9)+.5); g.lineTo(w, Math.round(mid + big*.9)+.5); g.stroke(); g.globalAlpha = 1;
+  g.strokeStyle = C.muted; g.globalAlpha = .5; g.lineWidth = 1; g.beginPath(); g.moveTo(0, Math.round(base)+.5); g.lineTo(w, Math.round(base)+.5); g.stroke(); g.globalAlpha = 1;
   g.textAlign = "center"; g.textBaseline = "middle";
   const first = Math.max(0, Math.floor((pos - mx/ppb)/4)), last = Math.min(b.bars.length-1, Math.floor((pos + (w-mx)/ppb)/4));
   for(let bi=first; bi<=last; bi++){
     const bar = b.bars[bi], x0 = xOf(bi*4);
-    g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); g.moveTo(Math.round(x0 - ppb*.25)+.5, mid - big*1.5); g.lineTo(Math.round(x0 - ppb*.25)+.5, mid + big*.9); g.stroke();
-    const change = bi === 0 || b.bars[bi-1].chord !== bar.chord;
-    if(change){ const root = !!bar.chord; g.save(); g.font = "600 "+Math.round(big*.62)+"px "+FONT_N; g.fillStyle = root ? C.accent : C.muted; if(root) glow(g, C.accent, 12); g.textAlign = "left"; g.fillText(bar.chord || "gedämpft", x0 - ppb*.12, mid - big*1.2); g.restore(); }
+    g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); g.moveTo(Math.round(x0 - ppb*.25)+.5, mid - big*2.1); g.lineTo(Math.round(x0 - ppb*.25)+.5, base); g.stroke();
+    if(bar.ev){ g.fillStyle = rgba(C.slow, .09); g.fillRect(x0 - ppb*.25, mid - big*2.1, ppb*4, base - mid + big*2.1); }
+    if(bi === 0 || b.bars[bi-1].chord !== bar.chord || bar.evStart){ g.save(); g.font = "600 "+Math.round(big*.6)+"px "+FONT_N; g.textAlign = "left"; g.fillStyle = bar.chord ? C.accent : C.muted; if(bar.chord) glow(g, C.accent, 12); g.fillText(bar.chord || "gedämpft", x0 - ppb*.12, mid - big*1.25); g.restore(); }
+    if(bar.evStart){ g.save(); g.font = "500 "+Math.round(big*.36)+"px "+FONT_N; g.textAlign = "left"; g.fillStyle = C.slow; g.fillText(EVNAME[bar.ev].replace("­","").toUpperCase(), x0 - ppb*.12, mid - big*1.85); g.restore(); }
     for(let k=0;k<SLOTS;k++){
-      const ch = bar.pat[k], x = xOf(bi*4 + k/2); if(x < -40 || x > w + 40) continue;
-      const past = bi*4 + k/2 < pos - .08, hit = ch === "D" || ch === "U"; if(bar.plain && !hit && k % 2 === 1) continue;
-      const ghost = !(bar.plain && !hit), up = ch === "U" || (ch === "-" && k % 2 === 1), s = big * (k % 2 === 0 ? .5 : .4);
-      g.save(); g.globalAlpha = past ? .25 : hit ? 1 : .22; g.strokeStyle = hit ? (up ? C.slow : C.text) : C.muted; g.lineWidth = hit ? 3 : 2; g.lineCap = "round"; g.lineJoin = "round";
-      if(hit && !past) glow(g, up ? C.slow : C.text, 8);
+      const x = xOf(bi*4 + k/2); if(x < -40 || x > w + 40) continue;
+      const past = bi*4 + k/2 < pos - .08;
+      g.fillStyle = C.muted; g.globalAlpha = past ? .3 : k % 2 === 0 ? .9 : .5; g.font = "500 "+Math.round(big*.3)+"px "+FONT_N; g.fillText(k % 2 === 0 ? String(k/2 + 1) : "+", x, base + big*.38); g.globalAlpha = 1;
+      if(bar.free) continue;
+      if(bar.arp){ const s = bar.arp[k], y = mid + big*.7 - (6 - s) * big*.26;
+        g.save(); g.globalAlpha = past ? .25 : 1; const isR = (OPEN[s] + CH[bar.chord].sh[6 - s]) % 12 === CH[bar.chord].root, dc = isR ? C.root : C.ok; g.fillStyle = dc; if(!past) glow(g, dc, 10); g.beginPath(); g.arc(x, y, big*.2, 0, 6.3); g.fill(); g.restore();
+        g.fillStyle = C.bg; g.globalAlpha = past ? .3 : 1; g.font = "600 "+Math.round(big*.26)+"px "+FONT_N; g.fillText(String(s), x, y + 1); g.globalAlpha = 1; continue; }
+      const ch = bar.pat[k], hit = ch !== "-", up = ch === "U" || ch === "u" || (ch === "-" && k % 2 === 1), dead = ch === "d" || ch === "u";
+      if(bar.stop && !hit){ if(k % 2 === 0 && k > 0){ g.save(); g.globalAlpha = past ? .25 : .9; g.strokeStyle = C.slow; g.lineWidth = 3; g.lineCap = "round"; const q = big*.2; g.beginPath(); g.moveTo(x-q, mid-q); g.lineTo(x+q, mid+q); g.moveTo(x+q, mid-q); g.lineTo(x-q, mid+q); g.stroke(); g.restore(); } continue; }
+      const dyn = bar.dyn === "p" ? .62 : bar.dyn === "f" ? 1.25 : 1, s = big * (k % 2 === 0 ? .5 : .4) * dyn;
+      g.save(); g.globalAlpha = past ? .25 : hit ? (bar.dyn === "p" ? .75 : 1) : .22; g.strokeStyle = hit ? (dead ? C.muted : up ? C.slow : C.text) : C.muted; g.lineWidth = hit ? (bar.dyn === "f" ? 4 : 3) : 2; g.lineCap = "round"; g.lineJoin = "round";
+      if(hit && !past && !dead) glow(g, up ? C.slow : C.text, bar.dyn === "f" ? 14 : 8);
       const y1 = up ? mid + s : mid - s, y2 = up ? mid - s : mid + s, a = s*.45;
-      if(ghost){ g.beginPath(); g.moveTo(x, y1); g.lineTo(x, y2); g.moveTo(x - a, y2 + (up ? a : -a)); g.lineTo(x, y2); g.lineTo(x + a, y2 + (up ? a : -a)); g.stroke(); } g.restore();
-      g.fillStyle = C.muted; g.globalAlpha = past ? .3 : k % 2 === 0 ? .9 : .5; g.font = "500 "+Math.round(big*.3)+"px "+FONT_N; g.fillText(k % 2 === 0 ? String(k/2 + 1) : "+", x, mid + big*1.25); g.globalAlpha = 1;
+      g.beginPath(); g.moveTo(x, y1); g.lineTo(x, y2);
+      if(dead){ g.moveTo(x - a, y2 - a); g.lineTo(x + a, y2 + a); g.moveTo(x + a, y2 - a); g.lineTo(x - a, y2 + a); }
+      else{ g.moveTo(x - a, y2 + (up ? a : -a)); g.lineTo(x, y2); g.lineTo(x + a, y2 + (up ? a : -a)); }
+      g.stroke(); g.restore();
     }
   }
-  /* marker */
-  g.save(); g.strokeStyle = C.text; g.lineWidth = 4; g.lineCap = "round"; glow(g, C.text, 14); g.beginPath(); g.moveTo(mx, mid - big*1.5); g.lineTo(mx, mid + big*.9); g.stroke(); g.restore();
+  g.save(); g.strokeStyle = C.text; g.lineWidth = 4; g.lineCap = "round"; glow(g, C.text, 14); g.beginPath(); g.moveTo(mx, mid - big*2.1); g.lineTo(mx, base); g.stroke(); g.restore();
 }
-function endBlock(){ cancelAnimationFrame(raf); const b = run.block; sess.done += blockSec(b); addTime(blockSec(b)); run = null; $("ratePanel").hidden = false; }
+function endBlock(){ cancelAnimationFrame(raf); const b = run.block; sess.done += blockSec(b); if(sess.kind !== "test") addTime(blockSec(b)); run = null;
+  if(b.rated) $("ratePanel").hidden = false; else{ sess.results.push({name:"Jam", msg:"Frei gespielt."}); sess.i++; if(sess.i < sess.blocks.length) startBlock(); else finish(); } }
 function rate(r){
-  const b = sess.blocks[sess.i], msg = applyRating(b.id, r), today = dstr(); if(!state.days.includes(today)) state.days.push(today);
+  const b = sess.blocks[sess.i];
+  if(sess.kind === "test"){ if(r === "clean"){ sess.best = b.bpm; sess.i++; if(sess.i < sess.blocks.length){ startBlock(); return; } } finishTest(); return; }
+  const msg = applyRating(b.id, r), today = dstr(); if(!state.days.includes(today)) state.days.push(today);
   sess.results.push({name:b.rateName, msg:msg}); save(); sess.i++;
   if(sess.i < sess.blocks.length) startBlock(); else finish();
 }
+function finishTest(){
+  state.base = sess.best ? Math.max(60, sess.best - 10) : 60; state.tested = true; Object.keys(state.prog).forEach(k => { state.prog[k].bpm = state.base; state.prog[k].at = []; }); save();
+  $("ratePanel").hidden = true; $("sumTitle").textContent = "Einstufung"; $("sumSub").textContent = sess.best ? "Sauber bis "+sess.best+" BPM. Alle Folgen und Schlagmuster starten bei "+state.base+" BPM." : "Du startest bei 60 BPM. Das ist ein guter Anfang.";
+  $("sumList").innerHTML = state.base >= 80 ? "<li>Die Folgen aus zwei Akkorden überspringst du.</li>" : ""; $("sumPanel").hidden = false;
+}
 function finish(){
-  $("ratePanel").hidden = true; const n = streak();
+  $("ratePanel").hidden = true; const n = streak(); $("sumTitle").textContent = "Geschafft";
   $("sumSub").textContent = n > 1 ? n+" Tage in Folge." : "Morgen wieder ein paar Minuten, dann wächst es.";
   $("sumList").innerHTML = sess.results.map(r => "<li><b>"+r.name+"</b> "+r.msg+"</li>").join(""); $("sumPanel").hidden = false;
 }
-function leave(){ cancelAnimationFrame(raf); if(run && sess){ const played = Math.max(0, (A.ctx.currentTime - run.t0)); addTime(played); save(); } run = null; sess = null; $("stage").hidden = true; render(); }
-function togglePause(){ if(!run) return; paused = !paused; $("sPause").textContent = paused ? "Weiter" : "Pause";
-  if(paused){ run.pAt = A.ctx.currentTime; } else { run.t0 += A.ctx.currentTime - run.pAt; } }
+function leave(){ cancelAnimationFrame(raf); if(run && sess && sess.kind !== "test"){ addTime(Math.max(0, A.ctx.currentTime - run.t0)); save(); } run = null; sess = null; $("stage").hidden = true; render(); }
+function togglePause(){ if(!run) return; paused = !paused; $("sPause").textContent = paused ? "Weiter" : "Pause"; if(paused) run.pAt = A.ctx.currentTime; else run.t0 += A.ctx.currentTime - run.pAt; }
 
 /* ================= wiring ================= */
 load(); applyTheme();
+snd.bass = (t, m, len) => { tone(t, "triangle", hz(m), 0, .5, Math.max(.2, len), .01); tone(t, "square", hz(m), 0, .05, Math.max(.15, len*.6), .01); };
 document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => showView(b.dataset.go)));
 $("gearBtn").addEventListener("click", () => showView("optionen"));
-$("placeChips").addEventListener("click", e => { const b = e.target.closest("button[data-ch]"); if(!b) return; const c = b.dataset.ch; if(placeSel.has(c)) placeSel.delete(c); else placeSel.add(c); render(); });
-$("placeOk").addEventListener("click", () => { placeSel.forEach(c => { if(!state.ch[c]) state.ch[c] = dstr(); }); state.placed = true; save(); render(); });
-$("placeNone").addEventListener("click", () => { state.placed = true; save(); render(); });
-$("placeAgain").addEventListener("click", () => { placeSel = new Set(ORDER.filter(learned)); state.placed = false; save(); showView("ueben"); });
+$("placeChips").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.lv){ const list = ofLevel(+b.dataset.lv), all = list.every(c => placeSel.has(c)); list.forEach(c => { if(all) placeSel.delete(c); else placeSel.add(c); }); }
+  else{ const c = b.dataset.ch; if(placeSel.has(c)) placeSel.delete(c); else placeSel.add(c); } render(); });
+$("placeOk").addEventListener("click", () => { NAMES.forEach(c => { if(placeSel.has(c)){ if(!state.ch[c]) state.ch[c] = dstr(); } else delete state.ch[c]; }); state.placed = true; save(); render(); });
+$("placeNone").addEventListener("click", () => { state.ch = {}; state.placed = true; save(); render(); });
+$("placeAgain").addEventListener("click", () => { placeSel = new Set(NAMES.filter(learned)); state.placed = false; save(); showView("ueben"); });
 $("nextBtn").addEventListener("click", () => openLesson($("nextBtn").dataset.ch));
-$("chGrid").addEventListener("click", e => { const b = e.target.closest("button[data-ch]"); if(b && !b.disabled) openLesson(b.dataset.ch); });
-$("xList").addEventListener("click", e => { const b = e.target.closest("button[data-x]"); if(b && !b.disabled) startSession({blocks:[changeBlock(b.dataset.x.split("-"), 120)]}); });
-$("pList").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(b) startSession({blocks:[patBlock(PATS.filter(p => p.id === b.dataset.p)[0], 120)]}); });
+$("chLevels").addEventListener("click", e => { const b = e.target.closest("button[data-ch]"); if(b && !b.disabled) openLesson(b.dataset.ch); });
+$("fList").addEventListener("click", e => { const b = e.target.closest("button[data-f]"); if(b && !b.disabled) startSession({kind:"daily", blocks:[folgeBlock(FOLGEN.filter(f => f.id === b.dataset.f)[0], 120)]}); });
+$("pList").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(b) startSession({kind:"daily", blocks:[patBlock(PATS.filter(p => p.id === b.dataset.p)[0], 120)]}); });
 $("durSeg").addEventListener("click", e => { const b = e.target.closest("button[data-min]"); if(b){ state.settings.minutes = +b.dataset.min; save(); render(); } });
 $("themeSeg").addEventListener("click", e => { const b = e.target.closest("button[data-theme]"); if(b){ state.settings.theme = b.dataset.theme; save(); applyTheme(); render(); } });
 $("beatSeg").addEventListener("click", e => { const b = e.target.closest("button[data-beat]"); if(b){ state.settings.beat = b.dataset.beat; save(); render(); } });
-$("startBtn").addEventListener("click", () => { if(mainChange()) startSession(buildSession(state.settings.minutes)); });
+$("swEv").addEventListener("click", () => { state.settings.events = state.settings.events === false; save(); render(); });
+$("startBtn").addEventListener("click", () => { if(mainFolge()) startSession(buildSession(state.settings.minutes)); });
+const startTest = () => { if(mainFolge()) startSession(buildTest()); else showView("akkorde"); };
+$("testNow").addEventListener("click", startTest); $("testBtn").addEventListener("click", startTest);
 $("lQuit").addEventListener("click", closeLesson); $("lNext").addEventListener("click", lessonStep);
 $("lMic").addEventListener("click", async () => { const ok = await micStart(); $("lMic").hidden = ok; if(!ok) $("lMsg").textContent = "Das Mikrofon ist hier nicht verfügbar. Bestätige jede Saite mit „Gespielt“."; else if(L) lessonShow(); });
 $("sQuit").addEventListener("click", leave); $("sPause").addEventListener("click", togglePause); $("sumDone").addEventListener("click", leave);
@@ -866,7 +970,7 @@ $("ratePanel").addEventListener("click", e => { const b = e.target.closest("butt
 $("exportBtn").addEventListener("click", () => { const t = JSON.stringify(state); $("ioBox").hidden = false; $("ioApply").hidden = true; $("ioText").value = t; $("ioText").select();
   const done = () => $("ioMsg").textContent = "Kopiert. Füge den Text an einem sicheren Ort ein."; if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { $("ioMsg").textContent = "Markiere den Text und kopiere ihn."; }); else $("ioMsg").textContent = "Markiere den Text und kopiere ihn."; });
 $("importBtn").addEventListener("click", () => { $("ioBox").hidden = false; $("ioApply").hidden = false; $("ioText").value = ""; $("ioText").focus(); $("ioMsg").textContent = "Füge den gesicherten Text ein und tippe auf Übernehmen."; });
-$("ioApply").addEventListener("click", () => { try{ const o = JSON.parse($("ioText").value); if(!o || o.v !== 1 || !o.ch) throw 0; state = Object.assign(fresh(), o, {settings:Object.assign(fresh().settings, o.settings || {})}); save(); applyTheme(); $("ioBox").hidden = true; $("ioMsg").textContent = "Übernommen."; render(); }catch(e){ $("ioMsg").textContent = "Das ist kein gültiger Stand dieser App."; } });
+$("ioApply").addEventListener("click", () => { try{ const o = JSON.parse($("ioText").value); if(!o || o.v !== 1 || !o.ch) throw 0; state = adopt(o); save(); applyTheme(); $("ioBox").hidden = true; $("ioMsg").textContent = "Übernommen."; render(); }catch(e){ $("ioMsg").textContent = "Das ist kein gültiger Stand dieser App."; } });
 let resetArmed = 0;
 $("resetBtn").addEventListener("click", () => { if(Date.now() - resetArmed < 4000){ state = fresh(); save(); applyTheme(); placeSel = new Set(); $("resetBtn").textContent = "Löschen"; showView("ueben"); } else { resetArmed = Date.now(); $("resetBtn").textContent = "Wirklich löschen?"; setTimeout(() => { $("resetBtn").textContent = "Löschen"; }, 4000); } });
 window.addEventListener("resize", () => { render(); if(L) lessonShow(); });
