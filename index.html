@@ -599,20 +599,30 @@ const CHORDS = {
   "F#m":{root:6, pad:[42,49,54,57]}
 };
 const LICKS = [
-  {id:"l1", pos:1, name:"Aufstieg", chord:"Am", goal:"endet auf dem Grundton", notes:[[6,5],[6,8],[5,5],[5,7],[4,5],[4,7],[3,5],[4,7]]},
-  {id:"l2", pos:1, name:"Abstieg", chord:"Am", goal:"endet auf dem Grundton", notes:[[1,5],[2,8],[2,5],[3,7],[3,5],[4,7],[4,5],[4,7]]},
-  {id:"l3", pos:1, name:"Welle", chord:"Am", goal:"endet auf der Quinte", notes:[[3,5],[3,7],[2,5],[3,7],[2,5],[2,8],[1,5],[2,5]]},
-  {id:"l4", pos:1, name:"Terz-Ziel", chord:"C", goal:"endet auf der Terz", notes:[[4,5],[4,7],[3,5],[3,7],[2,5],[3,7],[3,5],[2,5]]},
-  {id:"l5", pos:1, name:"Saitenwechsel", chord:"Am", goal:"endet auf dem Grundton", notes:[[2,5],[1,5],[2,8],[1,5],[2,5],[3,7],[3,5],[4,7]]},
-  {id:"l6", pos:1, name:"Bass-Lauf", chord:"Em", goal:"endet auf dem Grundton", notes:[[6,5],[6,8],[5,5],[5,7],[5,5],[6,8],[5,5],[5,7]]},
-  {id:"l7", pos:2, name:"Stufen", chord:"Am", goal:"endet auf dem Grundton", notes:[[4,7],[4,10],[3,7],[3,9],[2,8],[2,10],[1,8],[2,10]]},
-  {id:"l8", pos:2, name:"Rückweg", chord:"C", goal:"endet auf der Terz", notes:[[1,10],[1,8],[2,10],[2,8],[3,9],[3,7],[4,10],[3,9]]},
-  {id:"l9", pos:3, name:"Hochebene", chord:"Am", goal:"endet auf dem Grundton", notes:[[5,12],[4,10],[4,12],[3,9],[3,12],[2,10],[2,13],[2,10]]},
-  {id:"l10", pos:3, name:"Quintfall", chord:"Em", goal:"endet auf dem Grundton", notes:[[1,12],[1,10],[2,13],[2,10],[3,12],[3,9],[4,12],[3,9]]},
-  {id:"l11", pos:4, name:"Oktavlage", chord:"Am", goal:"endet auf dem Grundton", notes:[[5,12],[5,15],[4,12],[4,14],[3,12],[3,14],[2,13],[3,14]]},
-  {id:"l12", pos:4, name:"Glocke", chord:"C", goal:"endet auf dem Grundton", notes:[[1,12],[2,15],[2,13],[3,14],[3,12],[4,14],[3,12],[2,13]]},
-  {id:"l13", pos:5, name:"Tiefe Lage", chord:"Am", goal:"endet auf dem Grundton", notes:[[6,5],[5,3],[5,5],[4,2],[4,5],[3,2],[3,5],[3,2]]},
-  {id:"l14", pos:5, name:"Offene Tür", chord:"Em", goal:"endet auf der Terz", notes:[[1,3],[2,5],[2,3],[3,5],[3,2],[4,5],[4,2],[4,5]]}
+  /* Per position: first the home lick (root to root), then the way back, then licks that land on the root, last the licks that aim at another tone. */
+  {id:"l1", pos:1, name:"Aufstieg", chord:"Am", goal:"Heimat-Lick: vom Grundton zum Grundton", notes:[[6,5],[6,8],[5,5],[5,7],[4,5],[4,7],[3,5],[4,7]]},
+  {id:"l2", pos:1, name:"Abstieg", chord:"Am", goal:"Weg-Lick: vom Grundton zurück zum Grundton", notes:[[1,5],[2,8],[2,5],[3,7],[3,5],[4,7],[4,5],[4,7]]},
+  {id:"l5", pos:1, name:"Saitenwechsel", chord:"Am", goal:"Lande-Lick: landet auf dem Grundton", notes:[[2,5],[1,5],[2,8],[1,5],[2,5],[3,7],[3,5],[4,7]]},
+  {id:"n1", pos:1, land:true, name:"Landung", chord:"Am", goal:"Lande-Lick: landet auf dem Grundton", notes:[[2,5],[2,8],[1,5],[2,8],[2,5],[3,7],[3,5],[4,7]]},
+  {id:"l3", pos:1, name:"Welle", chord:"Am", goal:"Zielton-Lick: endet auf der Quinte", notes:[[3,5],[3,7],[2,5],[3,7],[2,5],[2,8],[1,5],[2,5]]},
+  {id:"l4", pos:1, name:"Terz-Ziel", chord:"C", goal:"Zielton-Lick: endet auf der Terz", notes:[[4,5],[4,7],[3,5],[3,7],[2,5],[3,7],[3,5],[2,5]]},
+  {id:"l6", pos:1, name:"Bass-Lauf", chord:"Em", goal:"Zielton-Lick: endet auf dem Grundton", notes:[[6,5],[6,8],[5,5],[5,7],[5,5],[6,8],[5,5],[5,7]]},
+  {id:"l7", pos:2, name:"Stufen", chord:"Am", goal:"Heimat-Lick: vom Grundton zum Grundton", notes:[[4,7],[4,10],[3,7],[3,9],[2,8],[2,10],[1,8],[2,10]]},
+  {id:"w2", pos:2, name:"Talfahrt", chord:"Am", goal:"Weg-Lick: vom Grundton zurück zum Grundton", notes:[[2,10],[2,8],[3,9],[3,7],[4,10],[3,7],[4,10],[4,7]]},
+  {id:"n2", pos:2, land:true, name:"Anflug", chord:"Am", goal:"Lande-Lick: landet auf dem Grundton", notes:[[1,10],[1,8],[2,10],[2,8],[3,9],[3,7],[4,10],[4,7]]},
+  {id:"l8", pos:2, name:"Rückweg", chord:"C", goal:"Zielton-Lick: endet auf der Terz", notes:[[1,10],[1,8],[2,10],[2,8],[3,9],[3,7],[4,10],[3,9]]},
+  {id:"l9", pos:3, name:"Hochebene", chord:"Am", goal:"Heimat-Lick: vom Grundton zum Grundton", notes:[[5,12],[4,10],[4,12],[3,9],[3,12],[2,10],[2,13],[2,10]]},
+  {id:"w3", pos:3, name:"Abhang", chord:"Am", goal:"Weg-Lick: vom Grundton zurück zum Grundton", notes:[[2,10],[3,12],[3,9],[4,12],[4,10],[4,12],[4,10],[5,12]]},
+  {id:"n3", pos:3, land:true, name:"Gleitflug", chord:"Am", goal:"Lande-Lick: landet auf dem Grundton", notes:[[1,12],[1,10],[2,13],[2,10],[3,12],[3,9],[3,12],[2,10]]},
+  {id:"l10", pos:3, name:"Quintfall", chord:"Em", goal:"Zielton-Lick: endet auf dem Grundton", notes:[[1,12],[1,10],[2,13],[2,10],[3,12],[3,9],[4,12],[3,9]]},
+  {id:"l11", pos:4, name:"Oktavlage", chord:"Am", goal:"Heimat-Lick: vom Grundton zum Grundton", notes:[[5,12],[5,15],[4,12],[4,14],[3,12],[3,14],[2,13],[3,14]]},
+  {id:"w4", pos:4, name:"Treppe abwärts", chord:"Am", goal:"Weg-Lick: vom Grundton zurück zum Grundton", notes:[[3,14],[3,12],[4,14],[4,12],[5,15],[4,12],[5,15],[5,12]]},
+  {id:"n4", pos:4, land:true, name:"Abendlandung", chord:"Am", goal:"Lande-Lick: landet auf dem Grundton", notes:[[1,15],[1,12],[2,15],[2,13],[3,14],[3,12],[2,13],[3,14]]},
+  {id:"l12", pos:4, name:"Glocke", chord:"C", goal:"Zielton-Lick: endet auf dem Grundton", notes:[[1,12],[2,15],[2,13],[3,14],[3,12],[4,14],[3,12],[2,13]]},
+  {id:"l13", pos:5, name:"Tiefe Lage", chord:"Am", goal:"Heimat-Lick: vom Grundton zum Grundton", notes:[[6,5],[5,3],[5,5],[4,2],[4,5],[3,2],[3,5],[3,2]]},
+  {id:"w5", pos:5, name:"Rückkehr", chord:"Am", goal:"Weg-Lick: vom Grundton zurück zum Grundton", notes:[[1,5],[1,3],[2,5],[2,3],[3,5],[2,3],[3,5],[3,2]]},
+  {id:"n5", pos:5, land:true, name:"Heimweg", chord:"Am", goal:"Lande-Lick: landet auf dem Grundton", notes:[[3,5],[2,3],[2,5],[1,3],[2,5],[2,3],[3,5],[3,2]]},
+  {id:"l14", pos:5, name:"Offene Tür", chord:"Em", goal:"Zielton-Lick: endet auf der Terz", notes:[[1,3],[2,5],[2,3],[3,5],[3,2],[4,5],[4,2],[4,5]]}
 ];
 /* Licks that walk from one position into the next with a slide. They open once both positions are learned. */
 const E8 = (s, f, tech) => tech ? {s:s, f:f, t:6, tech:tech} : {s:s, f:f, t:6};
@@ -695,7 +705,10 @@ function keyed(l, key){
 function vocabK(){ return keyed(VOCAB); }
 function degName(chord){ const c = CHORDS[chord]; return c ? DEG[(c.root - KEYS[curKey()].root + 12) % 12] || "" : ""; }
 function allLicks(){ return LICKS.map(l => keyed(l)).concat(ownLicks()); }
-const src = l => l.ev || l.notes;
+const LAND = {1:[[6,6,6,6,6,6,6,54]], 2:[[12,6,6,12,6,6,6,42],[6,6,12,6,6,12,6,42]], 3:[[12,3,3,3,3,6,6,60],[6,6,3,3,3,3,12,60]]};
+function landEv(l){ const v = LAND[stage(l.id)], t = v[(dayNo() + l.id.charCodeAt(1)) % v.length]; return l.notes.map((n,i) => ({s:n[0], f:n[1], t:t[i]})); }
+const src = l => l.land ? landEv(l) : (l.ev || l.notes);
+const isLand = id => LICKS.some(l => l.id === id && l.land);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 /* older saves had a plain on/off switch for chords */
 function adopt(s){ const st = Object.assign(fresh().settings, s.settings||{}); if(st.chords === false) st.harmony = "off"; delete st.chords;
@@ -749,8 +762,8 @@ function applyRating(id, rating, day){
   }else if(rating === "bad"){
     p.bpm = Math.max(44, p.bpm - 4); p.at = []; msg = "Das Tempo geht zurück auf "+p.bpm+" BPM.";
   }else msg = "Das Tempo bleibt bei "+p.bpm+" BPM.";
-  if(!sustain && !wasSolid && p.days.length >= 5) msg += " Das Lick ist jetzt gefestigt, die Bursts werden länger.";
-  if(!sustain && p.days.length === 8 && rating === "clean" && p.hist.filter(x => x[2] === "clean" && x[0] === day).length === 1) msg += " Ab jetzt kommt die Sechzehntel-Phase dazu.";
+  if(!sustain && !wasSolid && p.days.length >= 5) msg += isLand(id) ? " Das Lick ist jetzt gefestigt, der Rhythmus wird abwechslungsreicher." : " Das Lick ist jetzt gefestigt, die Bursts werden länger.";
+  if(!sustain && p.days.length === 8 && rating === "clean" && p.hist.filter(x => x[2] === "clean" && x[0] === day).length === 1) msg += isLand(id) ? " Ab jetzt kommt eine kurze Sechzehntel-Gruppe dazu." : " Ab jetzt kommt die Sechzehntel-Phase dazu.";
   return msg;
 }
 function streak(){
@@ -916,6 +929,7 @@ function lickBlock(lick, title, sec, full){
   if(full && !p.hist.length) bars.push.apply(bars, mkBars(src(lick), "S", {chord:lick.chord, hint:"Langsam kennenlernen"}));
   while(bars.length < n-2){
     const t = pat[i++ % pat.length];
+    if(lick.land && (t === "B" || t === "R")){ bars.push.apply(bars, mkBars(src(lick), "N", {chord:lick.chord})); continue; }
     if(t === "R" && !lick.own && !lick.ev){ const r = RHY[Math.floor(rk++/2) % Math.max(1, nr)]; bars.push.apply(bars, rhyBars(lick, r)); }
     else bars.push.apply(bars, mkBars(src(lick), t === "R" ? "N" : t, {chord:lick.chord, hint:t==="S" ? HINTS[h++ % HINTS.length] : ""}));
   }
@@ -993,12 +1007,12 @@ function buildSession(minutes){
   const o = lickOrder(), main = o[0], B = 120;
   const rp = repertoire().sort(byLast), wk = working().filter(l => l !== main && peek(l.id).hist.length).sort(byLast);
   const second = (rp.length && (dayNo() % 2 === 0 || !wk.length)) ? rp[0] : wk[0] || rp[0] || o[1] || o[0];
-  const secondBlock = () => stage(second.id) >= 3 ? durBlock(second, B) : lickBlock(second, second === main ? "Hauptlick, zweite Runde" : "Zweites Lick", B, false);
+  const secondBlock = () => stage(second.id) >= 3 && !second.land ? durBlock(second, B) : lickBlock(second, second === main ? "Hauptlick, zweite Runde" : "Zweites Lick", B, false);
   const blocks = [lickBlock(main, "Hauptlick", B, true)], rev = reviewBlock();
   if(minutes >= 4) blocks.push(minutes === 4 && rev && revWait() >= 3 ? rev : secondBlock());
   if(minutes >= 6) blocks.push(rev || vocabBlock(B));
   if(minutes >= 8){
-    const day = Math.floor((Date.now() - new Date().getTimezoneOffset()*60000)/86400000), familiar = activeLicks().filter(l => !l.own && peek(l.id).days.length)[0];
+    const day = Math.floor((Date.now() - new Date().getTimezoneOffset()*60000)/86400000), familiar = activeLicks().filter(l => !l.own && !l.land && peek(l.id).days.length)[0];
     if(!rev){ const other = o.filter(l => l !== main && l !== second)[0]; blocks.push(familiar ? guestBlock(familiar, ["trip","34","68"][day % 3], B) : lickBlock(other || main, other ? "Drittes Lick" : "Hauptlick, zweite Runde", B, true)); }
     else{ const ear = state.settings.earEnd !== false && POS_ORDER.some(posDone); blocks.push(vocabBlock(ear ? 85 : B)); if(ear) blocks.push({kind:"hear", title:"Hör-Moment", sec:35, rated:false}); }
   }
