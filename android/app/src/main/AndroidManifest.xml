@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <application
-        android:label="NeonGuitarLab"
+        android:label="NeonGuitarLead"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
         android:theme="@style/AppTheme">

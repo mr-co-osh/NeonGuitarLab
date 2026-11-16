@@ -1,6 +1,6 @@
 {
-  "name": "NeonGuitarLab",
-  "short_name": "NGL",
+  "name": "NeonGuitarLead",
+  "short_name": "NG Lead",
   "description": "Gitarre üben: langsam, sauber, mit Bursts.",
   "start_url": "./",
   "scope": "./",

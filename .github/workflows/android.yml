@@ -36,7 +36,7 @@ jobs:
         if: always()
         run: |
           mkdir out
-          cp android/app/build/outputs/apk/release/*.apk out/NeonGuitarLab.apk 2>/dev/null || true
+          cp android/app/build/outputs/apk/release/*.apk out/NeonGuitarLead.apk 2>/dev/null || true
           tail -n 150 build.log > out/build.log 2>/dev/null || true
           echo "Build ${GITHUB_RUN_NUMBER} · ${GITHUB_SHA} · $(date -u +%FT%TZ) · ${{ steps.build.outcome }}" > out/STAND.txt
           cd out

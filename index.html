@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow, noarchive">
-<title>NeonGuitarLab</title>
+<title>NeonGuitarLead</title>
 <style>
 /* fonts are served from this site itself, nothing is loaded from other servers */
 @font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:400 800;font-display:swap;src:url(fonts/bricolage-grotesque-latin-opsz-normal.woff2) format("woff2")}
@@ -332,7 +332,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 
 <div id="home">
   <header class="top">
-    <div class="brand"><b class="sign" aria-label="NeonGuitarLab"><i>Neon</i> <em>Guitar Lab</em></b></div>
+    <div class="brand"><b class="sign" aria-label="NeonGuitarLead"><i>Neon</i> <em>Guitar Lead</em></b></div>
     <button class="gear" id="gearBtn" type="button" data-go="optionen" aria-label="Einstellungen">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.4"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2.4v3.2M12 18.4v3.2M2.4 12h3.2M18.4 12h3.2M5.2 5.2l2.3 2.3M16.5 16.5l2.3 2.3M5.2 18.8l2.3-2.3M16.5 7.5l2.3-2.3"/></svg>
     </button>
@@ -371,10 +371,6 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <p class="quiet" id="testLine" hidden>Neu hier? Der Einstufungstest legt in wenigen Minuten dein Starttempo fest. <button class="ghost" id="testNow" type="button" style="margin-left:6px">Test starten</button> <button class="ghost" id="testLater" type="button">Später</button></p>
     <p class="quiet" id="revLine" hidden><span id="revTxt"></span> <button class="ghost" id="revBtn" type="button" style="margin-left:6px">Kurz wiederholen</button></p>
     <p class="quiet" id="backupLine" hidden><span id="backupTxt"></span> <button class="ghost" id="backupBtn" type="button" style="margin-left:6px">Jetzt sichern</button></p>
-    <details class="fold" id="statFold" style="margin-top:6px">
-      <summary>Statistik</summary>
-      <div id="statBox"></div>
-    </details>
   </section>
 
   <section class="view" data-view="licks">
@@ -382,7 +378,6 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <div class="legend" id="legend"></div>
     <p class="note">Höchstens vier Licks sind gleichzeitig in Arbeit. Tippe eines an, um mehr zu sehen.</p>
     <div id="lickBox"></div>
-    <div class="toolrow"><button class="ghost" id="newLick" type="button">Eigenes Lick anlegen</button></div>
     <details class="fold">
       <summary>Rhythmus ausprobieren</summary>
       <p class="note">Kurze Runden ohne Bewertung mit dem heutigen Lick.</p>
@@ -474,6 +469,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
       <div><div class="lbl">Hör-Moment<small>Zwei Phrasen zum Nachspielen am Ende der täglichen Einheit, sobald du eine Position kennst.</small></div><button class="switch" role="switch" id="swEar" type="button" aria-label="Hör-Moment"></button></div>
       <div><div class="lbl">Griffbrett anzeigen<small>Ein schmaler Streifen unter dem Tab.</small></div><button class="switch" role="switch" id="swFret" type="button" aria-label="Griffbrett anzeigen"></button></div>
       <div><div class="lbl">Einstufungstest<small>Steigt in 5er-Schritten, bis es nicht mehr sauber ist. Legt das Tempo deiner Licks neu fest.</small></div><button class="ghost" id="testBtn" type="button">Test starten</button></div>
+      <div><div class="lbl">Eigenes Lick<small>Ein eigenes Lick eintippen oder einspielen. Es erscheint danach unter Licks.</small></div><button class="ghost" id="newLick" type="button">Anlegen</button></div>
       <div><div class="lbl">Fortschritt übertragen<small id="syncMsg">Der Fortschritt liegt auf diesem Gerät.</small></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" id="exportBtn" type="button">Kopieren</button><button class="ghost" id="importBtn" type="button">Einfügen</button></div></div>
       <div id="ioBox" hidden style="display:block">
@@ -482,10 +478,14 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
       </div>
       <div><div class="lbl">Fortschritt löschen<small>Setzt alle Licks auf den Anfang zurück.</small></div><button class="ghost" id="resetBtn" type="button">Löschen</button></div>
     </div>
-    <details class="fold" id="privacy" style="margin-top:22px">
+    <details class="fold" id="statFold" style="margin-top:22px">
+      <summary>Statistik</summary>
+      <div id="statBox"></div>
+    </details>
+    <details class="fold" id="privacy">
       <summary>Datenschutz</summary>
       <div class="legal">
-        <p><b>Kurz gesagt:</b> NeonGuitarLab sammelt keine Daten über dich. Es gibt keine Anmeldung, keine Cookies, keine Werbung und keine Auswertung deines Verhaltens.</p>
+        <p><b>Kurz gesagt:</b> NeonGuitarLead sammelt keine Daten über dich. Es gibt keine Anmeldung, keine Cookies, keine Werbung und keine Auswertung deines Verhaltens.</p>
         <p><b>Mikrofon.</b> Für Tonerkennung und Stimmgerät fragt die App nach dem Mikrofon. Der Klang wird ausschließlich in deinem Gerät ausgewertet. Er wird weder aufgezeichnet noch gespeichert noch übertragen. Du kannst die Freigabe jederzeit in deinem Browser zurücknehmen; die App lässt sich dann mit dem Knopf „Gespielt“ weiter nutzen.</p>
         <p><b>Fortschritt.</b> Dein Übestand, deine Einstellungen und deine eigenen Licks liegen im Speicher deines Browsers auf diesem Gerät (Local Storage). Das ist für die Funktion der App nötig. Niemand außer dir hat darauf Zugriff. Mit „Fortschritt löschen“ oder dem Löschen der Website-Daten im Browser entfernst du alles.</p>
         <p><b>Hosting.</b> Die Seite wird über GitHub Pages ausgeliefert, einen Dienst der GitHub, Inc. (USA). Beim Aufruf verarbeitet GitHub technisch notwendige Verbindungsdaten wie deine IP-Adresse, um die Seite auszuliefern und den Dienst abzusichern. Grundlage ist das berechtigte Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Näheres steht in der Datenschutzerklärung von GitHub.</p>

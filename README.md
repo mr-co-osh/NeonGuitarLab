@@ -1,4 +1,4 @@
-# NeonGuitarLab
+# NeonGuitarLead
 
 Gitarren-Übe-App für das Solospiel mit einzelnen Tönen: Tempo und Technik, Orientierung auf dem Griffbrett und das Vokabular dafür.
 
