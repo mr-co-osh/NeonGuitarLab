@@ -187,6 +187,8 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 #word.soon{color:transparent;text-shadow:none;-webkit-text-stroke:1.5px var(--muted)}
 #word.burst.soon{-webkit-text-stroke-color:color-mix(in srgb,var(--accent) 55%,var(--bg))}
 #word.slow.soon{-webkit-text-stroke-color:color-mix(in srgb,var(--slow) 55%,var(--bg))}
+#word.rootw{color:var(--root);text-shadow:0 0 14px color-mix(in srgb,var(--root) 75%,transparent),0 0 40px color-mix(in srgb,var(--root) 40%,transparent)}
+#hint.rootc #hintLbl{color:var(--root)}
 #word.groove{color:var(--tube-violet);text-shadow:var(--glow-violet)}
 #word.groove.soon{color:transparent;text-shadow:none;-webkit-text-stroke-color:color-mix(in srgb,var(--lv3) 55%,var(--bg))}
 #word.burst:not(.soon),#word.slow:not(.soon),#word.groove:not(.soon){animation:lit .38s linear}
@@ -958,11 +960,31 @@ function vocabBlock(sec){
   const shape = [].concat(V.parts[0].notes, V.parts[1].notes, V.parts[2].notes);
   return {kind:"vocab", id:V.id, title:"Vokabular-Lick in drei Teilen", rateName:V.name, bpm:bpm, bars:bars, rated:true, shape:shape, chord:V.parts[0].chord};
 }
+/* The position on the conveyor: from the lowest root up to the top, down to the bottom and back up to that root.
+   Quarter notes, every note of the shape once on each way, the name of the sounding note in large letters. */
+function posRunSeq(pos, key){
+  const pat = posPattern(pos, key).slice().sort((a,b) => midiOf(a[0],a[1]) - midiOf(b[0],b[1])), rp = KEYS[key].root;
+  const r = Math.max(0, pat.findIndex(n => midiOf(n[0],n[1])%12 === rp));
+  return pat.slice(r).concat(pat.slice(0, -1).reverse(), pat.slice(1, r+1));
+}
+function posRunBlock(pos, key, sec){
+  const K = KEYS[key], chord = K.tr.Am, id = "pr"+pos; if(!state.prog[id]) P(id).bpm = 72;
+  const seq = posRunSeq(pos, key), bpm = peek(id).bpm; let hold = 4 - ((seq.length-1) % 4); if(hold < 2) hold += 4;
+  const notes = seq.map((n,i) => [n[0], n[1], i === seq.length-1 ? hold*2 : 2]), one = mkBars(notes, "N", {chord:chord}).length;
+  const n = barsFor(sec, bpm, one+1), bars = [countBar(chord)];
+  do{ bars.push.apply(bars, mkBars(notes, "N", {chord:chord})); }while(bars.length + one <= n);
+  bars.forEach(x => { if(x.type !== "count") x.mode = "Viertel"; });
+  return {kind:"posrun", id:id, pos:pos, key:key, title:"Position "+pos+" · "+K.name, rateName:"Position "+pos+" auf dem Laufband", bpm:bpm, bars:bars, rated:true, shape:posPattern(pos, key), chord:chord, note:"Vom Grundton zum Grundton"};
+}
 /* practice days since the fretboard or a position last came up */
 function revWait(){ const at = state.revAt || ""; return (state.days || []).filter(d => d > at).length; }
 function reviewBlock(){
-  const rev = []; if(fbLearned().length) rev.push({kind:"fret", title:"Griffbrett", sec:120, rated:false}); if(POS_ORDER.some(posDone)) rev.push({kind:"pos", title:"Position", sec:120, rated:false});
-  return rev.length ? rev[dayNo() % rev.length] : null;
+  const rev = []; if(fbLearned().length) rev.push("fret"); if(POS_ORDER.some(posDone)) rev.push("pos");
+  if(!rev.length) return null;
+  if(rev[dayNo() % rev.length] === "fret") return {kind:"fret", title:"Griffbrett", sec:120, rated:false};
+  /* the position that has waited longest, in the key of the week */
+  const last = q => peek("pr"+q).last || "", pos = POS_ORDER.filter(posDone).sort((a,c) => last(a) < last(c) ? -1 : last(a) > last(c) ? 1 : 0)[0];
+  return posRunBlock(pos, curKey(), 120);
 }
 /* A round is made of two-minute blocks: 2 min main lick, 4 min plus a second lick, 6 min plus a review block,
    8 min plus the vocabulary lick and the listening moment. Warming up is a separate, voluntary button. */
@@ -1160,6 +1182,10 @@ function hud(beat){
   else if(nxt && nxt.type === "B"){ word = "Burst!"; cls = "burst soon"; lbl = soon; hint = burstTask(run.block); hcls = "dim warm"; }
   else if(nxt && nxt.type === "S"){ word = "Slow down!"; cls = "slow soon"; lbl = soon; hint = nxt.hint || "Langsam und sauber"; hcls = "dim cool"; }
   else hint = cur.label || run.block.note || "";
+  if(run.block.kind === "posrun" && beat >= 0 && cur.type !== "count"){
+    let cn = null; for(let k=0;k<run.notes.length;k++){ if(run.notes[k].ab <= beat + .02) cn = run.notes[k]; else break; }
+    if(cn){ word = nameOf(cn.midi); cls = cn.root ? "rootw" : ""; lbl = cn.root ? "Grundton" : "Ton"; hint = "auf der " + STR[cn.s]; hcls = cn.root ? "task rootc" : "dim"; }
+  }
   const key = word+"|"+cls+"|"+hint+"|"+lbl+"|"+i;
   if(key !== run.hud){
     run.hud = key; $("word").textContent = word; $("word").className = cls; $("hint").className = hcls; $("hintLbl").textContent = lbl; $("hintLbl").classList.toggle("cd", ann && lbl.indexOf("Noch ") === 0); $("hintTxt").textContent = hint;
@@ -1307,6 +1333,7 @@ function rate(r){
     if(r !== "clean" || sess.i === sess.blocks.length-1){ finishTest(); return; }
   }else{
     const msg = applyRating(b.id, r), today = dstr(); if(!state.days.includes(today)) state.days.push(today);
+    if(b.kind === "posrun"){ state.revAt = today; if(r === "clean"){ const rc = vpRec(b.pos, b.key); if(!rc.days.includes(today)) rc.days.push(today); } }
     sess.results.push({name:b.rateName, msg:msg}); save();
   }
   nextBlock();
@@ -1955,34 +1982,6 @@ function posPrompts(pos, key){
   shuffled(roots.concat(rest)).forEach(n => out.push({steps:[n], guided:false, exact:true, lo:lo, hi:hi}));
   return out;
 }
-/* Arpeggio per position: the chord tones of the key, played one after the other inside the shape that is already known.
-   First the tonic triad up and down, then the major chord on the third degree, then single chord tones by their function. */
-function arpRec(pos, create){ const k = "a"+pos; if(!state.vp) state.vp = {}; if(create) return state.vp[k] || (state.vp[k] = {days:[], runs:0}); return state.vp[k] || {days:[], runs:0}; }
-function arpDone(pos){ return arpRec(pos).days.length > 0; }
-function arpPrompts(pos, key){
-  const K = KEYS[key], pat = posPattern(pos, key), r = posRange(pos, key), lo = Math.max(0, r[0]-1), hi = r[1]+1, rec = arpRec(pos);
-  const pc = n => midiOf(n[0], n[1])%12, tonic = K.tr.Am, third = K.tr.C, r3 = (K.root+3)%12;
-  const t1 = pat.filter(n => [K.root, r3, (K.root+7)%12].includes(pc(n))), t3 = pat.filter(n => [r3, (r3+4)%12, (r3+7)%12].includes(pc(n)));
-  const first = !rec.days.length, shown = rec.days.length < 2, out = [];
-  const mk = (n, grp, chord, set, rootPc, up, guided) => ({steps:[n], guided:guided, exact:true, pattern:guided || shown ? set : [], group:grp, rootPc:rootPc, lo:lo, hi:hi, label:{sub:chord+"-Arpeggio "+(up ? "aufwärts" : "abwärts")+" auf der "+STR[n[0]]}});
-  if(first) t1.forEach(n => out.push(mk(n, "g", tonic, t1, K.root, true, true)));
-  t1.forEach(n => out.push(mk(n, "a", tonic, t1, K.root, true, false)));
-  t1.slice().reverse().forEach(n => out.push(mk(n, "d", tonic, t1, K.root, false, false)));
-  t3.forEach(n => out.push(mk(n, "m", third, t3, r3, true, false)));
-  const fn = n => ({0:"Grundton", 3:"Terz", 7:"Quinte"})[(pc(n) - K.root + 12) % 12];
-  shuffled(t1).slice(0, 6).forEach(n => out.push({steps:[n], guided:false, exact:true, rootPc:K.root, lo:lo, hi:hi, label:{note:fn(n), word:true, sub:"von "+tonic+" auf der "+STR[n[0]]}}));
-  return out;
-}
-function runArp(pos){
-  const key = curKey(), K = KEYS[key], rec = arpRec(pos), title = "Arpeggio · Position "+pos+" · "+K.name;
-  const intro = (!rec.days.length ? "Ein Arpeggio sind die Töne eines Akkords nacheinander gespielt: Grundton, Terz, Quinte. Sie liegen alle in der Position, die du schon kennst. " : "") +
-    "Erst "+K.tr.Am+" auf und ab, dann "+K.tr.C+" aufwärts, zum Schluss findest du einzelne Akkordtöne nach ihrer Aufgabe. Mit Plektrum oder Fingern, wie du magst.";
-  quizCard(title, intro, () => startQuiz({title:title, rootPc:K.root, prompts:arpPrompts(pos, key), onDone:res => {
-    const rc = arpRec(pos, true), clean = res.helps <= 2; rc.runs++; if(clean && !rc.days.includes(dstr())) rc.days.push(dstr()); save();
-    $("qEndTitle").textContent = clean ? "Sauber" : "Noch einmal";
-    $("qEndText").textContent = resTxt(res) + " " + (clean ? "Nach drei sauberen Tagen gilt das Arpeggio als gefestigt." : "Wiederhole es, bis höchstens zwei Töne einen Fehler haben."); $("qEnd").hidden = false;
-  }}));
-}
 /* Listening levels per position. Each level is played first with the shape on screen, then without it. */
 const HEAR = ["", "Zwei Töne", "Drei Töne in Schritten", "Drei Töne mit Sprüngen", "Vier Töne, freier Start"];
 function hearRec(pos, create){ const k = "h"+pos; if(!state.vp) state.vp = {}; const d = {lvl:1, pic:true, days:[], runs:0}; if(create) return state.vp[k] || (state.vp[k] = d); return state.vp[k] || d; }
@@ -2054,11 +2053,11 @@ function renderStats(){
   bars += "</svg>";
   const licks = working().concat(repertoire()).filter(l => peek(l.id).hist.length);
   const tl = licks.length ? licks.map(l => '<div class="tline"><span>'+esc(l.name)+'</span>'+(spark(peek(l.id).hist) || "<span></span>")+'<span class="num">'+peek(l.id).bpm+' BPM</span></div>').join("") : '<p class="cap">Nach den ersten bewerteten Runden steht hier das Tempo jedes Licks.</p>';
-  const fbN = FB.filter(fbDone).length, posN = POS_ORDER.filter(posDone).length, arpN = POS_ORDER.filter(arpDone).length;
+  const fbN = FB.filter(fbDone).length, posN = POS_ORDER.filter(posDone).length, arpN = POS_ORDER.filter(q => peek("pr"+q).days.length > 0).length;
   box.innerHTML = '<div class="stat"><h3>Übetage</h3><p class="cap">Die letzten fünf Wochen. Ein leuchtendes Feld ist ein Tag mit Übung.</p><div class="cal">'+cal+'</div></div>'+
     '<div class="stat"><h3>Übezeit pro Woche</h3><p class="cap">In Minuten, die letzten sechs Wochen. Gezählt wird seit dem 15. November.</p>'+bars+'</div>'+
     '<div class="stat"><h3>Tempo der Licks</h3>'+tl+'</div>'+
-    '<div class="stat"><h3>Stand</h3><div class="nums"><div><b>'+days.size+'</b><span>Übetage insgesamt</span></div><div><b>'+Math.round(state.seconds/60)+'</b><span>Minuten insgesamt</span></div><div><b>'+posN+'/5</b><span>Positionen gelernt</span></div><div><b>'+arpN+'/5</b><span>Arpeggios gelernt</span></div><div><b>'+fbN+'/'+FB.length+'</b><span>Griffbrett-Lektionen</span></div><div><b>'+hearStreak().best+'</b><span>beste Hör-Serie</span></div></div></div>';
+    '<div class="stat"><h3>Stand</h3><div class="nums"><div><b>'+days.size+'</b><span>Übetage insgesamt</span></div><div><b>'+Math.round(state.seconds/60)+'</b><span>Minuten insgesamt</span></div><div><b>'+posN+'/5</b><span>Positionen gelernt</span></div><div><b>'+arpN+'/5</b><span>Positionen auf dem Laufband</span></div><div><b>'+fbN+'/'+FB.length+'</b><span>Griffbrett-Lektionen</span></div><div><b>'+hearStreak().best+'</b><span>beste Hör-Serie</span></div></div></div>';
 }
 /* A quiet reminder: the progress lives only in this browser. Shown after a few practice days, and again every two weeks. */
 function renderBackup(){
@@ -2094,18 +2093,17 @@ function renderLicks(){
 let VOPEN;
 /* the next sensible step in the vocabulary: a new position first, then the same position in the other keys, then firming up */
 function nextPos(){
-  for(const pos of POS_ORDER){ if(posOpen(pos) && !posDone(pos)) return [pos, "Am"]; if(posDone(pos) && !arpDone(pos)) return [pos, "arp"]; }
+  for(const pos of POS_ORDER){ if(posOpen(pos) && !posDone(pos)) return [pos, "Am"]; if(posDone(pos) && !peek("pr"+pos).hist.length) return [pos, "run"]; }
   for(const pos of POS_ORDER) if(posDone(pos)) for(const k of ["Em","Bm"]) if(!vpPeek(pos, k).days.length) return [pos, k];
   for(const pos of POS_ORDER) if(posDone(pos)) for(const k of ["Am","Em","Bm"]) if(vpPeek(pos, k).days.length < 3) return [pos, k];
-  for(const pos of POS_ORDER) if(posDone(pos) && arpRec(pos).days.length < 3) return [pos, "arp"];
   return null;
 }
 function renderVocab(){
   const key = curKey(), fixed = !!KEYS[state.settings.key], box = $("posList"), nx = nextPos(); box.textContent = "";
   $("keyLine").textContent = fixed ? "Tonart " + KEYS[key].name + ", fest eingestellt." : openKeys().length > 1 ? "Tonart dieser Woche: " + KEYS[key].name + "." : "Tonart A-Moll. Weitere öffnen sich, sobald Position 1 sitzt.";
   if(VOPEN === undefined) VOPEN = nx ? nx[0] : null;
-  if(nx){ const nb = document.createElement("button"); nb.type = "button"; nb.className = "nextb"; if(nx[1] === "arp") nb.dataset.arp = nx[0]; else { nb.dataset.pos = nx[0]; nb.dataset.key = nx[1]; }
-    nb.innerHTML = "<small>Weiter mit</small><b>"+(nx[1] === "arp" ? "Arpeggio in Position "+nx[0] : "Position "+nx[0]+" in "+KEYS[nx[1]].name)+"</b>"; box.append(nb); }
+  if(nx){ const nb = document.createElement("button"); nb.type = "button"; nb.className = "nextb"; if(nx[1] === "run") nb.dataset.run = nx[0]; else { nb.dataset.pos = nx[0]; nb.dataset.key = nx[1]; }
+    nb.innerHTML = "<small>Weiter mit</small><b>"+(nx[1] === "run" ? "Position "+nx[0]+" auf dem Laufband" : "Position "+nx[0]+" in "+KEYS[nx[1]].name)+"</b>"; box.append(nb); }
   const ul = document.createElement("ul"); ul.className = "rows"; box.append(ul);
   POS_ORDER.filter(posOpen).forEach(pos => {
     const d = vpPeek(pos, "Am").days.length, lv = d >= 3 ? 2 : d ? 1 : 0, r = posRange(pos, "Am"), li = document.createElement("li"), nl = LICKS.filter(l => l.pos === pos).length, open = VOPEN === pos;
@@ -2116,7 +2114,7 @@ function renderVocab(){
         return '<button type="button" class="keyb'+(l2 ? " lvp" : "")+'" style="--lv:var(--lv'+Math.max(1, l2)+')" data-pos="'+pos+'" data-key="'+k+'"'+(ok ? "" : " disabled")+'>'+KEYS[k].name+'</button>'; };
       const hr = hearRec(pos);
       h += '<div class="rdetail"><p>'+nl+' Licks in dieser Lage'+(posDone(pos) ? "" : ". E-Moll und B-Moll öffnen sich, sobald A-Moll sitzt")+'.</p><div class="line">'+["Am","Em","Bm"].map(btn).join("")+'</div>'+
-        (() => { const ad = arpRec(pos).days.length, al = ad >= 3 ? 2 : ad ? 1 : 0; return '<div class="line"><button type="button" class="keyb'+(al ? " lvp" : "")+'" style="--lv:var(--lv'+Math.max(1, al)+')" data-arp="'+pos+'"'+(posDone(pos) ? "" : " disabled")+'>Arpeggio</button><span style="color:var(--muted);font-size:14px">'+(!posDone(pos) ? "öffnet sich mit der Position" : ad >= 3 ? "gefestigt" : ad ? ad+" von 3 sauberen Tagen" : "die Akkordtöne in dieser Lage")+'</span></div>'; })()+
+(() => { const pr = peek("pr"+pos), n = pr.days.length, al = n >= 3 ? 2 : n ? 1 : 0; return '<div class="line"><button type="button" class="keyb'+(al ? " lvp" : "")+'" style="--lv:var(--lv'+Math.max(1, al)+')" data-run="'+pos+'"'+(posDone(pos) ? "" : " disabled")+'>Laufband</button><span style="color:var(--muted);font-size:14px">'+(!posDone(pos) ? "öffnet sich mit der Position" : pr.hist.length ? pr.bpm+" BPM · vom Grundton zum Grundton" : "auf und ab, vom Grundton zum Grundton")+'</span></div>'; })()+
         '<div class="line"><button type="button" class="keyb'+(hr.days.length ? " lvp" : "")+'" style="--lv:var(--lv'+(hr.lvl >= 4 && !hr.pic ? 2 : 1)+')" data-hear="'+pos+'"'+(posDone(pos) ? "" : " disabled")+'>Hören und nachspielen</button><span style="color:var(--muted);font-size:14px">'+(posDone(pos) ? "Stufe "+hr.lvl+" von 4: "+HEAR[hr.lvl]+(hr.pic ? "" : ", ohne Bild")+(hearStreak().best ? " · beste Serie "+hearStreak().best : "") : "öffnet sich mit der Position")+'</span></div></div>';
     }
     li.innerHTML = h; ul.append(li);
@@ -2280,7 +2278,7 @@ $("harmSeg").addEventListener("click", e => { const b = e.target.closest("button
 $("emSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.emOpen = b.dataset.em === "open"; save(); renderHome(); });
 $("keySeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.key = b.dataset.key; save(); renderHome(); });
 $("posList").addEventListener("click", e => {
-  const ab = e.target.closest("button[data-arp]"); if(ab){ if(!ab.disabled) runArp(+ab.dataset.arp); return; }
+  const ab = e.target.closest("button[data-run]"); if(ab){ if(!ab.disabled) startSession({kind:"daily", blocks:[posRunBlock(+ab.dataset.run, curKey(), 120)]}); return; }
   const hb = e.target.closest("button[data-hear]"); if(hb){ if(!hb.disabled) runHear(+hb.dataset.hear); return; }
   const b = e.target.closest("button[data-pos]"); if(b){ if(!b.disabled) runPos(+b.dataset.pos, b.dataset.key); return; }
   const v = e.target.closest("button[data-vopen]"); if(v){ VOPEN = VOPEN === +v.dataset.vopen ? null : +v.dataset.vopen; renderVocab(); }
