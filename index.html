@@ -170,6 +170,9 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 #pfill{height:100%;width:0;background:var(--text)}
 .phead{flex:none;display:flex;align-items:center;gap:12px;padding:6px 14px;min-height:44px}
 .pinfo{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 16px;min-width:0;font-size:15px;color:var(--muted)}
+.pnum{flex:none;display:flex;align-items:baseline;gap:16px;font-family:var(--font-num);font-weight:600;font-size:clamp(18px,6.4vh,26px);color:var(--text);font-variant-numeric:tabular-nums}
+.pnum small{font-size:.5em;color:var(--muted);margin-left:4px;font-weight:500}
+#pTime{color:var(--tube-cool);text-shadow:var(--glow-cool)}
 #pBlock{color:var(--text);font-weight:700}
 #pChord{font-family:var(--font-num);color:var(--text);font-weight:600}
 .pctl{display:flex;gap:8px;flex:none}
@@ -193,8 +196,12 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 #hint.warm #hintLbl{color:var(--accent)} #hint.cool #hintLbl{color:var(--slow)} #hint.violet #hintLbl{color:var(--lv3)}
 #hint.task #hintTxt{color:var(--text);font-weight:650;font-size:clamp(20px,7.6vh,38px);letter-spacing:-.01em;text-wrap:balance}
 #hint.dim #hintTxt{font-size:clamp(16px,5.4vh,26px)}
+#practice.withfret .pword{min-height:clamp(38px,11vh,64px);padding-top:0;padding-bottom:0}
+#practice.withfret #word{font-size:clamp(24px,9vh,46px)}
+#practice.withfret #hint.task #hintTxt{font-size:clamp(15px,4.6vh,22px)}
+#practice.withfret #hint.dim #hintTxt{font-size:clamp(13px,3.8vh,18px)}
 #lane{flex:1 1 auto;min-height:0;width:100%;display:block}
-#fret{flex:none;height:clamp(84px,29vh,150px);width:100%;display:block;border-top:1px solid var(--line)}
+#fret{flex:none;height:clamp(78px,25vh,140px);width:100%;display:block;border-top:1px solid var(--line)}
 .rotate{display:none;flex:none;margin:0;padding:6px 20px 10px;color:var(--muted);font-size:13px}
 @media (orientation:portrait) and (max-width:620px){.rotate{display:block}}
 
@@ -357,6 +364,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
       <div><b id="fMin">0</b><span>Minuten geübt</span></div>
       <div><b id="fSolid">0</b><span>Licks im Repertoire</span></div>
     </div>
+    <p class="quiet" id="testLine" hidden>Neu hier? Der Einstufungstest legt in wenigen Minuten dein Starttempo fest. <button class="ghost" id="testNow" type="button" style="margin-left:6px">Test starten</button> <button class="ghost" id="testLater" type="button">Später</button></p>
     <p class="quiet" id="backupLine" hidden><span id="backupTxt"></span> <button class="ghost" id="backupBtn" type="button" style="margin-left:6px">Jetzt sichern</button></p>
     <details class="fold" id="statFold" style="margin-top:6px">
       <summary>Statistik</summary>
@@ -459,7 +467,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
         </div></div>
       <div><div class="lbl">Hör-Moment<small>Zwei Phrasen zum Nachspielen am Ende der täglichen Einheit, sobald du eine Position kennst.</small></div><button class="switch" role="switch" id="swEar" type="button" aria-label="Hör-Moment"></button></div>
       <div><div class="lbl">Griffbrett anzeigen<small>Ein schmaler Streifen unter dem Tab.</small></div><button class="switch" role="switch" id="swFret" type="button" aria-label="Griffbrett anzeigen"></button></div>
-      <div><div class="lbl">Einstufungstest<small>Etwa drei Minuten. Legt das Starttempo deiner Licks fest.</small></div><button class="ghost" id="testBtn" type="button">Test starten</button></div>
+      <div><div class="lbl">Einstufungstest<small>Steigt in 5er-Schritten, bis es nicht mehr sauber ist. Legt das Tempo deiner Licks neu fest.</small></div><button class="ghost" id="testBtn" type="button">Test starten</button></div>
       <div><div class="lbl">Fortschritt übertragen<small id="syncMsg">Der Fortschritt liegt auf diesem Gerät.</small></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" id="exportBtn" type="button">Kopieren</button><button class="ghost" id="importBtn" type="button">Einfügen</button></div></div>
       <div id="ioBox" hidden style="display:block">
@@ -477,7 +485,6 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
         <p><b>Hosting.</b> Die Seite wird über GitHub Pages ausgeliefert, einen Dienst der GitHub, Inc. (USA). Beim Aufruf verarbeitet GitHub technisch notwendige Verbindungsdaten wie deine IP-Adresse, um die Seite auszuliefern und den Dienst abzusichern. Grundlage ist das berechtigte Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Näheres steht in der Datenschutzerklärung von GitHub.</p>
         <p><b>Schriften und andere Dateien.</b> Alle Schriften, Klänge und Bilder kommen von dieser Seite selbst. Es werden keine Inhalte von anderen Servern nachgeladen.</p>
         <p><b>Deine Rechte.</b> Soweit Daten über dich verarbeitet werden, hast du nach der DSGVO das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung und Widerspruch sowie das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.</p>
-        <p><b>Verantwortlich.</b> Der Betreiber dieser Seite, erreichbar über das GitHub-Konto mr-co-osh.</p>
       </div>
     </details>
   </section>
@@ -487,7 +494,8 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
   <div class="pbar"><div id="pfill"></div></div>
   <div class="phead">
     <button class="xbtn" id="quitBtn" type="button" aria-label="Einheit beenden">Beenden</button>
-    <div class="pinfo"><span id="pBlock"></span><span id="pChord"></span><span class="num" id="pBpm"></span><span id="pMode"></span></div>
+    <div class="pinfo"><span id="pBlock"></span><span id="pChord"></span><span id="pMode"></span></div>
+    <div class="pnum"><span id="pTime">0:00</span><span id="pBpm"></span></div>
     <div class="pctl">
       <button id="skipBtn" type="button" hidden>Überspringen</button>
       <button id="fbBtn" type="button" aria-pressed="false">Griffbrett</button>
@@ -967,8 +975,8 @@ function buildSession(minutes){
 }
 function buildTest(){
   const l = LICKS[0];
-  return {kind:"test", best:0, blocks:[60,75,90,105].map(t => {
-    const bars = [countBar(l.chord)]; ["N","N","B","B","N"].forEach(x => bars.push.apply(bars, mkBars(l.notes, x, {chord:l.chord})));
+  return {kind:"test", best:0, blocks:[60,65,70,75,80,85,90,95,100,105,110,115,120].map(t => {
+    const bars = [countBar(l.chord)]; ["N","B","N"].forEach(x => bars.push.apply(bars, mkBars(l.notes, x, {chord:l.chord})));
     return {kind:"test", title:"Einstufung", rateName:l.name+" bei "+t+" BPM", bpm:t, bars:bars, rated:true, shape:l.notes, chord:l.chord};
   })};
 }
@@ -1008,10 +1016,10 @@ const snd = {
   hat:t => noise(t, "highpass", 7500, .12, .045),
   pad:(t, midis, len) => {
     const f = A.ctx.createBiquadFilter(), g = A.ctx.createGain(); f.type = "lowpass"; f.frequency.value = 950; f.Q.value = .3;
-    const lvl = midis.length > 2 ? .085 : .13, fade = Math.max(.3, Math.min(len*.3, len/4));
-    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(lvl, t+.09); g.gain.setValueAtTime(lvl, t+len-fade); g.gain.linearRampToValueAtTime(.0001, t+len-.02);
+    const lvl = midis.length > 2 ? .07 : .11, rise = Math.min(.6, len*.3), tail = Math.min(1.6, len*.6);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(lvl, t+rise); g.gain.setValueAtTime(lvl, t+len); g.gain.linearRampToValueAtTime(.0001, t+len+tail);
     f.connect(g); g.connect(A.out);
-    midis.forEach((m,i) => { ["triangle","sawtooth"].forEach((ty,k) => { const o = A.ctx.createOscillator(), og = A.ctx.createGain(); o.type = ty; o.frequency.value = hz(m); o.detune.value = k ? 6 : -4; og.gain.value = k ? .22 : .7; o.connect(og); og.connect(f); o.start(t+i*.012); o.stop(t+len+.05); }); });
+    midis.forEach((m,i) => { ["triangle","sawtooth"].forEach((ty,k) => { const o = A.ctx.createOscillator(), og = A.ctx.createGain(); o.type = ty; o.frequency.value = hz(m); o.detune.value = k ? 6 : -4; og.gain.value = k ? .22 : .7; o.connect(og); og.connect(f); o.start(t+i*.012); o.stop(t+len+1.7); }); });
   },
   pluck:(t, m, len) => tone(t, "triangle", hz(m), 0, .22, Math.max(.12, Math.min(.7, len*1.1)), .005)
 };
@@ -1083,7 +1091,7 @@ function startBlock(){
   events.sort((x,y) => x.b - y.b);
   run = {block:b, bars:b.bars, notes:notes, events:events, ev:0, spb:spb, t0:A.ctx.currentTime+.9, total:b.bars.length*bpb, bpb:bpb, hud:""};
   paused = false; $("pauseBtn").textContent = "Pause"; $("skipBtn").hidden = b.kind !== "warm";
-  $("pBlock").textContent = b.title; $("pBpm").textContent = b.bpm+" BPM";
+  $("pBlock").textContent = b.title; $("pBpm").innerHTML = b.bpm+"<small>BPM</small>";
   clearInterval(timer); timer = setInterval(schedule, 25); schedule();
   cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
 }
@@ -1130,6 +1138,8 @@ function hud(beat){
   }
   const frac = (sess.done + Math.max(0, Math.min(run.total, beat))*run.spb)/sess.total;
   $("pfill").style.width = (Math.max(0, Math.min(1, frac))*100).toFixed(2)+"%";
+  const left = Math.max(0, Math.ceil(sess.total*(1 - Math.max(0, Math.min(1, frac))))), tt = Math.floor(left/60)+":"+String(left%60).padStart(2,"0");
+  if(tt !== run.tt){ run.tt = tt; $("pTime").textContent = tt; }
 }
 
 /* The band: time runs left, the marker stays put. One beat is always the same width,
@@ -1138,10 +1148,10 @@ function drawLane(beat){
   const o = fit($("lane")), g = o.ctx, w = o.w, h = o.h;
   g.clearRect(0,0,w,h);
   const mx = Math.max(60, w*.2), ppb = Math.max(84, Math.min(230, w/5.2));
-  const top = h*.22, bot = h*.70, gap = (bot-top)/5, fs = Math.max(13, Math.min(30, gap*.92));
+  const top = h*.27, bot = h*.73, gap = (bot-top)/5, fs = Math.max(13, Math.min(30, gap*.92));
   const y = s => top + (s-1)*gap, X = b => mx + (b-beat)*ppb;
   const bpb = run.bpb, ZC = {B:C.accent, S:C.slow, R:C.groove}, ZT = {B:"BURST", S:"SLOW", R:"GROOVE"};
-  const ZY = top-gap*.75, ZH = (bot-top)+gap*1.5, ZA = .32;
+  const ZY = top-gap*1.25, ZH = (bot-top)+gap*2, ZA = .32;
   const zAlpha = yy => { const t = Math.max(0, Math.min(1, (yy-ZY)/ZH)); return t < .55 ? ZA*(1 - t/.55*.72) : ZA*.28*(1 - (t-.55)/.45); };
   const first = Math.max(0, Math.floor((beat - mx/ppb)/bpb)), last = Math.min(run.bars.length-1, Math.floor((beat + (w-mx)/ppb)/bpb));
   // zones
@@ -1156,14 +1166,14 @@ function drawLane(beat){
     }
   }
   // strings
-  g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath();
-  for(let s=1;s<=6;s++){ g.moveTo(0, Math.round(y(s))+.5); g.lineTo(w, Math.round(y(s))+.5); } g.stroke();
+  g.strokeStyle = C.muted; g.globalAlpha = .62; g.lineWidth = 1; g.beginPath();
+  for(let s=1;s<=6;s++){ g.moveTo(0, Math.round(y(s))+.5); g.lineTo(w, Math.round(y(s))+.5); } g.stroke(); g.globalAlpha = 1;
   // bar lines, labels, beat ticks
   g.textBaseline = "alphabetic";
   for(let i=first;i<=last;i++){
     const bar = run.bars[i], prev = run.bars[i-1], x0 = X(i*bpb);
     g.strokeStyle = C.muted; g.globalAlpha = .55; g.beginPath(); g.moveTo(Math.round(x0)+.5, top); g.lineTo(Math.round(x0)+.5, bot); g.stroke(); g.globalAlpha = 1;
-    let lx = x0 + 8; const cfs = Math.max(11, fs*.6), ly = bar.on ? ZY - 6 - cfs*1.25 : top-gap*.95;
+    let lx = x0 + 8; const cfs = Math.max(11, fs*.6), ly = bar.on ? ZY - 6 - cfs*1.25 : ZY - 8;
     if(bar.on){
       g.textAlign = "center";
       for(let k=0;k<16;k++){
@@ -1179,7 +1189,7 @@ function drawLane(beat){
     }
     const zoneStart = !!ZC[bar.type] && (!prev || prev.type !== bar.type);
     const tag = zoneStart ? ZT[bar.type] + (bar.type === "R" && bar.label ? " · " + bar.label : "") : bar.label;
-    if(tag){ const tc = ZC[bar.type] || C.muted; g.fillStyle = tc; if(zoneStart) glow(g, tc, 10); g.font = "600 "+Math.round(fs*.56)+"px "+FONT_D; g.fillText(tag.toUpperCase(), lx, bar.on ? ly : top-gap*1.02); noGlow(g); }
+    if(tag){ const tc = ZC[bar.type] || C.muted; g.fillStyle = tc; if(zoneStart) glow(g, tc, 10); g.font = "600 "+Math.round(fs*.56)+"px "+FONT_D; g.fillText(tag.toUpperCase(), lx, bar.on ? ly : ZY - 8); noGlow(g); }
     g.fillStyle = C.muted;
     for(let k=0;k<bpb;k++){
       const bx = X(i*bpb+k);
@@ -1249,7 +1259,7 @@ function drawFret(beat){
   });
   g.textAlign = "left";
 }
-function setFret(on){ $("fret").hidden = !on; $("fbBtn").setAttribute("aria-pressed", on ? "true" : "false"); }
+function setFret(on){ $("fret").hidden = !on; $("practice").classList.toggle("withfret", on); $("fbBtn").setAttribute("aria-pressed", on ? "true" : "false"); }
 
 function endBlock(){
   const b = run.block; clearInterval(timer); cancelAnimationFrame(raf);
@@ -1279,9 +1289,10 @@ function finish(){
   fillSummary(sess.results); $("sumPanel").hidden = false;
 }
 function finishTest(){
-  const start = sess.best ? Math.max(60, sess.best-15) : 60;
-  LICKS.concat([VOCAB]).forEach(l => { const p = P(l.id); if(!p.hist.length){ p.bpm = start; p.at = []; } });
-  save();
+  /* the result always counts, also when the test is taken again later */
+  const start = sess.best ? Math.max(60, sess.best-10) : 60;
+  LICKS.concat([VOCAB]).forEach(l => { const p = P(l.id); p.bpm = start; p.at = []; });
+  state.settings.testSeen = true; save();
   $("sumTitle").textContent = "Einstufung fertig";
   $("sumSub").textContent = sess.best ? "Sauber bis "+sess.best+" BPM. Deine Licks starten bei "+start+" BPM." : "Deine Licks starten bei 60 BPM. Das ist ein guter, ruhiger Anfang.";
   fillSummary([]); $("sumPanel").hidden = false;
@@ -1378,10 +1389,10 @@ const FB = [
   {stage:1, id:"ea", title:"E- und A-Saite gemischt", pool:nat(6,0,12).concat(nat(5,0,12)), mixed:true, intro:"Beide Saiten zusammen. Achte darauf, welche Saite gefragt ist."},
   {stage:2, id:"o1", title:"Oktave von der E-Saite zur D-Saite", pairs:oct(6,[1,3,5,7,8],2,2), intro:"Denselben Ton findest du eine Oktave höher zwei Saiten weiter und zwei Bünde höher. Spiele erst den tiefen Ton, dann seine Oktave."},
   {stage:2, id:"o2", title:"Oktave von der A-Saite zur G-Saite", pairs:oct(5,[2,3,5,7,8],2,2), intro:"Dieselbe Form eine Saite weiter: zwei Saiten weiter, zwei Bünde höher."},
-  {stage:2, id:"o3", title:"Oktave zur B-Saite und zur hohen E-Saite", pairs:oct(4,[2,3,5,7],2,3).concat(oct(3,[2,4,5,7],2,3)), intro:"Von der D-Saite und der G-Saite aus verschiebt sich die Form: zwei Saiten weiter, aber drei Bünde höher."},
-  {stage:2, id:"o4", title:"Alle Oktavformen gemischt", pairs:oct(6,[1,3,5,7,8],2,2).concat(oct(5,[2,3,5,7,8],2,2), oct(4,[2,3,5,7],2,3), oct(3,[2,4,5,7],2,3)), mixed:true, intro:"Alle vier Formen durcheinander, ohne Anzeige."},
   {stage:3, id:"d1", title:"D-Saite", pool:nat(4,0,12), intro:"Die D-Saite. Nutze die Oktavform von der tiefen E-Saite, wenn du einen Ton suchst."},
   {stage:3, id:"g1", title:"G-Saite", pool:nat(3,0,12), intro:"Die G-Saite. Hier hilft die Oktavform von der A-Saite."},
+  {stage:3, id:"o3", title:"Oktave zur B-Saite und zur hohen E-Saite", pairs:oct(4,[2,3,5,7],2,3).concat(oct(3,[2,4,5,7],2,3)), intro:"Von der D-Saite und der G-Saite aus verschiebt sich die Form: zwei Saiten weiter, aber drei Bünde höher."},
+  {stage:3, id:"o4", title:"Alle Oktavformen gemischt", pairs:oct(6,[1,3,5,7,8],2,2).concat(oct(5,[2,3,5,7,8],2,2), oct(4,[2,3,5,7],2,3), oct(3,[2,4,5,7],2,3)), mixed:true, intro:"Alle vier Formen durcheinander, ohne Anzeige."},
   {stage:3, id:"b1", title:"B-Saite", pool:nat(2,0,12), intro:"Die B-Saite. Zwischen B und C liegt nur ein Bund, das C sitzt also direkt am 1. Bund."},
   {stage:3, id:"h1", title:"Hohe E-Saite", pool:nat(1,0,12), intro:"Die hohe E-Saite hat dieselben Töne wie die tiefe, zwei Oktaven höher."},
   {stage:3, id:"c1", title:"Ein Ton auf allen Saiten: C und G", pool:[[6,8],[5,3],[4,10],[3,5],[2,1],[1,8],[6,3],[5,10],[4,5],[3,0],[2,8],[1,3]], intro:"Jetzt suchst du denselben Ton auf jeder Saite, erst C, dann G."},
@@ -1584,9 +1595,10 @@ function drawBoard(o){
   for(let k=nut ? 1 : 0;k<=nf;k++){ const x = Math.round(left+nutW+k*fw)+.5; g.moveTo(x, top); g.lineTo(x, bot); } g.stroke();
   if(nut){ g.fillStyle = C.muted; g.fillRect(Math.round(left+nutW)-2, top, 3, bot-top); }
   const fsz = Math.max(10, Math.min(14, gap*.5));
+  if(o.hl){ g.fillStyle = rgba(C.slow, .16); rr(g, 2, sy(o.hl)-gap*.46, w-4, gap*.92, 8); g.fill(); }
   for(let s=1;s<=6;s++){
     const on = o.hl === s, yy = Math.round(sy(s))+.5;
-    g.strokeStyle = on ? C.slow : C.muted; g.globalAlpha = on ? 1 : .55; g.lineWidth = on ? 2.5 : 1; if(on) glow(g, C.slow, 10);
+    g.strokeStyle = on ? C.slow : C.muted; g.globalAlpha = on ? 1 : .55; g.lineWidth = on ? 3 : 1; if(on) glow(g, C.slow, 14);
     g.beginPath(); g.moveTo(left, yy); g.lineTo(w-right, yy); g.stroke(); noGlow(g); g.globalAlpha = 1;
     g.fillStyle = on ? C.slow : C.muted; g.font = "600 "+fsz+"px "+FONT_N; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(["e","B","G","D","A","E"][s-1], left/2, yy);
   }
@@ -1833,7 +1845,7 @@ const TUNINGS = [
   {id:"dadgad", name:"DADGAD", midi:[38,45,50,55,57,62], lab:["D","A","D","G","A","D"]},
   {id:"opend", name:"Open D", midi:[38,45,50,54,57,62], lab:["D","A","D","F#","A","D"]},
   {id:"openg", name:"Open G", midi:[38,43,50,55,59,62], lab:["D","G","D","G","B","D"]},
-  {id:"eb", name:"Halbton tiefer", midi:[39,44,49,54,58,63], lab:["Eb","Ab","Db","Gb","Bb","Eb"]}
+  {id:"eb", name:"Halbton tiefer", midi:[39,44,49,54,58,63], lab:["Eb","Ab","Db","Gb","Bb","eb"]}
 ];
 const T = {on:false, raf:0, cents:0, seen:0, str:-1, detT:0, det:null, cand:null, candT:0};
 function tuning(){ return TUNINGS.find(t => t.id === state.settings.tuning) || TUNINGS[0]; }
@@ -2207,6 +2219,7 @@ function renderHome(){
   const ml = $("mapList"); ml.textContent = "";
   map.forEach(m => { const li = document.createElement("li"); li.innerHTML = '<div class="row'+(m[3]==="gesperrt" ? " locked" : "")+'"><span class="rname">'+m[0]+'</span><span class="rmeta">'+m[1]+'</span><span class="rside"><span class="pill '+m[2]+'">'+m[3]+'</span></span></div>'; ml.append(li); });
   renderVocab(); drawChord(); renderStats(); renderBackup();
+  $("testLine").hidden = !!state.settings.testSeen || (state.days || []).length > 0 || Object.keys(state.prog).some(k => state.prog[k].hist && state.prog[k].hist.length);
   renderFb();
   drawPreview();
 }
@@ -2225,6 +2238,8 @@ $("qAgain").addEventListener("click", playPhrase);
 $("qManual").addEventListener("click", () => { if(Q && Q.mode === "quiz" && !Q.pending) qHit(); });
 $("startBtn").addEventListener("click", () => startSession(buildSession(state.settings.minutes)));
 $("testBtn").addEventListener("click", () => startSession(buildTest()));
+$("testNow").addEventListener("click", () => startSession(buildTest()));
+$("testLater").addEventListener("click", () => { state.settings.testSeen = true; save(); renderHome(); });
 $("durSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.minutes = +b.dataset.min; save(); renderHome(); });
 $("harmSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.harmony = b.dataset.harm; save(); renderHome(); });
 $("emSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.emOpen = b.dataset.em === "open"; save(); renderHome(); });
@@ -2251,6 +2266,8 @@ function showView(v, quiet){
   window.scrollTo(0, 0);
 }
 $("nav").addEventListener("click", e => { const b = e.target.closest("button[data-go]"); if(b) showView(b.dataset.go); });
+/* inside the Android app nothing is hosted, so the note about hosting does not apply */
+if(location.hostname === "appassets.androidplatform.net") $("privacy").hidden = true;
 $("gearBtn").addEventListener("click", () => showView("optionen"));
 $("backupBtn").addEventListener("click", () => { showView("optionen"); $("exportBtn").click(); $("ioBox").scrollIntoView({block:"center"}); });
 $("tuneSel").addEventListener("click", e => { const b = e.target.closest("button[data-tune]"); if(!b) return; state.settings.tuning = b.dataset.tune; save(); renderTuner(); });
