@@ -193,6 +193,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
 @keyframes lit{0%{opacity:.35}10%{opacity:1}18%{opacity:.5}30%{opacity:1}40%{opacity:.8}55%{opacity:1}}
 #hint{display:flex;flex-direction:column;min-width:0;color:var(--muted);font-size:clamp(14px,4.4vh,20px);line-height:1.15}
 #hintLbl{font-size:clamp(11px,3.2vh,14px);letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+#hintLbl.cd{font-family:var(--font-num);font-size:1.25em;font-weight:600;letter-spacing:.04em}
 #hint.warm #hintLbl{color:var(--accent)} #hint.cool #hintLbl{color:var(--slow)} #hint.violet #hintLbl{color:var(--lv3)}
 #hint.task #hintTxt{color:var(--text);font-weight:650;font-size:clamp(20px,7.6vh,38px);letter-spacing:-.01em;text-wrap:balance}
 #hint.dim #hintTxt{font-size:clamp(16px,5.4vh,26px)}
@@ -352,12 +353,13 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
     <div class="chordrow"><canvas id="chordBox" aria-label="Griffbild des Akkords"></canvas><div class="chordtxt"><b id="chName"></b><span id="chInfo"></span></div></div>
     <div class="start-row">
       <div class="seg" id="durSeg" role="group" aria-label="Dauer in Minuten">
-        <button type="button" data-min="5">5 min</button>
-        <button type="button" data-min="10">10 min</button>
-        <button type="button" data-min="15">15 min</button>
-        <button type="button" data-min="20">20 min</button>
+        <button type="button" data-min="2">2 min</button>
+        <button type="button" data-min="4">4 min</button>
+        <button type="button" data-min="6">6 min</button>
+        <button type="button" data-min="8">8 min</button>
       </div>
       <button class="primary" id="startBtn" type="button">Heute üben</button>
+      <button class="ghost" id="warmBtn" type="button">Aufwärmen</button>
     </div>
     <div class="facts">
       <div><b id="fStreak">0</b><span>Tage in Folge</span></div>
@@ -365,6 +367,7 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
       <div><b id="fSolid">0</b><span>Licks im Repertoire</span></div>
     </div>
     <p class="quiet" id="testLine" hidden>Neu hier? Der Einstufungstest legt in wenigen Minuten dein Starttempo fest. <button class="ghost" id="testNow" type="button" style="margin-left:6px">Test starten</button> <button class="ghost" id="testLater" type="button">Später</button></p>
+    <p class="quiet" id="revLine" hidden><span id="revTxt"></span> <button class="ghost" id="revBtn" type="button" style="margin-left:6px">Kurz wiederholen</button></p>
     <p class="quiet" id="backupLine" hidden><span id="backupTxt"></span> <button class="ghost" id="backupBtn" type="button" style="margin-left:6px">Jetzt sichern</button></p>
     <details class="fold" id="statFold" style="margin-top:6px">
       <summary>Statistik</summary>
@@ -445,7 +448,8 @@ textarea{width:100%;min-height:84px;background:var(--surface);color:var(--text);
           <button type="button" data-harm="root">Grundton</button>
           <button type="button" data-harm="off">Aus</button>
         </div></div>
-      <div><div class="lbl">Warm-up<small>Wechselt täglich. Ohne Warm-up geht die Zeit an das Hauptlick.</small></div><button class="switch" role="switch" id="swWarm" type="button" aria-label="Warm-up"></button></div>
+      <div><div class="lbl">Ankündigen und einzählen<small>Vor Burst, Slow down und Groove zählt die App einen Takt lang sichtbar herunter und klickt dazu.</small></div><button class="switch" role="switch" id="swAnn" type="button" aria-label="Ankündigen und einzählen"></button></div>
+      <div id="voiceRow"><div class="lbl">Gesprochene Ansage<small>Sagt „Burst“, „Slow down“ und „Groove“ an. Funktioniert nicht auf jedem Gerät.</small></div><button class="switch" role="switch" id="swVoice" type="button" aria-label="Gesprochene Ansage"></button></div>
       <div><div class="lbl">Lick mithören<small>Die App spielt die Töne leise mit.</small></div><button class="switch" role="switch" id="swLick" type="button" aria-label="Lick mithören"></button></div>
       <div><div class="lbl">Tonart<small>Automatisch wechselt wöchentlich zwischen den Tonarten, die du schon geöffnet hast.</small></div>
         <div class="seg" id="keySeg" role="group" aria-label="Tonart">
@@ -650,7 +654,7 @@ const STAGE_TXT = {1:"", 2:" · Bursts über zwei Takte", 3:" · mit Sechzehntel
 /* ================= state ================= */
 const KEY = "gitarren-uebe-app.v1";
 function fresh(){
-  return {v:1, updatedAt:0, settings:{theme:"dark", key:"auto", emOpen:true, tuning:"std", fbLimit:5, limV:2, beat:"click", harmony:"chord", warmup:true, earEnd:true, lickSound:false, fretboard:false, minutes:10},
+  return {v:1, updatedAt:0, settings:{theme:"dark", key:"auto", emOpen:true, tuning:"std", fbLimit:5, limV:2, beat:"click", harmony:"chord", announce:true, voice:false, earEnd:true, lickSound:false, fretboard:false, minutes:6},
           introduced:3, prog:{}, days:[], seconds:0, log:{}, backupAt:0, fb:{l:{}, skip:{}}, vp:{}, custom:[]};
 }
 let state = fresh(), OWN = null;
@@ -694,7 +698,7 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 /* older saves had a plain on/off switch for chords */
 function adopt(s){ const st = Object.assign(fresh().settings, s.settings||{}); if(st.chords === false) st.harmony = "off"; delete st.chords;
   /* the time limit used to default to 8 s with 5, 8, 12 to choose from; now 5 s with 3, 5, 8 */
-  if(!(s.settings && s.settings.limV === 2)){ st.fbLimit = st.fbLimit === 12 ? 8 : 5; st.limV = 2; } const o = Object.assign(fresh(), s, {settings:st}); o.introduced = Math.max(3, o.introduced || 0); if(!Array.isArray(o.custom)) o.custom = []; if(!o.vp) o.vp = {}; if(!o.log) o.log = {}; OWN = null; return o; }
+  if(!(s.settings && s.settings.limV === 2)){ st.fbLimit = st.fbLimit === 12 ? 8 : 5; st.limV = 2; } const o = Object.assign(fresh(), s, {settings:st}); o.introduced = Math.max(3, o.introduced || 0); if(!Array.isArray(o.custom)) o.custom = []; if(!o.vp) o.vp = {}; if(!o.log) o.log = {}; if([2,4,6,8].indexOf(st.minutes) < 0) st.minutes = 6; delete st.warmup; OWN = null; return o; }
 try{ const raw = localStorage.getItem(KEY); if(raw){ const s = JSON.parse(raw); if(s && s.v===1) state = adopt(s); } }catch(e){}
 
 function addTime(sec){ sec = Math.round(sec); if(sec <= 0) return; state.seconds += sec; if(!state.log) state.log = {}; const d = dstr(); state.log[d] = (state.log[d] || 0) + sec; }
@@ -730,15 +734,18 @@ function applyRating(id, rating, day){
   const wasSolid = p.days.length >= 5; let msg;
   if(rating === "clean"){
     if(!p.days.includes(day)) p.days.push(day);
-    if(!p.at.includes(day)) p.at.push(day);
-    if(p.at.length >= 3){
-      const nb = Math.min(cap, p.bpm + tempoStep(p.bpm)); p.at = [];
-      if(nb > p.bpm){ p.bpm = nb; msg = "Das Tempo steigt auf "+p.bpm+" BPM."; }
-      else msg = sustain && cap < SUSTAIN_CAP ? "Das Dauertempo hat das Burst-Tempo erreicht und wartet darauf." : "Das Zieltempo von "+p.bpm+" BPM ist erreicht.";
+    if(p.up === day) msg = "Sauber. Das Tempo ist heute schon gestiegen und bleibt bei "+p.bpm+" BPM.";
+    else{
+      if(!p.at.includes(day)) p.at.push(day);
+      if(p.at.length >= (p.bpm >= 100 ? 2 : 1)){
+        const nb = Math.min(cap, p.bpm + 2); p.at = [];
+        if(nb > p.bpm){ p.bpm = nb; p.up = day; msg = "Das Tempo steigt auf "+p.bpm+" BPM."; }
+        else msg = sustain && cap < SUSTAIN_CAP ? "Das Dauertempo hat das Burst-Tempo erreicht und wartet darauf." : "Das Zieltempo von "+p.bpm+" BPM ist erreicht.";
+      }
+      else msg = "Sauber bei "+p.bpm+" BPM. Nach dem nächsten sauberen Tag steigt das Tempo.";
     }
-    else msg = p.at.length+" von 3 sauberen Tagen bei "+p.bpm+" BPM.";
   }else if(rating === "bad"){
-    p.bpm = Math.max(44, p.bpm - 8); p.at = []; msg = "Das Tempo geht zurück auf "+p.bpm+" BPM.";
+    p.bpm = Math.max(44, p.bpm - 4); p.at = []; msg = "Das Tempo geht zurück auf "+p.bpm+" BPM.";
   }else msg = "Das Tempo bleibt bei "+p.bpm+" BPM.";
   if(!sustain && !wasSolid && p.days.length >= 5) msg += " Das Lick ist jetzt gefestigt, die Bursts werden länger.";
   if(!sustain && p.days.length === 8 && rating === "clean" && p.hist.filter(x => x[2] === "clean" && x[0] === day).length === 1) msg += " Ab jetzt kommt die Sechzehntel-Phase dazu.";
@@ -951,27 +958,38 @@ function vocabBlock(sec){
   const shape = [].concat(V.parts[0].notes, V.parts[1].notes, V.parts[2].notes);
   return {kind:"vocab", id:V.id, title:"Vokabular-Lick in drei Teilen", rateName:V.name, bpm:bpm, bars:bars, rated:true, shape:shape, chord:V.parts[0].chord};
 }
+/* practice days since the fretboard or a position last came up */
+function revWait(){ const at = state.revAt || ""; return (state.days || []).filter(d => d > at).length; }
+function reviewBlock(){
+  const rev = []; if(fbLearned().length) rev.push({kind:"fret", title:"Griffbrett", sec:120, rated:false}); if(POS_ORDER.some(posDone)) rev.push({kind:"pos", title:"Position", sec:120, rated:false});
+  return rev.length ? rev[dayNo() % rev.length] : null;
+}
+/* A round is made of two-minute blocks: 2 min main lick, 4 min plus a second lick, 6 min plus a review block,
+   8 min plus the vocabulary lick and the listening moment. Warming up is a separate, voluntary button. */
 function buildSession(minutes){
   maybeIntroduce();
-  const o = lickOrder(), main = o[0], third = o[1] || o[0];
-  /* the repetition block alternates: one day a lick from the repertoire, the next a lick in work */
+  const o = lickOrder(), main = o[0], B = 120;
   const rp = repertoire().sort(byLast), wk = working().filter(l => l !== main && peek(l.id).hist.length).sort(byLast);
   const second = (rp.length && (dayNo() % 2 === 0 || !wk.length)) ? rp[0] : wk[0] || rp[0] || o[1] || o[0];
-  const plan = minutes === 5 ? {warm:45, main:150, vocab:90} : minutes === 20 ? {warm:110, main:320, rep:170, main2:300, vocab:200} : minutes === 15 ? {warm:90, main:280, rep:140, main2:150, vocab:170} : {warm:70, main:230, rep:110, vocab:150};
-  const warm = state.settings.warmup !== false, mainSec = plan.main + (warm ? 0 : plan.warm);
-  const blocks = warm ? [warmBlock(plan.warm, peek(main.id).bpm, main)] : [];
-  const mb = lickBlock(main, "Hauptlick", mainSec, true); mb.remake = extra => lickBlock(main, "Hauptlick", mainSec + extra, true); blocks.push(mb);
-  if(plan.rep) blocks.push(stage(second.id) >= 3 ? durBlock(second, plan.rep) : lickBlock(second, "Wiederholung", plan.rep, false));
-  if(plan.main2) blocks.push(lickBlock(third, "Zweites Lick", plan.main2, true));
-  const day = Math.floor((Date.now() - new Date().getTimezoneOffset()*60000)/86400000), familiar = activeLicks().filter(l => !l.own && peek(l.id).days.length)[0];
-  if(plan.rep && familiar && day % 3 === 2) blocks.push(guestBlock(familiar, ["trip","34","68"][Math.floor(day/3) % 3], 90));
-  if(plan.rep){
-    const rev = []; if(fbLearned().length) rev.push({kind:"fret", title:"Griffbrett", sec:100, rated:false}); if(POS_ORDER.some(posDone)) rev.push({kind:"pos", title:"Position", sec:90, rated:false});
-    if(rev.length) blocks.push(rev[dayNo() % rev.length]);
+  const secondBlock = () => stage(second.id) >= 3 ? durBlock(second, B) : lickBlock(second, second === main ? "Hauptlick, zweite Runde" : "Zweites Lick", B, false);
+  const blocks = [lickBlock(main, "Hauptlick", B, true)], rev = reviewBlock();
+  if(minutes >= 4) blocks.push(minutes === 4 && rev && revWait() >= 3 ? rev : secondBlock());
+  if(minutes >= 6) blocks.push(rev || vocabBlock(B));
+  if(minutes >= 8){
+    const day = Math.floor((Date.now() - new Date().getTimezoneOffset()*60000)/86400000), familiar = activeLicks().filter(l => !l.own && peek(l.id).days.length)[0];
+    if(!rev){ const other = o.filter(l => l !== main && l !== second)[0]; blocks.push(familiar ? guestBlock(familiar, ["trip","34","68"][day % 3], B) : lickBlock(other || main, other ? "Drittes Lick" : "Hauptlick, zweite Runde", B, true)); }
+    else{ const ear = state.settings.earEnd !== false && POS_ORDER.some(posDone); blocks.push(vocabBlock(ear ? 85 : B)); if(ear) blocks.push({kind:"hear", title:"Hör-Moment", sec:35, rated:false}); }
   }
-  blocks.push(vocabBlock(plan.vocab));
-  if(state.settings.earEnd !== false && POS_ORDER.some(posDone)) blocks.push({kind:"hear", title:"Hör-Moment", sec:40, rated:false});
   return {kind:"daily", blocks:blocks};
+}
+/* Voluntary warm-up before the round: about a minute, the tempo rises gently from block to block. */
+function buildWarmup(){
+  const main = lickOrder()[0], top = Math.min(84, Math.max(56, peek(main.id).bpm)), lo = Math.max(50, top - 18), blocks = [];
+  for(let k=0;k<4;k++){
+    const t = Math.round(lo + (top - lo)*k/3), b = warmBlock(16, t + 12, main);
+    if(k) b.bars.shift(); b.bars = b.bars.slice(0, k ? 3 : 4); b.bpm = Math.max(50, t); b.title = b.title.replace(/ · .*/, "") + " · Tempo steigt"; blocks.push(b);
+  }
+  return {kind:"warmup", blocks:blocks};
 }
 function buildTest(){
   const l = LICKS[0];
@@ -982,6 +1000,8 @@ function buildTest(){
 }
 function blockSec(b){ return b.sec || b.bars.length*(b.bpb||4)*60/b.bpm; }
 
+/* spoken announcements where the device can do it; silently skipped elsewhere */
+function say(txt){ try{ if(!("speechSynthesis" in window)) return; const u = new SpeechSynthesisUtterance(txt); u.lang = "en-US"; u.rate = 1.15; u.volume = .9; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 /* ================= audio ================= */
 const A = {ctx:null, out:null, noise:null};
 function ensureAudio(){
@@ -1011,6 +1031,7 @@ function noise(t, ftype, freq, peak, len){
 const hz = m => 440*Math.pow(2, (m-69)/12);
 const snd = {
   click:(t, acc) => tone(t, "sine", acc ? 1568 : 1046, 0, acc ? .5 : .3, .06),
+  cue:(t, k) => tone(t, "square", 620 + k*120, 0, .12, .05),
   kick:t => tone(t, "sine", 150, 46, .9, .24),
   snare:t => { noise(t, "bandpass", 1900, .45, .16); tone(t, "triangle", 196, 150, .25, .1); },
   hat:t => noise(t, "highpass", 7500, .12, .045),
@@ -1059,7 +1080,7 @@ function startBlock(){
     const pos = POS_ORDER.filter(posDone).sort((a,c) => lastDay(a) < lastDay(c) ? -1 : lastDay(a) > lastDay(c) ? 1 : 0)[0];
     startQuiz({title:"Position "+pos+" · "+KEYS[key].name, rootPc:KEYS[key].root, prompts:posPrompts(pos, key).filter(x => !x.guided && x.group), onDone:r => {
       const rc = vpRec(pos, key); if(r.helps <= 2 && !rc.days.includes(dstr())) rc.days.push(dstr());
-      sess.done += b.sec; addTime(b.sec); sess.results.push({name:"Position "+pos+" in "+KEYS[key].name, msg:resTxt(r)});
+      sess.done += b.sec; addTime(b.sec); state.revAt = dstr(); sess.results.push({name:"Position "+pos+" in "+KEYS[key].name, msg:resTxt(r)});
       closeQuiz(); nextBlock();
     }});
     return;
@@ -1076,7 +1097,7 @@ function startBlock(){
   if(b.kind === "fret"){
     $("skipBtn").hidden = true; run = null; clearInterval(timer); cancelAnimationFrame(raf);
     startQuiz({title:"Griffbrett · Wiederholung", prompts:reviewPrompts(8), onDone:r => {
-      sess.done += b.sec; addTime(b.sec); sess.results.push({name:"Griffbrett", msg:resTxt(r)});
+      sess.done += b.sec; addTime(b.sec); state.revAt = dstr(); sess.results.push({name:"Griffbrett", msg:resTxt(r)});
       closeQuiz(); nextBlock();
     }});
     return;
@@ -1101,6 +1122,14 @@ function schedule(){
   while(run.ev < run.events.length){
     const e = run.events[run.ev], t = run.t0 + e.b*run.spb; if(t > horizon) break; run.ev++;
     if(t < A.ctx.currentTime - .05) continue;
+    if(e.kind === "beat" && st.announce !== false){
+      /* the bar before a burst, a slow part or a groove is counted in with its own rising clicks */
+      const bi = Math.floor(e.b/run.bpb + 1e-6), cb = run.bars[bi], nb = run.bars[bi+1];
+      if(cb && nb && cb.type !== "count" && cb.type !== nb.type && (nb.type === "B" || nb.type === "S" || nb.type === "R")){
+        snd.cue(t, e.k);
+        if(e.k === 0 && st.voice) say(nb.type === "B" ? "Burst" : nb.type === "S" ? "Slow down" : "Groove");
+      }
+    }
     if(e.kind === "beat"){ if(e.count || st.beat === "click") snd.click(t, e.k===0); else if(e.k === 0 || (run.bpb === 4 && e.k === 2)) snd.kick(t); else snd.snare(t); }
     else if(e.kind === "hat"){ if(st.beat === "drums") snd.hat(t); }
     else if(e.kind === "pad"){
@@ -1120,19 +1149,20 @@ function frame(){
 function hud(beat){
   const i = Math.max(0, Math.min(run.bars.length-1, Math.floor(beat/run.bpb))), cur = run.bars[i], nxt = run.bars[i+1];
   let word = "", cls = "", hint = "", lbl = "", hcls = "";
+  const ann = state.settings.announce !== false, soon = ann ? "Noch " + Math.max(1, run.bpb - Math.floor(((beat % run.bpb) + run.bpb) % run.bpb)) : "Gleich";
   const burstTask = bl => bl.own ? "Doppelt so schnell, locker bleiben" : bl.long ? "Vier Takte Sechzehntel, gleichmäßig" : "Sechzehntel, locker bleiben";
   if(beat < 0){ word = "Bereit"; cls = "soon"; }
   else if(cur.type === "count"){ word = String(Math.floor(beat%run.bpb)+1); hint = "Einzählen"; }
   else if(cur.type === "B"){ word = "Burst!"; cls = "burst"; lbl = "Auftrag"; hint = burstTask(run.block); hcls = "task warm"; }
   else if(cur.type === "S"){ word = "Slow down!"; cls = "slow"; lbl = "Auftrag"; hint = cur.hint || "Langsam und sauber"; hcls = "task cool"; }
   else if(cur.type === "R"){ word = "Groove!"; cls = "groove"; lbl = "Auftrag"; hint = cur.hint; hcls = "task violet"; }
-  else if(nxt && nxt.type === "R"){ word = "Groove!"; cls = "groove soon"; lbl = "Gleich"; hint = nxt.hint; hcls = "dim violet"; }
-  else if(nxt && nxt.type === "B"){ word = "Burst!"; cls = "burst soon"; lbl = "Gleich"; hint = burstTask(run.block); hcls = "dim warm"; }
-  else if(nxt && nxt.type === "S"){ word = "Slow down!"; cls = "slow soon"; lbl = "Gleich"; hint = nxt.hint || "Langsam und sauber"; hcls = "dim cool"; }
+  else if(nxt && nxt.type === "R"){ word = "Groove!"; cls = "groove soon"; lbl = soon; hint = nxt.hint; hcls = "dim violet"; }
+  else if(nxt && nxt.type === "B"){ word = "Burst!"; cls = "burst soon"; lbl = soon; hint = burstTask(run.block); hcls = "dim warm"; }
+  else if(nxt && nxt.type === "S"){ word = "Slow down!"; cls = "slow soon"; lbl = soon; hint = nxt.hint || "Langsam und sauber"; hcls = "dim cool"; }
   else hint = cur.label || run.block.note || "";
   const key = word+"|"+cls+"|"+hint+"|"+lbl+"|"+i;
   if(key !== run.hud){
-    run.hud = key; $("word").textContent = word; $("word").className = cls; $("hint").className = hcls; $("hintLbl").textContent = lbl; $("hintTxt").textContent = hint;
+    run.hud = key; $("word").textContent = word; $("word").className = cls; $("hint").className = hcls; $("hintLbl").textContent = lbl; $("hintLbl").classList.toggle("cd", ann && lbl.indexOf("Noch ") === 0); $("hintTxt").textContent = hint;
     const dg = cur.chord && !run.block.own ? degName(cur.chord) : "";
     $("pChord").textContent = cur.chord ? cur.chord + (dg ? " · Stufe " + dg : "") : ""; $("pMode").textContent = cur.mode || MODE[cur.type];
   }
@@ -1284,6 +1314,7 @@ function rate(r){
 function nextBlock(){ sess.i++; if(sess.i >= sess.blocks.length) finish(); else startBlock(); }
 function finish(){
   save(); $("pfill").style.width = "100%";
+  if(sess.kind === "warmup"){ $("sumTitle").textContent = "Aufgewärmt"; $("sumSub").textContent = "Die Finger sind warm. Jetzt kann die Runde beginnen."; fillSummary([]); $("sumPanel").hidden = false; return; }
   $("sumTitle").textContent = "Geschafft"; const n = streak();
   $("sumSub").textContent = !state.days.includes(dstr()) ? "Runde beendet. Die Zeit zählt zur Übezeit." : n > 1 ? n+" Tage in Folge geübt." : "Heute geübt. Morgen zählt als zweiter Tag in Folge.";
   fillSummary(sess.results); $("sumPanel").hidden = false;
@@ -1994,7 +2025,7 @@ function runPos(pos, key){
     : !rec.days.length ? "Zwei Töne pro Saite, zwischen Bund "+r[0]+" und "+r[1]+". Die roten Kreise sind der Grundton A, alle anderen Töne sind grün. Erst zeigt dir die App die Form, dann spielst du sie auf und ab, zum Schluss findest du einzelne Töne ohne Bild."
     : rec.days.length < 2 ? "Auf und ab durch die Form, dann einzelne Töne finden." : "Jetzt ohne Bild: auf und ab aus dem Kopf, dann einzelne Töne finden.";
   quizCard(title, intro, () => startQuiz({title:title, rootPc:K.root, prompts:posPrompts(pos, key), onDone:res => {
-    const rc = vpRec(pos, key), clean = res.helps <= 2, firstClean = clean && !rc.days.length; rc.runs++;
+    const rc = vpRec(pos, key), clean = res.helps <= 2, firstClean = clean && !rc.days.length; rc.runs++; state.revAt = dstr();
     if(clean && !rc.days.includes(dstr())) rc.days.push(dstr()); save();
     let more = "Wiederhole die Position, bis höchstens zwei Töne einen Fehler haben.";
     if(clean){
@@ -2114,7 +2145,7 @@ function drawChord(){
 function resTxt(r){ return r.clean+" von "+r.total+" Tönen fehlerfrei" + (r.errors ? ", " + r.errors + " Fehler insgesamt." : "."); }
 function runLesson(l){
   quizCard(l.title, l.intro, () => startQuiz({title:l.title, prompts:lessonPrompts(l), onDone:r => {
-    const rec = fbRec(l.id), clean = r.helps <= 1, first = !rec.days.length; rec.runs++;
+    const rec = fbRec(l.id), clean = r.helps <= 1, first = !rec.days.length; rec.runs++; state.revAt = dstr();
     if(clean && !rec.days.includes(dstr())) rec.days.push(dstr()); save();
     const i = FB.indexOf(l), nxt = FB[i+1];
     $("qEndTitle").textContent = clean ? "Sauber" : "Noch einmal";
@@ -2204,7 +2235,7 @@ function renderHome(){
   document.querySelectorAll("#beatSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.beat === st.beat)));
   document.querySelectorAll("#limSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.lim === st.fbLimit)));
   document.querySelectorAll("#harmSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.harm === st.harmony)));
-  $("swWarm").setAttribute("aria-checked", String(st.warmup)); $("swEar").setAttribute("aria-checked", String(st.earEnd !== false)); $("swLick").setAttribute("aria-checked", String(st.lickSound)); $("swFret").setAttribute("aria-checked", String(st.fretboard));
+  $("swAnn").setAttribute("aria-checked", String(st.announce !== false)); $("swVoice").setAttribute("aria-checked", String(!!st.voice)); $("voiceRow").hidden = !("speechSynthesis" in window); $("swEar").setAttribute("aria-checked", String(st.earEnd !== false)); $("swLick").setAttribute("aria-checked", String(st.lickSound)); $("swFret").setAttribute("aria-checked", String(st.fretboard));
 
   renderLicks();
   $("legend").innerHTML = [1,2,3,4,5].map(k => '<span style="--lv:var(--lv'+k+')"><i></i>'+LEVELS[k]+'</span>').join("");
@@ -2219,6 +2250,8 @@ function renderHome(){
   const ml = $("mapList"); ml.textContent = "";
   map.forEach(m => { const li = document.createElement("li"); li.innerHTML = '<div class="row'+(m[3]==="gesperrt" ? " locked" : "")+'"><span class="rname">'+m[0]+'</span><span class="rmeta">'+m[1]+'</span><span class="rside"><span class="pill '+m[2]+'">'+m[3]+'</span></span></div>'; ml.append(li); });
   renderVocab(); drawChord(); renderStats(); renderBackup();
+  { const rv = reviewBlock(), n = revWait(), show = !!rv && st.minutes === 2 && n >= 3; $("revLine").hidden = !show;
+    if(show) $("revTxt").textContent = (rv.kind === "fret" ? "Das Griffbrett wartet" : "Die Positionen warten") + " seit " + n + " Übetagen."; }
   $("testLine").hidden = !!state.settings.testSeen || (state.days || []).length > 0 || Object.keys(state.prog).some(k => state.prog[k].hist && state.prog[k].hist.length);
   renderFb();
   drawPreview();
@@ -2237,6 +2270,8 @@ $("qShow").addEventListener("click", qReveal);
 $("qAgain").addEventListener("click", playPhrase);
 $("qManual").addEventListener("click", () => { if(Q && Q.mode === "quiz" && !Q.pending) qHit(); });
 $("startBtn").addEventListener("click", () => startSession(buildSession(state.settings.minutes)));
+$("warmBtn").addEventListener("click", () => startSession(buildWarmup()));
+$("revBtn").addEventListener("click", () => { const rv = reviewBlock(); if(rv) startSession({kind:"daily", blocks:[rv]}); });
 $("testBtn").addEventListener("click", () => startSession(buildTest()));
 $("testNow").addEventListener("click", () => startSession(buildTest()));
 $("testLater").addEventListener("click", () => { state.settings.testSeen = true; save(); renderHome(); });
@@ -2252,7 +2287,7 @@ $("posList").addEventListener("click", e => {
 });
 $("limSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.fbLimit = +b.dataset.lim; save(); renderHome(); });
 $("beatSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.beat = b.dataset.beat; save(); renderHome(); });
-[["swWarm","warmup"],["swEar","earEnd"],["swLick","lickSound"],["swFret","fretboard"]].forEach(p => $(p[0]).addEventListener("click", () => { state.settings[p[1]] = !state.settings[p[1]]; save(); renderHome(); }));
+[["swAnn","announce"],["swVoice","voice"],["swEar","earEnd"],["swLick","lickSound"],["swFret","fretboard"]].forEach(p => $(p[0]).addEventListener("click", () => { state.settings[p[1]] = !state.settings[p[1]]; save(); renderHome(); }));
 $("themeSeg").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; state.settings.theme = b.dataset.theme; save(); applyTheme(); renderHome(); });
 /* menu: one area at a time instead of one long page */
 const VIEWS = ["heute","licks","griffbrett","vokabular","tuner","optionen"];
